@@ -1,0 +1,80 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time; queued rather than cancelled so a merge is never
+# published over by an older run.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the docs toolchain and yani-core
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+          # mkdocstrings reads the .pyi stubs shipped inside this wheel; there
+          # is no Python in this repository for it to read instead. The pin
+          # matches pyproject's, so the reference documents exactly the version
+          # `pip install yani` resolves to.
+          PIN="$(grep -oP 'yani-core==\K[^"]+' pyproject.toml)"
+          pip install "yani-core==$PIN"
+
+      - name: Build
+        run: mkdocs build -f mkdocs.yml --strict
+
+      - name: The API reference must have resolved
+        shell: bash
+        run: |
+          # An empty reference page builds and deploys just as happily as a full
+          # one, so assert that griffe actually found the stubs.
+          python - <<'EOF'
+          import pathlib, sys
+          html = pathlib.Path("site/api/index.html").read_text()
+          missing = [n for n in ("yani.Material", "yani.PulseSchedule", "yani.Pulse",
+                                 "yani.Cooldown", "yani.NeutronSource")
+                     if n not in html]
+          print("API reference rendered from the yani-core stubs:", not missing)
+          if missing:
+              sys.exit(f"absent from the reference: {missing}")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: site
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

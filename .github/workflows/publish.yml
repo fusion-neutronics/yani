@@ -1,0 +1,98 @@
+name: Publish to PyPI
+
+# `yani` is a metadata-only distribution: it carries no code and exists to give
+# the compiled `yani-core` wheel a name people can install. Its one job is to
+# depend on the matching yani-core version, so the release order is fixed:
+# yani-core goes out first, from the core repository, and this follows.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (defaults to pyproject's, no upload)"
+        required: false
+
+jobs:
+  build:
+    name: Build the distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set the version and the yani-core pin from the release tag
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          # Both the version and the pin, together: a release whose pin lagged
+          # would install a core wheel that does not match these docs.
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
+          sed -i "s/^dependencies = \[\"yani-core==.*\"\]/dependencies = [\"yani-core==$VERSION\"]/" pyproject.toml
+          grep -E '^(version|dependencies)' pyproject.toml
+
+      - name: The pinned yani-core must already be on PyPI
+        shell: bash
+        run: |
+          # Publishing ahead of the core release would put a permanently
+          # uninstallable version on PyPI: the pin is exact, and a PyPI version
+          # can never be re-uploaded once it exists.
+          PIN="$(grep -oP 'yani-core==\K[^"]+' pyproject.toml)"
+          echo "pinned yani-core==$PIN"
+          code="$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/yani-core/$PIN/json")"
+          if [ "$code" != "200" ]; then
+            echo "::error::yani-core $PIN is not on PyPI (HTTP $code). Release yani-core first." >&2
+            exit 1
+          fi
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: The wheel must contain no Python
+        shell: bash
+        run: |
+          # The whole design is that this distribution ships metadata only. A
+          # stray module here would shadow the one yani-core provides and the
+          # failure would look like a missing attribute at import time.
+          python - <<'EOF'
+          import glob, sys, zipfile
+          whl = glob.glob("dist/*.whl")[0]
+          bad = [n for n in zipfile.ZipFile(whl).namelist()
+                 if not n.startswith("yani-") or n.endswith((".py", ".pyi", ".so"))]
+          print(f"{whl}:", *zipfile.ZipFile(whl).namelist(), sep="\n  ")
+          if bad:
+              sys.exit(f"wheel ships more than metadata: {bad}")
+          print("metadata-only: OK")
+          EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: [build]
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/yani
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/

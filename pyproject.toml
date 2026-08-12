@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "yani"
+# Kept in lockstep with yani-core: CI rewrites both this and the pin below from
+# the release tag, and refuses to publish if that version is not on PyPI yet.
+version = "0.4.0"
+description = "Yet Another Nuclide Inventory: transmutation and activation without transport"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["nuclear", "transmutation", "activation", "inventory", "fusion", "neutronics"]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+# The whole distribution. `yani-core` is the compiled wheel and it provides the
+# `yani` module itself, so this package deliberately ships no code: nothing to
+# re-export, nothing to keep in sync, and no second copy of the type stubs.
+# (`pip install pillow` giving `import PIL` is the same arrangement inverted.)
+#
+# The pin is exact. A range would let `pip install yani==0.4.0` resolve to a
+# core wheel whose API does not match the docs published for 0.4.0.
+dependencies = ["yani-core==0.4.0"]
+
+[project.urls]
+Homepage = "https://github.com/fusion-neutronics/yani"
+Documentation = "https://fusion-neutronics.github.io/yani/"
+Repository = "https://github.com/fusion-neutronics/yani"
+Issues = "https://github.com/fusion-neutronics/yani/issues"
+
+# Hatchling expects to find a package to build; there is none, and that is the
+# point. Declaring an empty file set makes the metadata-only wheel explicit
+# rather than a build error.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.sdist]
+include = ["README.md", "LICENSE", "pyproject.toml"]

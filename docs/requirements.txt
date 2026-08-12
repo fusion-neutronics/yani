@@ -1,0 +1,6 @@
+# Docs toolchain. `yani-core` is not listed here: the workflow installs it at
+# the version pinned in pyproject.toml, so the reference documents exactly what
+# `pip install yani` resolves to.
+mkdocs>=1.6
+mkdocs-material>=9.5
+mkdocstrings[python]>=1.0
