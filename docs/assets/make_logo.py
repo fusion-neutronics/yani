@@ -66,7 +66,7 @@ def nucleon_cluster(cx, cy, positions, colours, nucleon_r):
 # --- the reaction sits on the A/N seam, at letter height -- lower than a
 # separate band above the wordmark, and without spreading the letters apart
 # to clear room for it --------------------------------------------------------
-nx, ny = int(an_seam), int(H * 0.46)
+nx, ny = int(an_seam), int(H * 0.36)
 start = (int(W * 0.03), int(H * 0.92))
 
 # incoming neutron, dashed
