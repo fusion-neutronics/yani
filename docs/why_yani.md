@@ -77,15 +77,16 @@ is no geometry to build and no particle transport run to get through first.
 YANI folds continuous-energy cross sections against your spectrum directly,
 as one function call.
 
-**Parsed nuclear data stays loaded for the life of the process.** Cross
+**Parsed nuclear data stays loaded in RAM, not reloaded from disk.** Cross
 section libraries and transmutation chains are parsed once per source, a
 library keyword or a file path, into a process-wide cache keyed on exactly
 that, and reused from then on. Looping over many materials, spectra or
 schedule variants in one script pays the parse cost once, not once per
 `transmute()` call, and a later call that needs a wider slice of the same
 source (say, more reactions) tops the cache up rather than re-parsing it from
-scratch. Downloads are cached the same way, to disk under `~/.cache/yamc`, so
-a second run of the script does not refetch either.
+scratch. Downloads are cached separately, to disk under `~/.cache/yamc`, so a
+second run of the script does not refetch either, but the in-memory cache is
+what saves a second call in the same process from touching disk at all.
 
 **The chain that gets built is exactly the one your material can reach, no
 manual depth setting required.** Rather than truncating the transmutation
