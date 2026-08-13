@@ -94,8 +94,8 @@ nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=9 * SS)
 
 # the alpha particle (2 protons, 2 neutrons), ejected sideways so its track
 # stays inside the band instead of dropping into the letters
-ax_, ay_ = nx - 78 * SS, ny + 6 * SS
-d.line([nx - 24 * SS, ny + 2 * SS, ax_ + 20 * SS, ay_], fill=GREEN, width=6 * SS)
+ax_, ay_ = nx - 46 * SS, ny + 32 * SS
+d.line([nx - 20 * SS, ny + 18 * SS, ax_ + 14 * SS, ay_ - 12 * SS], fill=GREEN, width=6 * SS)
 alpha_positions = [(-8 * SS, -8 * SS), (8 * SS, -8 * SS), (-8 * SS, 8 * SS), (8 * SS, 8 * SS)]
 alpha_colours = [RED, RED, BLUE, BLUE]
 nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=9 * SS)
