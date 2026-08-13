@@ -14,7 +14,7 @@ first, and no system package to hunt down.
 **Nuclear data downloads on demand.** Point a setting at a library keyword and
 the sections your calculation actually needs are fetched and cached on first
 use, not a whole evaluation up front. See
-[Where the data comes from](getting_started.md#where-the-data-comes-from).
+[Where the data comes from](usage.md#where-the-data-comes-from).
 
 **The license stack is fully permissive.** YANI itself is MIT. Nothing in the
 dependency chain forces a copyleft license onto whatever you build with it, so

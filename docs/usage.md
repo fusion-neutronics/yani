@@ -171,12 +171,41 @@ Five module-level settings, read and written like attributes:
 
 Each takes a library keyword or a path, and each can point somewhere different,
 so a network can mix libraries by subsection: a TENDL reactions network
-borrowing ENDF/B-VIII.1 decay data is the usual arrangement.
-`cross_section_data` also accepts a dict keyed by nuclide; the four
-`transmutation_*` settings take a single value each. They are global process
-state, not per-call arguments. See
+borrowing ENDF/B-VIII.1 decay data is the usual arrangement. They are global
+process state, not per-call arguments. See
 [Point it at nuclear data](getting_started.md#point-it-at-nuclear-data) for
 which library publishes which subsection.
+
+## Where the data comes from
+
+A keyword is resolved on first use: the sections needed are downloaded and
+cached under `~/.cache/yamc`, then reused. Only the sections activation reads
+are fetched, never a whole library, so this is a small fraction of a transport
+data set.
+
+Every setting also accepts a **path** to a local converted directory instead of
+a keyword:
+
+<!-- doctest: skip -->
+```python
+yani.transmutation_reactions = "/data/my-network.arrow"
+```
+
+`cross_section_data` additionally accepts a **dict** keyed by nuclide, to mix
+sources nuclide by nuclide. The four `transmutation_*` settings take a single
+value each, since a network is assembled per subsection rather than per nuclide:
+
+<!-- doctest: skip -->
+```python
+yani.cross_section_data = {
+    "Fe56": "tendl-2025",
+    "Li6": "endf-b8.1",
+    "Be9": "/data/Be9.arrow",
+}
+```
+
+To build the data yourself from ENDF tapes rather than download it, the
+converters ship on this wheel: see [Making your own data](#making-your-own-data).
 
 ## Making your own data
 
