@@ -62,11 +62,8 @@ add a reproducible V&V script for it.
 **No transport solve stands between your spectrum and an answer.** Point a
 `Material` at whatever spectrum you already have and call `transmute()`; there
 is no geometry to build and no particle transport run to get through first.
-Contrast this with a coupled depletion operator that needs a transport model
-to produce reaction rates, or a transport-independent one that still needs
-multigroup microscopic cross sections from somewhere, typically a separate
-transport run of its own. YANI folds continuous-energy cross sections against
-your spectrum directly, in-process.
+YANI folds continuous-energy cross sections against your spectrum directly,
+in-process.
 
 **Parsed nuclear data stays loaded for the life of the process.** Cross
 section libraries and transmutation chains are parsed once per source, a
