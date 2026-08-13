@@ -50,18 +50,3 @@ itself, its type stubs and its docstrings. `pip install yani` pulls it in.
 That arrangement is why there is no Python here: one source of truth for the
 API, and no re-export layer that can drift from it.
 
-## Relationship to yamc
-
-[yamc](https://github.com/fusion-neutronics/yamc) is a superset: everything here
-plus neutron and photon transport, geometry, tallies and transport-coupled
-transmutation. The two are **alternatives, not companions**. Installing both
-puts two extension modules in one process, so `yamc.Material` and
-`yani.Material` are distinct types and the nuclear-data configuration exists
-twice.
-
-Pick YANI when you already have a spectrum. Pick yamc when the spectrum should
-come from a transport solve.
-
-## License
-
-MIT.
