@@ -195,9 +195,28 @@ what heats the material is energy per decay, not decays per second.
 <summary>Plotting code</summary>
 
 ```python
-# Identical to the activity plot, with one substitution:
+import matplotlib.pyplot as plt
+
+cooled = results[1:]                       # drop the irradiation step
 per_step = [m.decay_heat(by_nuclide=True) for m in cooled]
-ax.set_ylabel("decay heat [W]")
+
+# The five largest by peak value, everything else summed into "other".
+keys = {k for d in per_step for k in d}
+peak = {k: max(d.get(k, 0.0) for d in per_step) for k in keys}
+top = [k for k, _ in sorted(peak.items(), key=lambda kv: -kv[1])[:5]]
+
+fig, ax = plt.subplots()
+for name in top:
+    ax.plot(days, [d.get(name, 0.0) for d in per_step], marker="o", label=name)
+ax.plot(days, [sum(v for k, v in d.items() if k not in top) for d in per_step],
+        marker="o", color="grey", label="other")
+
+ax.set_xscale("log"); ax.set_yscale("log")
+# Six decades. Below that a decayed-away nuclide is numerical dust, and
+# letting it set the scale squashes everything that matters.
+ax.set_ylim(max(peak.values()) / 1e6, max(peak.values()) * 4)
+ax.set_xlabel("time after shutdown [days]"); ax.set_ylabel("decay heat [W]")
+ax.legend()
 ```
 
 </details>
@@ -213,6 +232,8 @@ the foil would see, and it identifies the nuclide.
 <summary>Plotting code</summary>
 
 ```python
+import matplotlib.pyplot as plt
+
 energies, intensities = results[-1].decay_photon_spectrum()
 
 # 622 lines come back, most of them numerically negligible. Keep the ones
