@@ -20,7 +20,7 @@ continuous-energy library:
 ```python
 import yani
 
-yani.cross_section_data = "endf-b8.1"
+yani.cross_section_data = "tendl-2025"
 ```
 
 **The transmutation network**, for the decay constants, reaction products,
@@ -29,17 +29,22 @@ sourced subsections, so each is set on its own and a network can mix libraries:
 
 <!-- doctest: skip -->
 ```python
+yani.transmutation_reactions = "tendl-2025"
+yani.transmutation_branch_ratios = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"
-yani.transmutation_reactions = "endf-b8.1"
 yani.transmutation_fission_yields = "endf-b8.1"
-yani.transmutation_branch_ratios = "endf-b8.1"
 ```
 
 Each takes a library keyword, which is downloaded and cached on first use.
-`transmutation_reactions` is the one worth changing first: a TENDL release
-(`"tendl-2025"`, `"tendl-2017"`) covers far more parent nuclides than
-ENDF/B-VIII.1 does, while decay data and fission yields have to stay on
-`"endf-b8.1"` because TENDL publishes neither.
+The split above is not arbitrary: TENDL is a neutron-only evaluation, so it
+publishes reactions and isomeric branching but no decay data and no fission
+yields, and those two have to come from ENDF/B-VIII.1 or JEFF-4.0. Setting a
+subsection to a library that does not publish it fails immediately, listing
+what that library does have, rather than 404ing mid-download.
+
+TENDL is worth reaching for on the reactions network because it covers far
+more parent nuclides than ENDF/B-VIII.1 does, which is what decides whether an
+activation product appears in your inventory at all.
 
 These are the same five settings, with the same accepted values (a library
 keyword, a directory, or an explicit per-nuclide mapping), as yamc's. The
@@ -62,11 +67,11 @@ An irradiation schedule, a spectrum, and one call:
 ```python
 import yani
 
-yani.cross_section_data = "endf-b8.1"
-yani.transmutation_decay_data = "endf-b8.1"
-yani.transmutation_reactions = "endf-b8.1"
-yani.transmutation_fission_yields = "endf-b8.1"
-yani.transmutation_branch_ratios = "endf-b8.1"
+yani.cross_section_data = "tendl-2025"
+yani.transmutation_reactions = "tendl-2025"
+yani.transmutation_branch_ratios = "tendl-2025"
+yani.transmutation_decay_data = "endf-b8.1"      # TENDL has no decay data
+yani.transmutation_fission_yields = "endf-b8.1"  # nor fission yields
 
 # A volume is required for anything extensive (activity, decay heat, photon
 # lines): the solver works in atoms/barn-cm and the volume turns that into atoms.

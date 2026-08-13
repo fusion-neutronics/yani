@@ -15,11 +15,11 @@ pip install yani
 ```python
 import yani
 
-yani.cross_section_data = "endf-b8.1"
-chain = "transmutation-endf-b8.1-sfr.arrow"
-yani.transmutation_decay_data = chain
-yani.transmutation_reactions = chain
-yani.transmutation_fission_yields = chain
+yani.cross_section_data = "tendl-2025"
+yani.transmutation_reactions = "tendl-2025"
+yani.transmutation_branch_ratios = "tendl-2025"
+yani.transmutation_decay_data = "endf-b8.1"      # TENDL has no decay data
+yani.transmutation_fission_yields = "endf-b8.1"  # nor fission yields
 
 steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
 spectrum = yani.NeutronSource(

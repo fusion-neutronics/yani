@@ -120,7 +120,7 @@ yani.convert_neutron_xs("n-026_Fe_056.endf", "out/", njoy_exec="njoy")
 # The transmutation network, from decay, fission-yield and neutron evaluations.
 yani.convert_transmutation(
     decay_files=decay, fpy_files=fpy, neutron_files=neutron,
-    output_path="out/transmutation_endf-b8.1.arrow",
+    output_path="out/transmutation_tendl-2025.arrow",
 )
 
 # Isomeric branching, as an overlay on the network.
