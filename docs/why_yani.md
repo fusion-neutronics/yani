@@ -65,9 +65,11 @@ of a silver foil for years after `Ag110` itself has decayed away, as in the
 disappears if branching is not tracked.
 
 **Verification and validation runs against every open benchmark we have
-found**, CONDERC among them. The rest is a todo, honestly labeled: if you know
-of an open, reproducible benchmark this list is missing, tell us and we will
-add a reproducible V&V script for it.
+found**, [CoNDERC][conderc] among them. The rest is a todo, honestly labeled:
+if you know of an open, reproducible benchmark this list is missing, tell us
+and we will add a reproducible V&V script for it.
+
+[conderc]: https://nds.iaea.org/conderc/
 
 ## Fast
 
