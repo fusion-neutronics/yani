@@ -96,8 +96,8 @@ spectrum = yani.NeutronSource(
 )
 # Sample the decay at these times after shutdown, in days. A Cooldown takes the
 # duration OF THAT STEP, so the schedule needs the gaps between them.
-days = [0.05, 0.2, 1, 5, 20, 100, 400, 1500, 3650]
-gaps = [0.05, 0.15, 0.8, 4, 15, 80, 300, 1100, 2150]
+days = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 1000, 3650]
+gaps = [0.05, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10, 30, 50, 100, 800, 2650]
 
 schedule = yani.PulseSchedule(
     [yani.Pulse(rate=1.11e14, duration=(100, "d"), source=spectrum)]  # 100 days on
@@ -118,8 +118,8 @@ problem appears: which product dominates depends entirely on how long you wait.
 
 ![Activity of the foil, by nuclide, against cooling time](images/activity.png)
 
-`Ag106_m1` carries the activity for the first few weeks, then `Ag110_m1` takes
-over out to about a year, so what dominates depends entirely on when you look.
+`Ag106_m1` carries the activity for the first couple of months, then `Ag110_m1`
+takes over for a few hundred days, so what dominates depends on when you look.
 `Ag106` and `Pd109` are gone within days. Past a few years `Ag110_m1` has
 decayed too and `Ag108_m1` is what is left: it never peaks high enough to make
 the five largest, so the grey "other" line is the one still carrying the
