@@ -58,6 +58,14 @@ add a reproducible V&V script for it.
 
 ## Flexible
 
+**A schedule can mix spectra, not just magnitudes.** Every `Pulse` carries its
+own `source`, so a campaign whose neutron spectrum changes shape between
+phases, not just intensity, is expressed directly instead of approximated
+with one averaged spectrum. A fusion reactor's operating life is the obvious
+case: DD-phase pulses and DT-phase pulses each get their own spectrum in the
+same `PulseSchedule`, back to back, and the network sees the real spectrum
+shape for each phase. See [Schedules](usage.md#schedules).
+
 **Any spectrum group structure works**, not just a preset list. A `Histogram`
 takes whatever ascending list of energy boundaries your spectrum happens to
 use, of whatever length, and named structures like `CCFE-709` are a
