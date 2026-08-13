@@ -75,7 +75,7 @@ add a reproducible V&V script for it.
 `Material` at whatever spectrum you already have and call `transmute()`; there
 is no geometry to build and no particle transport run to get through first.
 YANI folds continuous-energy cross sections against your spectrum directly,
-in-process.
+as one function call.
 
 **Parsed nuclear data stays loaded for the life of the process.** Cross
 section libraries and transmutation chains are parsed once per source, a
