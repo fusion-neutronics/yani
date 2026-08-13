@@ -7,8 +7,7 @@ pip install yani
 ```
 
 The wheel carries the compiled solver, so there is nothing to build and no
-transport stack to pull in. Do not install `yamc` into the same environment
-unless you mean to: see [Relationship to yamc](index.md#relationship-to-yamc).
+transport stack to pull in.
 
 ## Point it at nuclear data
 
