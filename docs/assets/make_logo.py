@@ -1,9 +1,12 @@
 """YANI logo: a sibling of the YAMC mark, with capture instead of a track.
 
 YAMC shows a particle traversing the letters, which is what a transport code
-does. yani transmutes, so the motif is an (n,gamma) capture: a neutron arrives
-from the left, is absorbed by a nucleus sitting in the letterforms, and a gamma
-leaves it. Same typeface weight, same three colours, sampled from the YAMC png.
+does. yani transmutes, so the motif is a full reaction: a neutron arrives from
+the left and is absorbed into a large nuclide sitting on the seam between "A"
+and "N", the colour boundary the wordmark already has. The compound nuclide
+splits into an alpha particle, which drops away, and a recoiling daughter,
+which is what emits the gamma continuing on through the letters. Same
+typeface weight, same three colours, sampled from the YAMC png.
 """
 import math
 from PIL import Image, ImageDraw, ImageFont
@@ -37,6 +40,7 @@ for chars, colour in (("YA", BLUE), ("NI", ORANGE)):
     d.text((x, text_y), chars, font=font, fill=colour)
     x += d.textlength(chars, font=font)
 total_w = x - PAD
+an_seam = PAD + d.textlength("YA", font=font)   # x where "A" ends and "N" begins
 
 
 def disc(cx, cy, r, fill, ring=WHITE, ring_w=5):
@@ -46,17 +50,25 @@ def disc(cx, cy, r, fill, ring=WHITE, ring_w=5):
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
 
 
-# --- capture, crossing the letters like YAMC's track ------------------------
-# Everything here is deliberately small: the wordmark has to stay readable, so
-# the motif rides over the letters the way YAMC's dots do rather than covering
-# one. The nucleus sits high, clear of the letter bowls.
-nx, ny = int(W * 0.60), int(H * 0.37)
-start = (int(W * 0.05), int(H * 0.80))
+def nucleon_cluster(cx, cy, positions, colours, nucleon_r, halo_r):
+    """A ring-fenced blob of nucleon discs, white-haloed so it reads over a letter."""
+    d.ellipse([cx - halo_r, cy - halo_r, cx + halo_r, cy + halo_r], fill=WHITE)
+    for (ox, oy), colour in zip(positions, colours):
+        disc(cx + ox, cy + oy, nucleon_r, colour, ring_w=0)
 
+
+# --- the reaction sits on the A/N seam ---------------------------------------
+# Everything here is deliberately compact: the wordmark has to stay readable,
+# so the motif rides over the letters rather than covering one. The nuclide
+# sits high, clear of the letter bowls.
+nx, ny = int(an_seam), int(H * 0.35)
+start = (int(W * 0.04), int(H * 0.84))
+
+# incoming neutron, dashed
 dx, dy = nx - start[0], ny - start[1]
 length = math.hypot(dx, dy)
 ux, uy = dx / length, dy / length
-travel = length - 46 * SS
+travel = length - 56 * SS
 seg, gap, pos = 26 * SS, 18 * SS, 0
 while pos < travel:
     e = min(pos + seg, travel)
@@ -68,32 +80,46 @@ while pos < travel:
 disc(start[0] + ux * (travel + 14 * SS), start[1] + uy * (travel + 14 * SS),
      11 * SS, GREEN, ring_w=5 * SS)
 
-# a compact nucleus: four nucleons, white-ringed so it reads over a letter
-d.ellipse([nx - 30 * SS, ny - 30 * SS, nx + 30 * SS, ny + 30 * SS], fill=WHITE)
-for a in (0.8, 2.4, 3.9, 5.5):
-    disc(nx + 12 * SS * math.cos(a), ny + 12 * SS * math.sin(a),
-         11 * SS, BLUE if a < 3 else GREEN, ring_w=0)
+# the large nuclide the neutron is absorbed into: enough nucleons, in two
+# rings, to read as "large" next to the four-nucleon alpha below it
+big_positions = []
+for a in (i * math.pi / 3 for i in range(6)):
+    big_positions.append((16 * SS * math.cos(a), 16 * SS * math.sin(a)))
+for a in (i * math.pi / 4 + 0.4 for i in range(8)):
+    big_positions.append((30 * SS * math.cos(a), 30 * SS * math.sin(a)))
+big_colours = [BLUE if i % 2 == 0 else GREEN for i in range(len(big_positions))]
+nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=10 * SS, halo_r=44 * SS)
 
-# --- outgoing gamma: continues up and right, stopping short of the edge ------
+# the alpha particle, dropped straight down so its track reads apart from the
+# neutron's incoming line rather than as a continuation of it
+ax_, ay_ = nx - 6 * SS, ny + 92 * SS
+d.line([nx - 6 * SS, ny + 40 * SS, ax_, ay_ - 22 * SS], fill=WHITE, width=13 * SS)
+d.line([nx - 6 * SS, ny + 40 * SS, ax_, ay_ - 22 * SS], fill=GREEN, width=6 * SS)
+alpha_positions = [(-9 * SS, -9 * SS), (9 * SS, -9 * SS), (-9 * SS, 9 * SS), (9 * SS, 9 * SS)]
+alpha_colours = [BLUE, GREEN, GREEN, BLUE]
+nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=10 * SS, halo_r=24 * SS)
+
+# --- outgoing gamma from the recoiling daughter, up and right through N and I -
+gx, gy = nx + 18 * SS, ny - 14 * SS
 pts = []
 for k in range(110):
     t = k / 109
-    px = nx + 30 * SS + t * (W * 0.315)
-    py = ny - 12 * SS - t * 34 * SS + math.sin(t * math.pi * 3.0) * 11 * SS
+    px = gx + t * (W * 0.30)
+    py = gy - t * 30 * SS + math.sin(t * math.pi * 3.0) * 11 * SS
     pts.append((px, py))
 # White halo first: the gamma crosses the orange letters, so orange-on-orange
 # would disappear. Drawn in blue over the halo, the way YAMC's track reads
 # against its orange half.
 d.line(pts, fill=WHITE, width=17 * SS, joint="curve")
 d.line(pts, fill=BLUE, width=8 * SS, joint="curve")
-(ax, ay), (bx, by) = pts[-10], pts[-1]
-ang = math.atan2(by - ay, bx - ax)
+(px0, py0), (px1, py1) = pts[-10], pts[-1]
+ang = math.atan2(py1 - py0, px1 - px0)
 head = [
-    (bx + 24 * SS * math.cos(ang), by + 24 * SS * math.sin(ang)),
-    (bx + 11 * SS * math.cos(ang + 2.5), by + 11 * SS * math.sin(ang + 2.5)),
-    (bx + 11 * SS * math.cos(ang - 2.5), by + 11 * SS * math.sin(ang - 2.5)),
+    (px1 + 24 * SS * math.cos(ang), py1 + 24 * SS * math.sin(ang)),
+    (px1 + 11 * SS * math.cos(ang + 2.5), py1 + 11 * SS * math.sin(ang + 2.5)),
+    (px1 + 11 * SS * math.cos(ang - 2.5), py1 + 11 * SS * math.sin(ang - 2.5)),
 ]
-d.polygon([(x + 4 * SS * math.cos(ang), y + 4 * SS * math.sin(ang)) for x, y in head],
+d.polygon([(hx + 4 * SS * math.cos(ang), hy + 4 * SS * math.sin(ang)) for hx, hy in head],
           fill=WHITE, outline=WHITE, width=6 * SS)
 d.polygon(head, fill=BLUE)
 
