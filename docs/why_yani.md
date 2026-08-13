@@ -1,8 +1,9 @@
 # Why YANI
 
-Three things, in order of how often they decide the question: it has to be
-easy to run, the numbers have to be right, and it has to bend to the problem
-you actually have rather than the one a tool author imagined.
+Four things, in order of how often they decide the question: it has to be
+easy to run, the numbers have to be right, it has to be fast enough to use in
+a loop, and it has to bend to the problem you actually have rather than the
+one a tool author imagined.
 
 ## Easy
 
@@ -55,6 +56,27 @@ kind of result that disappears if branching is not tracked.
 found**, CONDERC among them. The rest is a todo, honestly labeled: if you know
 of an open, reproducible benchmark this list is missing, tell us and we will
 add a reproducible V&V script for it.
+
+## Fast
+
+**No transport solve stands between your spectrum and an answer.** Point a
+`Material` at whatever spectrum you already have and call `transmute()`; there
+is no geometry to build and no particle transport run to get through first.
+Contrast this with a coupled depletion operator that needs a transport model
+to produce reaction rates, or a transport-independent one that still needs
+multigroup microscopic cross sections from somewhere, typically a separate
+transport run of its own. YANI folds continuous-energy cross sections against
+your spectrum directly, in-process.
+
+**Parsed nuclear data stays loaded for the life of the process.** Cross
+section libraries and transmutation chains are parsed once per source, a
+library keyword or a file path, into a process-wide cache keyed on exactly
+that, and reused from then on. Looping over many materials, spectra or
+schedule variants in one script pays the parse cost once, not once per
+`transmute()` call, and a later call that needs a wider slice of the same
+source (say, more reactions) tops the cache up rather than re-parsing it from
+scratch. Downloads are cached the same way, to disk under `~/.cache/yamc`, so
+a second run of the script does not refetch either.
 
 ## Flexible
 
