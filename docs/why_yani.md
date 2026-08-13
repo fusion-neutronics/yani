@@ -44,13 +44,18 @@ window"; lines answer "which nuclide is that", which is what you need for
 identifying an isotope from an emitted spectrum or feeding a photon transport
 run without inheriting someone else's binning choice.
 
-**Isomeric branching is tracked, not folded into the ground state.** A
-reaction that leaves a fraction of its product in a metastable state is
-modeled as a branch to that state, with its own half-life and its own decay
-chain, rather than lumped into the ground-state inventory. `Ag110_m1`
-dominating the activity of a silver foil for years after `Ag110` itself has
-decayed away, as in the [getting started](getting_started.md) example, is the
-kind of result that disappears if branching is not tracked.
+**Isomeric branching is tracked, not folded into the ground state, and it is
+flux-weighted rather than a fixed number.** A reaction that leaves a fraction
+of its product in a metastable state is modeled as a branch to that state,
+with its own half-life and its own decay chain, rather than lumped into the
+ground-state inventory. The branching fraction itself is stored as a curve
+against incident energy, not a single evaluation-average ratio, and is folded
+against your actual spectrum at rate-compute time, so two calculations with
+different spectra but the same target nuclide can legitimately get different
+branching fractions, because they should. `Ag110_m1` dominating the activity
+of a silver foil for years after `Ag110` itself has decayed away, as in the
+[getting started](getting_started.md) example, is the kind of result that
+disappears if branching is not tracked.
 
 **Verification and validation runs against every open benchmark we have
 found**, CONDERC among them. The rest is a todo, honestly labeled: if you know
@@ -74,6 +79,22 @@ schedule variants in one script pays the parse cost once, not once per
 source (say, more reactions) tops the cache up rather than re-parsing it from
 scratch. Downloads are cached the same way, to disk under `~/.cache/yamc`, so
 a second run of the script does not refetch either.
+
+**The chain that gets built is exactly the one your material can reach, no
+manual depth setting required.** Rather than truncating the transmutation
+network at a fixed number of reaction or decay steps from the starting
+nuclides, a value that silently drops real nuclides if set too low and loads
+data no calculation needs if set too high, YANI computes a provable upper
+bound on the density every candidate nuclide could reach given the actual
+irradiation time and rates, and only loads and solves for the ones that can
+clear a floor. Nothing that could matter is dropped, and nothing that
+provably can't is loaded.
+
+**Nuclear data is a binary columnar format, not text to parse.** Cross
+sections and transmutation chains are stored as Arrow, so loading them is
+reading typed columns straight into memory rather than parsing fixed-width
+text records the way an ENDF tape has to be. Converting from ENDF or ACE is a
+one-time step; every calculation after that reads the fast format.
 
 ## Flexible
 
