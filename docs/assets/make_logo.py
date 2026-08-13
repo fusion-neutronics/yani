@@ -95,11 +95,20 @@ for a in (i * math.pi / 4 + 0.4 for i in range(8)):
 big_colours = [NEUTRON if i % 2 == 0 else RED for i in range(len(big_positions))]
 nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=9 * SS)
 
-# the alpha particle (2 protons, 2 neutrons), dropped below the nuclide so its
-# track reads apart from the neutron's incoming line rather than as a
-# continuation of it
-ax_, ay_ = nx - 4 * SS, ny + 52 * SS
-d.line([nx - 2 * SS, ny + 28 * SS, ax_, ay_ - 20 * SS], fill=GREEN, width=6 * SS)
+# the alpha particle (2 protons, 2 neutrons), dropped well clear of the
+# nuclide so the two read as separate, with an arrow between them showing the
+# alpha being ejected from the product rather than just a floating line
+ax_, ay_ = nx - 2 * SS, ny + 92 * SS
+arrow_from = (nx, ny + 30 * SS)
+arrow_to = (ax_, ay_ - 26 * SS)
+d.line([*arrow_from, *arrow_to], fill=GREEN, width=6 * SS)
+aang = math.atan2(arrow_to[1] - arrow_from[1], arrow_to[0] - arrow_from[0])
+ahead = [
+    (arrow_to[0] + 15 * SS * math.cos(aang), arrow_to[1] + 15 * SS * math.sin(aang)),
+    (arrow_to[0] + 12 * SS * math.cos(aang + 2.5), arrow_to[1] + 12 * SS * math.sin(aang + 2.5)),
+    (arrow_to[0] + 12 * SS * math.cos(aang - 2.5), arrow_to[1] + 12 * SS * math.sin(aang - 2.5)),
+]
+d.polygon(ahead, fill=GREEN)
 alpha_positions = [(-9 * SS, -9 * SS), (9 * SS, -9 * SS), (-9 * SS, 9 * SS), (9 * SS, 9 * SS)]
 alpha_colours = [RED, RED, NEUTRON, NEUTRON]
 nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=9 * SS)
