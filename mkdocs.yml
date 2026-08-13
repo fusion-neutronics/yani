@@ -73,6 +73,7 @@ markdown_extensions:
 
 nav:
   - Overview: index.md
+  - Why YANI: why_yani.md
   - Getting started: getting_started.md
   - Usage: usage.md
   - API reference: api.md
