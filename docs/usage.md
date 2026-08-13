@@ -102,10 +102,14 @@ Five module-level settings, read and written like attributes:
 | `transmutation_fission_yields` | fission product yields |
 | `transmutation_branch_ratios` | isomeric branching: which product is left in a metastable state |
 
-Each takes a library keyword, a directory, or an explicit per-nuclide mapping, and
-each can point somewhere different, so a network can mix libraries by subsection
-(a TENDL chain borrowing ENDF/B-VIII.1 decay data, for instance). They are global
-process state, exactly as in yamc: see [Nuclear data](https://fusion-neutronics.github.io/yamc/nuclear_data/).
+Each takes a library keyword or a path, and each can point somewhere different,
+so a network can mix libraries by subsection: a TENDL reactions network
+borrowing ENDF/B-VIII.1 decay data is the usual arrangement.
+`cross_section_data` also accepts a dict keyed by nuclide; the four
+`transmutation_*` settings take a single value each. They are global process
+state, not per-call arguments. See
+[Point it at nuclear data](getting_started.md#point-it-at-nuclear-data) for
+which library publishes which subsection.
 
 ## Making your own data
 

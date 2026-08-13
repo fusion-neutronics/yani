@@ -5,9 +5,9 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 (`yani.Material`, `yani.PulseSchedule`, ...) rather than the private `yani._core`
 extension module they live in.
 
-The overlap with [yamc's reference](https://fusion-neutronics.github.io/yamc/api/) is deliberate: the two wheels share
-one bindings crate, so the classes yani ships are the same classes, and only the
-transport surface is absent here.
+These are the same classes the transport package ships, since both are built
+from one bindings crate; what is absent here is the transport surface, not a
+reimplementation of the shared one.
 
 ::: yani
     options:

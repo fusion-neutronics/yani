@@ -35,23 +35,59 @@ yani.transmutation_decay_data = "endf-b8.1"
 yani.transmutation_fission_yields = "endf-b8.1"
 ```
 
-Each takes a library keyword, which is downloaded and cached on first use.
-The split above is not arbitrary: TENDL is a neutron-only evaluation, so it
-publishes reactions and isomeric branching but no decay data and no fission
-yields, and those two have to come from ENDF/B-VIII.1 or JEFF-4.0. Setting a
-subsection to a library that does not publish it fails immediately, listing
-what that library does have, rather than 404ing mid-download.
+The split above is not arbitrary. Each library publishes only some of what a
+calculation needs:
 
-TENDL is worth reaching for on the reactions network because it covers far
-more parent nuclides than ENDF/B-VIII.1 does, which is what decides whether an
-activation product appears in your inventory at all.
+| library | cross sections | `decay` | `reactions` | `fission_yields` | `branching` |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| `tendl-2025` | yes | -- | yes | -- | yes |
+| `tendl-2017` | yes | -- | yes | -- | yes |
+| `endf-b8.1` | yes | yes | yes | yes | yes |
+| `jeff-4.0` | yes | yes | yes | yes | yes |
+| `fendl-3.2d` | yes | -- | -- | -- | -- |
 
-These are the same five settings, with the same accepted values (a library
-keyword, a directory, or an explicit per-nuclide mapping), as yamc's. The
-[Nuclear data](https://fusion-neutronics.github.io/yamc/nuclear_data/) page documents them in full, including which
-library keywords are available and how a keyword resolves to a download.
+TENDL is a neutron-only evaluation, so it has no decay or fission-yield
+sublibrary and those two must come from `endf-b8.1` or `jeff-4.0`. It is still
+what you want for `reactions`, because it covers far more parent nuclides, and
+that is what decides whether an activation product appears in your inventory at
+all. `jeff-4.0` is the one alternative that supplies a complete network from a
+single library.
 
-Activation runs read only the sections activation needs, not a whole library.
+Pointing a subsection at a library that does not publish it fails immediately,
+with a message listing what that library does have, rather than failing partway
+through a download.
+
+## Where the data comes from
+
+A keyword is resolved on first use: the sections needed are downloaded and
+cached under `~/.cache/yamc`, then reused. Only the sections activation reads
+are fetched, never a whole library, so this is a small fraction of a transport
+data set.
+
+Every setting also accepts a **path** to a local converted directory instead of
+a keyword:
+
+<!-- doctest: skip -->
+```python
+yani.transmutation_reactions = "/data/my-network.arrow"
+```
+
+`cross_section_data` additionally accepts a **dict** keyed by nuclide, to mix
+sources nuclide by nuclide. The four `transmutation_*` settings take a single
+value each, since a network is assembled per subsection rather than per nuclide:
+
+<!-- doctest: skip -->
+```python
+yani.cross_section_data = {
+    "Fe56": "tendl-2025",
+    "Li6": "endf-b8.1",
+    "Be9": "/data/Be9.arrow",
+}
+```
+
+To build the data yourself from ENDF tapes rather than download it, the
+converters ship on this wheel: see
+[Making your own data](usage.md#making-your-own-data).
 
 !!! warning
     Unconfigured data tends to read as a zero rather than an error. Forgetting
