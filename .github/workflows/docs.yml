@@ -39,20 +39,58 @@ jobs:
       - name: Build
         run: mkdocs build -f mkdocs.yml --strict
 
-      - name: The API reference must have resolved
+      - name: The API reference must have resolved, and must be complete
         shell: bash
         run: |
-          # An empty reference page builds and deploys just as happily as a full
-          # one, so assert that griffe actually found the stubs.
+          # Two ways this page goes wrong, both of them silent. An empty
+          # reference builds and deploys just as happily as a full one, so
+          # assert griffe actually found the stubs. And the page names its
+          # members one by one, so a name added to yani-core would simply never
+          # appear here: assert the list still covers the module.
           python - <<'EOF'
-          import pathlib, sys
+          import pathlib, re, sys, yani
+
+          # Deliberately undocumented, each for a reason. Anything not listed
+          # here is expected on the page.
+          UNDOCUMENTED = {
+              # PyO3 submodules. Their contents are documented under the names
+              # people write, `yani.sources.Histogram`, not as submodule pages.
+              "data", "materials", "sources",
+              # The accessor pair behind each of the five nuclear-data
+              # settings. The settings are the documented interface
+              # (`yani.cross_section_data = "tendl-2025"`); nobody calls these.
+              "get_cross_section_data", "set_cross_section_data",
+              "get_transmutation_reactions", "set_transmutation_reactions",
+              "get_transmutation_decay_data", "set_transmutation_decay_data",
+              "get_transmutation_fission_yields", "set_transmutation_fission_yields",
+              "get_transmutation_branch_ratios", "set_transmutation_branch_ratios",
+              # Transport-side data preparation: secondary angle and energy
+              # distributions, the lookup accelerator the transport hot path
+              # reads, photoatomic sections. They ride along on the bindings
+              # crate shared with yamc, which is where they are documented.
+              "convert_neutron_transport", "convert_photon",
+          }
+
           html = pathlib.Path("site/api/index.html").read_text()
-          missing = [n for n in ("yani.Material", "yani.PulseSchedule", "yani.Pulse",
-                                 "yani.Cooldown", "yani.NeutronSource")
-                     if n not in html]
-          print("API reference rendered from the yani-core stubs:", not missing)
+          # Top-level names only: a member heading is `yani.Material.activity`,
+          # and the closing quote here excludes it.
+          rendered = set(re.findall(r'id="yani\.([A-Za-z_][A-Za-z0-9_]*)"', html))
+          expected = {n for n in yani.__all__ if not n.startswith("_")} - UNDOCUMENTED
+          print(f"yani {yani.__version__}: {len(rendered)} members rendered, "
+                f"{len(expected)} expected")
+
+          missing = sorted(expected - rendered)
           if missing:
-              sys.exit(f"absent from the reference: {missing}")
+              print("::error::public names absent from the API reference:",
+                    *missing, sep="\n  ")
+          # Keeps the exclusion list honest: a name dropped from yani-core
+          # should leave here too, rather than sitting as a silent excuse.
+          stale = sorted(UNDOCUMENTED - set(yani.__all__))
+          if stale:
+              print("::error::excluded names are no longer on the module:",
+                    *stale, sep="\n  ")
+          if missing or stale:
+              sys.exit(1)
           EOF
 
       - uses: actions/upload-artifact@v7
