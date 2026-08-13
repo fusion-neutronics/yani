@@ -1,13 +1,15 @@
 """YANI logo: a sibling of the YAMC mark, with capture instead of a track.
 
 YAMC shows a particle traversing the letters, which is what a transport code
-does. yani transmutes, so the motif is a full reaction, drawn in a band above
-the wordmark so the nuclides never sit on top of a letter: a neutron arrives
-from the left and is absorbed into a large nuclide sitting above the seam
-between "A" and "N", the colour boundary the wordmark already has. The
+does. yani transmutes, so the motif is a full reaction, sitting at letter
+height in a deliberate gap opened up between "A" and "N", the colour boundary
+the wordmark already has, rather than on top of either letter: a neutron
+arrives from the left and is absorbed into a large nuclide there. The
 compound nuclide splits into an alpha particle, which drops away, and a
-recoiling daughter, which is what emits the gamma. Bound nucleons are drawn
-in their own physical colours, blue neutrons and red protons, rather than the
+recoiling daughter, which is what emits the gamma continuing on through "N"
+and "I" (a line reads fine crossing a letter; a filled nuclide does not, which
+is why only the nuclides get the reserved gap). Bound nucleons are drawn in
+their own physical colours, blue neutrons and red protons, rather than the
 green used for a neutron in flight; that green, and the letters' blue and
 orange, are sampled from the YAMC png.
 """
@@ -21,34 +23,44 @@ RED = (196, 58, 51, 255)
 WHITE = (255, 255, 255, 255)
 
 SS = 4                                   # supersample, then downsample to smooth
-LETTERS_H = 225 * SS                     # the original wordmark-only canvas
-BAND_H = 108 * SS                        # clear band above it, for the reaction
-W, H = 627 * SS, LETTERS_H + BAND_H
-im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-d = ImageDraw.Draw(im)
-
-# Size the wordmark to fill the canvas width, the way YAMC's does, rather than
-# leaving a third of it empty.
+H = 225 * SS
 PAD = 16 * SS
+GAP_W = 132 * SS                         # reserved, nuclide-free, between "A" and "N"
+
+im_probe = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+dp = ImageDraw.Draw(im_probe)
+
+# Size the letters against the same target width every earlier version used,
+# so opening the gap doesn't shrink the wordmark: the canvas grows by GAP_W
+# instead.
+TARGET_W = 627 * SS
 size = 150 * SS
 while True:
     f = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
-    if d.textlength("YANI", font=f) >= W - 2 * PAD or size > 400 * SS:
+    if dp.textlength("YANI", font=f) >= TARGET_W - 2 * PAD or size > 400 * SS:
         break
     size += 4 * SS
 font = f
-box = d.textbbox((0, 0), "YANI", font=font)
-# Centred in the letters-only band, then dropped below the reaction band.
-text_y = BAND_H + (LETTERS_H - (box[3] - box[1])) // 2 - box[1]
-letters_top = BAND_H + box[1] + (LETTERS_H - (box[3] - box[1])) // 2
+ya_w = dp.textlength("YA", font=font)
+ni_w = dp.textlength("NI", font=font)
+W = PAD + int(ya_w) + GAP_W + int(ni_w) + PAD
 
-# --- letters: YA blue, NI orange, matching YAMC's split -----------------------
+im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+d = ImageDraw.Draw(im)
+box = d.textbbox((0, 0), "YANI", font=font)
+text_y = (H - (box[3] - box[1])) // 2 - box[1]
+
+# --- letters: YA blue, NI orange, matching YAMC's split, with the reaction's
+# gap opened up between them --------------------------------------------------
 x = PAD
-for chars, colour in (("YA", BLUE), ("NI", ORANGE)):
-    d.text((x, text_y), chars, font=font, fill=colour)
-    x += d.textlength(chars, font=font)
+d.text((x, text_y), "YA", font=font, fill=BLUE)
+x += ya_w
+gap_left = x
+x += GAP_W
+gap_right = x
+d.text((x, text_y), "NI", font=font, fill=ORANGE)
+x += ni_w
 total_w = x - PAD
-an_seam = PAD + d.textlength("YA", font=font)   # x where "A" ends and "N" begins
 
 
 def disc(cx, cy, r, fill):
@@ -60,13 +72,12 @@ def nucleon_cluster(cx, cy, positions, colours, nucleon_r):
         disc(cx + ox, cy + oy, nucleon_r, colour)
 
 
-# --- the reaction lives entirely in the band above the wordmark, on the A/N
-# seam, so no nuclide ever sits on a letter -----------------------------------
-nx, ny = int(an_seam), int(BAND_H * 0.52)
-start = (int(W * 0.03), int(LETTERS_H * 0.86) + BAND_H)
+# --- the reaction sits in the gap, at letter height, so no nuclide ever lands
+# on a letter; only lines are allowed to cross into the letters themselves ---
+nx, ny = int((gap_left + gap_right) / 2) + 8 * SS, int(H * 0.5)
+start = (int(W * 0.02), int(H * 0.86))
 
-# incoming neutron, dashed, the one thing allowed to cross the letters: it is
-# a line, not a filled disc, so it reads fine over either half
+# incoming neutron, dashed
 dx, dy = nx - start[0], ny - start[1]
 length = math.hypot(dx, dy)
 ux, uy = dx / length, dy / length
@@ -86,27 +97,27 @@ disc(start[0] + ux * (travel + 14 * SS), start[1] + uy * (travel + 14 * SS),
 # alpha beside it. Physical colours: blue neutrons, red protons.
 big_positions = [(0, 0)]
 for a in (i * math.pi / 3 for i in range(6)):
-    big_positions.append((15 * SS * math.cos(a), 15 * SS * math.sin(a)))
+    big_positions.append((14 * SS * math.cos(a), 14 * SS * math.sin(a)))
 for a in (i * math.pi / 4 + 0.4 for i in range(8)):
-    big_positions.append((28 * SS * math.cos(a), 28 * SS * math.sin(a)))
+    big_positions.append((26 * SS * math.cos(a), 26 * SS * math.sin(a)))
 big_colours = [BLUE if i % 2 == 0 else RED for i in range(len(big_positions))]
-nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=9 * SS)
+nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=8 * SS)
 
-# the alpha particle (2 protons, 2 neutrons), ejected sideways so its track
-# stays inside the band instead of dropping into the letters
-ax_, ay_ = nx - 46 * SS, ny + 32 * SS
-d.line([nx - 20 * SS, ny + 18 * SS, ax_ + 14 * SS, ay_ - 12 * SS], fill=GREEN, width=6 * SS)
-alpha_positions = [(-8 * SS, -8 * SS), (8 * SS, -8 * SS), (-8 * SS, 8 * SS), (8 * SS, 8 * SS)]
+# the alpha particle (2 protons, 2 neutrons), dropped below the nuclide but
+# still inside the gap
+ax_, ay_ = nx - 40 * SS, ny + 30 * SS
+d.line([nx - 18 * SS, ny + 16 * SS, ax_ + 12 * SS, ay_ - 10 * SS], fill=GREEN, width=6 * SS)
+alpha_positions = [(-7 * SS, -7 * SS), (7 * SS, -7 * SS), (-7 * SS, 7 * SS), (7 * SS, 7 * SS)]
 alpha_colours = [RED, RED, BLUE, BLUE]
-nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=9 * SS)
+nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=8 * SS)
 
-# --- outgoing gamma from the recoiling daughter, arcing right across the band
-gx, gy = nx + 20 * SS, ny - 4 * SS
+# --- outgoing gamma from the recoiling daughter, continuing on through N and I
+gx, gy = nx + 16 * SS, ny - 10 * SS
 pts = []
 for k in range(110):
     t = k / 109
-    px = gx + t * (W * 0.32)
-    py = gy - t * 12 * SS + math.sin(t * math.pi * 3.0) * 10 * SS
+    px = gx + t * (W * 0.30)
+    py = gy - t * 30 * SS + math.sin(t * math.pi * 3.0) * 10 * SS
     pts.append((px, py))
 d.line(pts, fill=BLUE, width=8 * SS, joint="curve")
 (px0, py0), (px1, py1) = pts[-10], pts[-1]
@@ -118,8 +129,8 @@ head = [
 ]
 d.polygon(head, fill=BLUE)
 
-out_h = round(H / SS)
-im = im.resize((627, out_h), Image.LANCZOS)
+out_w, out_h = round(W / SS), round(H / SS)
+im = im.resize((out_w, out_h), Image.LANCZOS)
 im.save("logo.png")
 print("wrote logo.png", im.size, "letters width", total_w // SS)
 
