@@ -118,11 +118,12 @@ problem appears: which product dominates depends entirely on how long you wait.
 
 ![Activity of the foil, by nuclide, against cooling time](images/activity.png)
 
-`Ag106_m1` carries the activity for the first hundred days, then falls away and
-`Ag110_m1` takes over, so what dominates depends entirely on when you look.
-`Ag106` and `Pd109` are gone within days. Past a few years even `Ag110_m1` has
-decayed and the long-lived remainder is what is left. Every point is a real
-solve, not a sketch.
+`Ag106_m1` carries the activity for the first few weeks, then `Ag110_m1` takes
+over out to about a year, so what dominates depends entirely on when you look.
+`Ag106` and `Pd109` are gone within days. Past a few years `Ag110_m1` has
+decayed too and `Ag108_m1` is what is left: it never peaks high enough to make
+the five largest, so the grey "other" line is the one still carrying the
+activity at the right-hand edge. Every point is a real solve, not a sketch.
 
 <details>
 <summary>Plotting code</summary>
@@ -155,8 +156,9 @@ ax.legend()
 </details>
 
 Decay heat is the same call with a different observable, and tells a different
-story: `Ag110_m1` matters more here than its activity alone suggests, because
-what heats the material is energy per decay, not decays per second.
+story: `Ag110_m1` climbs from fifth place to third and `Ag109_m1` leaves the
+five altogether, replaced by `Rh106_m1`. What heats the material is energy per
+decay, not decays per second, and an isomeric transition is a cheap decay.
 
 ![Decay heat of the foil, by nuclide, against cooling time](images/decay_heat.png)
 
@@ -191,11 +193,11 @@ ax.legend()
 </details>
 
 The decay photon spectrum is a set of discrete lines rather than a curve, so it
-wants stems. A year after shutdown the strongest are at 658, 723, 885 and
-937 keV, which are `Ag110_m1`'s gammas: this is the spectrum a detector outside
-the foil would see, and it identifies the nuclide.
+wants stems. `results[-1]` is ten years after shutdown, where the strongest
+lines are at 723, 434 and 614 keV, which are `Ag108_m1`'s gammas: this is the
+spectrum a detector outside the foil would see, and it identifies the nuclide.
 
-![Decay photon line spectrum a year after shutdown](images/photon_spectrum.png)
+![Decay photon line spectrum ten years after shutdown](images/photon_spectrum.png)
 
 <details>
 <summary>Plotting code</summary>
@@ -205,8 +207,8 @@ import matplotlib.pyplot as plt
 
 energies, intensities = results[-1].decay_photon_spectrum()
 
-# 622 lines come back, most of them numerically negligible. Keep the ones
-# within five decades of the strongest; the rest are not physics.
+# Several hundred lines come back, most of them numerically negligible. Keep
+# the ones within five decades of the strongest; the rest are not physics.
 pairs = sorted(zip(energies, intensities), key=lambda p: -p[1])
 floor = pairs[0][1] / 1e5
 keep = [(e / 1e6, i) for e, i in pairs if i >= floor]
