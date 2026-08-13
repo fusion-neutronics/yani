@@ -43,18 +43,13 @@ total_w = x - PAD
 an_seam = PAD + d.textlength("YA", font=font)   # x where "A" ends and "N" begins
 
 
-def disc(cx, cy, r, fill, ring=WHITE, ring_w=5):
-    if ring_w:
-        d.ellipse([cx - r - ring_w, cy - r - ring_w, cx + r + ring_w, cy + r + ring_w],
-                  fill=ring)
+def disc(cx, cy, r, fill):
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=fill)
 
 
-def nucleon_cluster(cx, cy, positions, colours, nucleon_r, halo_r):
-    """A ring-fenced blob of nucleon discs, white-haloed so it reads over a letter."""
-    d.ellipse([cx - halo_r, cy - halo_r, cx + halo_r, cy + halo_r], fill=WHITE)
+def nucleon_cluster(cx, cy, positions, colours, nucleon_r):
     for (ox, oy), colour in zip(positions, colours):
-        disc(cx + ox, cy + oy, nucleon_r, colour, ring_w=0)
+        disc(cx + ox, cy + oy, nucleon_r, colour)
 
 
 # --- the reaction sits on the A/N seam ---------------------------------------
@@ -74,30 +69,29 @@ while pos < travel:
     e = min(pos + seg, travel)
     seg_pts = [start[0] + ux * pos, start[1] + uy * pos,
                start[0] + ux * e, start[1] + uy * e]
-    d.line(seg_pts, fill=WHITE, width=17 * SS)
     d.line(seg_pts, fill=GREEN, width=8 * SS)
     pos += seg + gap
 disc(start[0] + ux * (travel + 14 * SS), start[1] + uy * (travel + 14 * SS),
-     11 * SS, GREEN, ring_w=5 * SS)
+     11 * SS, GREEN)
 
 # the large nuclide the neutron is absorbed into: enough nucleons, in two
-# rings, to read as "large" next to the four-nucleon alpha below it
-big_positions = []
+# rings around a centre one, to read as "large" next to the four-nucleon
+# alpha below it
+big_positions = [(0, 0)]
 for a in (i * math.pi / 3 for i in range(6)):
     big_positions.append((16 * SS * math.cos(a), 16 * SS * math.sin(a)))
 for a in (i * math.pi / 4 + 0.4 for i in range(8)):
     big_positions.append((30 * SS * math.cos(a), 30 * SS * math.sin(a)))
 big_colours = [BLUE if i % 2 == 0 else GREEN for i in range(len(big_positions))]
-nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=10 * SS, halo_r=44 * SS)
+nucleon_cluster(nx, ny, big_positions, big_colours, nucleon_r=10 * SS)
 
 # the alpha particle, dropped straight down so its track reads apart from the
 # neutron's incoming line rather than as a continuation of it
 ax_, ay_ = nx - 6 * SS, ny + 92 * SS
-d.line([nx - 6 * SS, ny + 40 * SS, ax_, ay_ - 22 * SS], fill=WHITE, width=13 * SS)
 d.line([nx - 6 * SS, ny + 40 * SS, ax_, ay_ - 22 * SS], fill=GREEN, width=6 * SS)
 alpha_positions = [(-9 * SS, -9 * SS), (9 * SS, -9 * SS), (-9 * SS, 9 * SS), (9 * SS, 9 * SS)]
 alpha_colours = [BLUE, GREEN, GREEN, BLUE]
-nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=10 * SS, halo_r=24 * SS)
+nucleon_cluster(ax_, ay_, alpha_positions, alpha_colours, nucleon_r=10 * SS)
 
 # --- outgoing gamma from the recoiling daughter, up and right through N and I -
 gx, gy = nx + 18 * SS, ny - 14 * SS
@@ -107,10 +101,6 @@ for k in range(110):
     px = gx + t * (W * 0.30)
     py = gy - t * 30 * SS + math.sin(t * math.pi * 3.0) * 11 * SS
     pts.append((px, py))
-# White halo first: the gamma crosses the orange letters, so orange-on-orange
-# would disappear. Drawn in blue over the halo, the way YAMC's track reads
-# against its orange half.
-d.line(pts, fill=WHITE, width=17 * SS, joint="curve")
 d.line(pts, fill=BLUE, width=8 * SS, joint="curve")
 (px0, py0), (px1, py1) = pts[-10], pts[-1]
 ang = math.atan2(py1 - py0, px1 - px0)
@@ -119,8 +109,6 @@ head = [
     (px1 + 11 * SS * math.cos(ang + 2.5), py1 + 11 * SS * math.sin(ang + 2.5)),
     (px1 + 11 * SS * math.cos(ang - 2.5), py1 + 11 * SS * math.sin(ang - 2.5)),
 ]
-d.polygon([(hx + 4 * SS * math.cos(ang), hy + 4 * SS * math.sin(ang)) for hx, hy in head],
-          fill=WHITE, outline=WHITE, width=6 * SS)
 d.polygon(head, fill=BLUE)
 
 im = im.resize((627, 225), Image.LANCZOS)
