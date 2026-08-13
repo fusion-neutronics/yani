@@ -57,43 +57,15 @@ Pointing a subsection at a library that does not publish it fails immediately,
 with a message listing what that library does have, rather than failing partway
 through a download.
 
-## Where the data comes from
-
-A keyword is resolved on first use: the sections needed are downloaded and
-cached under `~/.cache/yamc`, then reused. Only the sections activation reads
-are fetched, never a whole library, so this is a small fraction of a transport
-data set.
-
-Every setting also accepts a **path** to a local converted directory instead of
-a keyword:
-
-<!-- doctest: skip -->
-```python
-yani.transmutation_reactions = "/data/my-network.arrow"
-```
-
-`cross_section_data` additionally accepts a **dict** keyed by nuclide, to mix
-sources nuclide by nuclide. The four `transmutation_*` settings take a single
-value each, since a network is assembled per subsection rather than per nuclide:
-
-<!-- doctest: skip -->
-```python
-yani.cross_section_data = {
-    "Fe56": "tendl-2025",
-    "Li6": "endf-b8.1",
-    "Be9": "/data/Be9.arrow",
-}
-```
-
-To build the data yourself from ENDF tapes rather than download it, the
-converters ship on this wheel: see
-[Making your own data](usage.md#making-your-own-data).
-
 !!! warning
     Unconfigured data tends to read as a zero rather than an error. Forgetting
     `cross_section_data` leaves every `sigma * phi` at zero, so an irradiation
     produces nothing and the decay heat comes back `0.0` with no complaint. If a
     result is suspiciously empty or exactly zero, check these settings first.
+
+A keyword is all this page needs. Paths, per-nuclide dicts and where the
+download lands are in
+[Where the data comes from](usage.md#where-the-data-comes-from).
 
 ## A first calculation
 
@@ -122,17 +94,14 @@ foil = yani.Material({"Ag": 1.0}, density=10.49, volume=1.0)
 spectrum = yani.NeutronSource(
     energy=yani.sources.Histogram([1e-5, 1e5, 1e6, 1.5e7], [1e12, 1e13, 1e14])
 )
-# Sample the decay at 14 log-spaced times from an hour to ten years. A Cooldown
-# takes the duration OF THAT STEP, so the cumulative times are differenced into
-# gaps. (A helper for this is proposed in
-# https://github.com/fusion-neutronics/core/issues/453.)
-HOUR, YEAR = 3600.0, 365.25 * 86400.0
-days = [HOUR * (10 * YEAR / HOUR) ** (k / 13) / 86400.0 for k in range(14)]
-gaps = [days[0] * 86400.0] + [(days[k] - days[k - 1]) * 86400.0 for k in range(1, 14)]
+# Sample the decay at these times after shutdown, in days. A Cooldown takes the
+# duration OF THAT STEP, so the schedule needs the gaps between them.
+days = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 1000, 3650]
+gaps = [0.05, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10, 30, 50, 100, 800, 2650]
 
 schedule = yani.PulseSchedule(
-    [yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum)]   # 1 year on
-    + [yani.Cooldown(duration=g) for g in gaps]                      # then cooling
+    [yani.Pulse(rate=1.11e14, duration=(100, "d"), source=spectrum)]  # 100 days on
+    + [yani.Cooldown(duration=(g, "d")) for g in gaps]                # then cooling
 )
 
 results = foil.transmute(schedule=schedule)   # list[Material], one per step
@@ -149,11 +118,12 @@ problem appears: which product dominates depends entirely on how long you wait.
 
 ![Activity of the foil, by nuclide, against cooling time](images/activity.png)
 
-`Ag106_m1` carries the activity for the first hundred days, then falls away and
-`Ag110_m1` takes over, so what dominates depends entirely on when you look.
-`Ag106` and `Pd109` are gone within days. Past a few years even `Ag110_m1` has
-decayed and the long-lived remainder is what is left. Every point is a real
-solve, not a sketch.
+`Ag106_m1` carries the activity for the first couple of months, then `Ag110_m1`
+takes over for a few hundred days, so what dominates depends on when you look.
+`Ag106` and `Pd109` are gone within days. Past a few years `Ag110_m1` has
+decayed too and `Ag108_m1` is what is left: it never peaks high enough to make
+the five largest, so the grey "other" line is the one still carrying the
+activity at the right-hand edge. Every point is a real solve, not a sketch.
 
 <details>
 <summary>Plotting code</summary>
@@ -186,8 +156,9 @@ ax.legend()
 </details>
 
 Decay heat is the same call with a different observable, and tells a different
-story: `Ag110_m1` matters more here than its activity alone suggests, because
-what heats the material is energy per decay, not decays per second.
+story: `Ag110_m1` climbs from fifth place to third and `Ag109_m1` leaves the
+five altogether, replaced by `Rh106_m1`. What heats the material is energy per
+decay, not decays per second, and an isomeric transition is a cheap decay.
 
 ![Decay heat of the foil, by nuclide, against cooling time](images/decay_heat.png)
 
@@ -222,11 +193,11 @@ ax.legend()
 </details>
 
 The decay photon spectrum is a set of discrete lines rather than a curve, so it
-wants stems. A year after shutdown the strongest are at 658, 723, 885 and
-937 keV, which are `Ag110_m1`'s gammas: this is the spectrum a detector outside
-the foil would see, and it identifies the nuclide.
+wants stems. `results[-1]` is ten years after shutdown, where the strongest
+lines are at 723, 434 and 614 keV, which are `Ag108_m1`'s gammas: this is the
+spectrum a detector outside the foil would see, and it identifies the nuclide.
 
-![Decay photon line spectrum a year after shutdown](images/photon_spectrum.png)
+![Decay photon line spectrum ten years after shutdown](images/photon_spectrum.png)
 
 <details>
 <summary>Plotting code</summary>
@@ -236,8 +207,8 @@ import matplotlib.pyplot as plt
 
 energies, intensities = results[-1].decay_photon_spectrum()
 
-# 622 lines come back, most of them numerically negligible. Keep the ones
-# within five decades of the strongest; the rest are not physics.
+# Several hundred lines come back, most of them numerically negligible. Keep
+# the ones within five decades of the strongest; the rest are not physics.
 pairs = sorted(zip(energies, intensities), key=lambda p: -p[1])
 floor = pairs[0][1] / 1e5
 keep = [(e / 1e6, i) for e, i in pairs if i >= floor]
