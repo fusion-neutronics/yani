@@ -64,11 +64,6 @@ jobs:
               "get_transmutation_decay_data", "set_transmutation_decay_data",
               "get_transmutation_fission_yields", "set_transmutation_fission_yields",
               "get_transmutation_branch_ratios", "set_transmutation_branch_ratios",
-              # Transport-side data preparation: secondary angle and energy
-              # distributions, the lookup accelerator the transport hot path
-              # reads, photoatomic sections. They ride along on the bindings
-              # crate shared with yamc, which is where they are documented.
-              "convert_neutron_transport", "convert_photon",
           }
 
           html = pathlib.Path("site/api/index.html").read_text()

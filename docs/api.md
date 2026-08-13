@@ -6,13 +6,11 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 extension module they live in.
 
 The members are named one by one rather than pulled in with a single
-`::: yani`, so that the page can group them by what they are for. Two parts of
-the module are deliberately left out: the `get_*`/`set_*` accessors behind the
+`::: yani`, so that the page can group them by what they are for. One part of
+the module is deliberately left out: the `get_*`/`set_*` accessors behind the
 nuclear-data settings, which are documented as the settings themselves under
-[Nuclear data settings](usage.md#nuclear-data-settings), and
-`convert_neutron_transport` and `convert_photon`, which prepare transport data
-this package cannot use. The docs build fails if anything else on the module
-goes undocumented.
+[Nuclear data settings](usage.md#nuclear-data-settings). The docs build fails
+if anything else on the module goes undocumented.
 
 ## Materials
 
@@ -47,3 +45,12 @@ goes undocumented.
 ::: yani.convert_neutron_xs
 ::: yani.convert_transmutation
 ::: yani.convert_branching
+
+The two below write sections only transport reads, so nothing here consumes
+their output. They are on this wheel so that a data-generation script works
+against either wheel, which the bindings repository pins with a parity test.
+`convert_photon` has to be given the three auxiliary tabulation paths, which
+yamc ships and this wheel does not.
+
+::: yani.convert_neutron_transport
+::: yani.convert_photon
