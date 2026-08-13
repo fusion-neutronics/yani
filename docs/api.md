@@ -5,14 +5,12 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 (`yani.Material`, `yani.PulseSchedule`, ...) rather than the private `yani._core`
 extension module they live in.
 
-!!! note "Why this page names its members"
-    The wheel is built from a bindings crate shared with the transport package,
-    and that crate registers its whole surface on both. So the module also
-    carries names an inventory calculation has no use for, `AngleDistribution`
-    and `sample_scatter_cosine` among them, along with a test helper. They are
-    importable but not part of this API, so this page lists what is, rather than
-    documenting everything the module happens to expose. Tracked in
-    [fusion-neutronics/core#452](https://github.com/fusion-neutronics/core/issues/452).
+The members are named one by one rather than pulled in with a single
+`::: yani`, so that the page can group them by what they are for. One part of
+the module is deliberately left out: the `get_*`/`set_*` accessors behind the
+nuclear-data settings, which are documented as the settings themselves under
+[Nuclear data settings](usage.md#nuclear-data-settings). The docs build fails
+if anything else on the module goes undocumented.
 
 ## Materials
 
@@ -47,3 +45,12 @@ extension module they live in.
 ::: yani.convert_neutron_xs
 ::: yani.convert_transmutation
 ::: yani.convert_branching
+
+The two below write sections only transport reads, so nothing here consumes
+their output. They are on this wheel so that a data-generation script works
+against either wheel, which the bindings repository pins with a parity test.
+`convert_photon` has to be given the three auxiliary tabulation paths, which
+yamc ships and this wheel does not.
+
+::: yani.convert_neutron_transport
+::: yani.convert_photon
