@@ -95,9 +95,9 @@ spectrum = yani.NeutronSource(
     energy=yani.sources.Histogram([1e-5, 1e5, 1e6, 1.5e7], [1e12, 1e13, 1e14])
 )
 # Sample the decay at these times after shutdown, in days. A Cooldown takes the
-# duration OF THAT STEP, so the cumulative times are differenced into gaps.
+# duration OF THAT STEP, so the schedule needs the gaps between them.
 days = [0.05, 0.2, 1, 5, 20, 100, 400, 1500, 3650]
-gaps = [days[0]] + [days[k] - days[k - 1] for k in range(1, len(days))]
+gaps = [0.05, 0.15, 0.8, 4, 15, 80, 300, 1100, 2150]
 
 schedule = yani.PulseSchedule(
     [yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum)]   # 1 year on
