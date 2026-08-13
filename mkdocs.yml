@@ -50,6 +50,9 @@ plugins:
               - docs/griffe_ext.py:PyO3Constructor
               - docs/griffe_ext.py:PublicApi
 
+extra:
+  generator: false
+
 extra_css:
   - css/api.css
   - css/nav.css
