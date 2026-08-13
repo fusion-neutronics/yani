@@ -26,6 +26,13 @@ question, just an engineering one.
 try-it-now demo in the browser, is planned rather than requiring a server. Not
 live yet.
 
+**A citable material library ships in the wheel.** The PNNL Compendium
+(PNNL-15870 Rev. 2), 410 named materials with their compositions and
+densities, is bundled rather than a separate download, so a standard
+shielding or structural material is `yani.materials.pnnl.material("Steel,
+Stainless 316", volume=...)` away instead of a retyping exercise from someone
+else's PDF. See [Materials](usage.md#materials).
+
 ## Accurate
 
 **Continuous-energy cross sections, not a multigroup collapse.** A multigroup
@@ -97,6 +104,21 @@ text records the way an ENDF tape has to be. Converting from ENDF or ACE is a
 one-time step; every calculation after that reads the fast format.
 
 ## Flexible
+
+**The same solver targets native and the browser.** The Rust core builds for
+`wasm32` as a first-class target, not a native tool with a JS wrapper bolted
+on afterward, so the identical solver behind `pip install yani` can also run
+client-side with no backend to stand up. Where a calculation runs is a
+deployment choice, not a rewrite.
+
+**Four independently sourced transmutation subsections, mixed at will.**
+`transmutation_reactions`, `transmutation_decay_data`,
+`transmutation_fission_yields` and `transmutation_branch_ratios` are each
+their own setting, so a network can mix libraries by subsection instead of
+committing to one library for everything. A TENDL reactions network borrowing
+decay data and fission yields from ENDF/B-VIII.1, the usual arrangement since
+TENDL publishes neither, is a first-class configuration, not a data file
+hack. See [Nuclear data settings](usage.md#nuclear-data-settings).
 
 **A schedule can mix spectra, not just magnitudes.** Every `Pulse` carries its
 own `source`, so a campaign whose neutron spectrum changes shape between
