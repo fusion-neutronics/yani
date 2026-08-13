@@ -100,7 +100,7 @@ days = [0.05, 0.2, 1, 5, 20, 100, 400, 1500, 3650]
 gaps = [0.05, 0.15, 0.8, 4, 15, 80, 300, 1100, 2150]
 
 schedule = yani.PulseSchedule(
-    [yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum)]   # 1 year on
+    [yani.Pulse(rate=1.11e14, duration=(365, "d"), source=spectrum)]  # 1 year on
     + [yani.Cooldown(duration=(g, "d")) for g in gaps]               # then cooling
 )
 
