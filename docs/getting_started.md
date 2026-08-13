@@ -109,9 +109,12 @@ yani.transmutation_branch_ratios = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"      # TENDL has no decay data
 yani.transmutation_fission_yields = "endf-b8.1"  # nor fission yields
 
+# A 1 cm3 silver foil. Giving the element rather than the nuclides expands it
+# over natural abundance, here Ag107 (51.8%) and Ag109 (48.2%).
+#
 # A volume is required for anything extensive (activity, decay heat, photon
 # lines): the solver works in atoms/barn-cm and the volume turns that into atoms.
-steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
+foil = yani.Material({"Ag": 1.0}, density=10.49, volume=1.0)
 
 # The spectrum rides on the pulse. The Histogram normalizes the shape, so a
 # multigroup flux from a tally can be passed straight in; the pulse `rate` is the
@@ -119,17 +122,120 @@ steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
 spectrum = yani.NeutronSource(
     energy=yani.sources.Histogram([1e-5, 1e5, 1e6, 1.5e7], [1e12, 1e13, 1e14])
 )
-schedule = yani.PulseSchedule([
-    yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum),   # 1 year on
-    yani.Cooldown(duration=(1, "d")),                               # 1 day off
-])
+# Sample the decay at 14 log-spaced times from an hour to ten years. A Cooldown
+# takes the duration OF THAT STEP, so the cumulative times are differenced into
+# gaps. (A helper for this is proposed in
+# https://github.com/fusion-neutronics/core/issues/453.)
+HOUR, YEAR = 3600.0, 365.25 * 86400.0
+days = [HOUR * (10 * YEAR / HOUR) ** (k / 13) / 86400.0 for k in range(14)]
+gaps = [days[0] * 86400.0] + [(days[k] - days[k - 1]) * 86400.0 for k in range(1, 14)]
 
-results = steel.transmute(schedule=schedule)   # list[Material], one per step
+schedule = yani.PulseSchedule(
+    [yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum)]   # 1 year on
+    + [yani.Cooldown(duration=g) for g in gaps]                      # then cooling
+)
+
+results = foil.transmute(schedule=schedule)   # list[Material], one per step
 final = results[-1]
 
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
 ```
+
+## What comes out
+
+Ask for the results by nuclide and plot them and the shape of an activation
+problem appears: which product dominates depends entirely on how long you wait.
+
+![Activity of the foil, by nuclide, against cooling time](images/activity.png)
+
+`Ag106_m1` carries the activity for the first hundred days, then falls away and
+`Ag110_m1` takes over, so what dominates depends entirely on when you look.
+`Ag106` and `Pd109` are gone within days. Past a few years even `Ag110_m1` has
+decayed and the long-lived remainder is what is left. Every point is a real
+solve, not a sketch.
+
+<details>
+<summary>Plotting code</summary>
+
+```python
+import matplotlib.pyplot as plt
+
+cooled = results[1:]                       # drop the irradiation step
+per_step = [m.activity(by_nuclide=True) for m in cooled]
+
+# The five largest by peak value, everything else summed into "other".
+keys = {k for d in per_step for k in d}
+peak = {k: max(d.get(k, 0.0) for d in per_step) for k in keys}
+top = [k for k, _ in sorted(peak.items(), key=lambda kv: -kv[1])[:5]]
+
+fig, ax = plt.subplots()
+for name in top:
+    ax.plot(days, [d.get(name, 0.0) for d in per_step], marker="o", label=name)
+ax.plot(days, [sum(v for k, v in d.items() if k not in top) for d in per_step],
+        marker="o", color="grey", label="other")
+
+ax.set_xscale("log"); ax.set_yscale("log")
+# Six decades. Below that a decayed-away nuclide is numerical dust, and
+# letting it set the scale squashes everything that matters.
+ax.set_ylim(max(peak.values()) / 1e6, max(peak.values()) * 4)
+ax.set_xlabel("time after shutdown [days]"); ax.set_ylabel("activity [Bq]")
+ax.legend()
+```
+
+</details>
+
+Decay heat is the same call with a different observable, and tells a different
+story: `Ag110_m1` matters more here than its activity alone suggests, because
+what heats the material is energy per decay, not decays per second.
+
+![Decay heat of the foil, by nuclide, against cooling time](images/decay_heat.png)
+
+<details>
+<summary>Plotting code</summary>
+
+```python
+# Identical to the activity plot, with one substitution:
+per_step = [m.decay_heat(by_nuclide=True) for m in cooled]
+ax.set_ylabel("decay heat [W]")
+```
+
+</details>
+
+The decay photon spectrum is a set of discrete lines rather than a curve, so it
+wants stems. A year after shutdown the strongest are at 658, 723, 885 and
+937 keV, which are `Ag110_m1`'s gammas: this is the spectrum a detector outside
+the foil would see, and it identifies the nuclide.
+
+![Decay photon line spectrum a year after shutdown](images/photon_spectrum.png)
+
+<details>
+<summary>Plotting code</summary>
+
+```python
+energies, intensities = results[-1].decay_photon_spectrum()
+
+# 622 lines come back, most of them numerically negligible. Keep the ones
+# within five decades of the strongest; the rest are not physics.
+pairs = sorted(zip(energies, intensities), key=lambda p: -p[1])
+floor = pairs[0][1] / 1e5
+keep = [(e / 1e6, i) for e, i in pairs if i >= floor]
+
+fig, ax = plt.subplots()
+ax.vlines([e for e, _ in keep], floor, [i for _, i in keep])
+ax.set_yscale("log"); ax.set_ylim(floor, pairs[0][1] * 8)
+ax.set_xlabel("photon energy [MeV]")
+ax.set_ylabel("emission rate [photons/s]")
+
+for e, i in keep[:4]:
+    ax.annotate(f"{e * 1000:.0f} keV", xy=(e, i), xytext=(0, 8),
+                textcoords="offset points", ha="center")
+```
+
+</details>
+
+`days` above is the cumulative cooling time of each step, which is what the
+plots use for their x axis.
 
 `transmute()` returns one `Material` per timestep, in order, each carrying the
 inventory at the end of that step. They are ordinary materials, so anything you
@@ -137,7 +243,7 @@ can ask a material you can ask a result:
 
 <!-- doctest: skip -->
 ```python
-print(final.activity(by_nuclide=True))     # {"Co60": ..., "Fe55": ..., ...}
+print(final.activity(by_nuclide=True))     # {"Ag110m": ..., "Ag108m": ..., ...}
 print(final.decay_heat(by_nuclide=True))   # W per nuclide
 print(len(final.nuclides))                 # how much the network grew
 

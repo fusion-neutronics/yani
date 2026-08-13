@@ -1,9 +1,8 @@
-# yani: transmutation without transport
+# yani
 
-**yani** (Yet Another Nuclide Inventory) is the standalone transmutation and
-activation wheel built from this repository. A material, an irradiation schedule
-and a neutron spectrum go in; inventories, activities, decay heat and decay
-photon spectra come out. There is no geometry, no transport and no Monte Carlo.
+**yani** (Yet Another Nuclide Inventory) computes transmutation and activation.
+A material, an irradiation schedule and a neutron spectrum go in; inventories,
+activities, decay heat and decay photon spectra come out.
 
 ```bash
 pip install yani

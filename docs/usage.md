@@ -52,12 +52,79 @@ pulse = yani.Pulse(rate=sum(multigroup_flux), duration=(1, "h"), source=spectrum
 ```
 
 The `Histogram` normalizes the shape, so a flux spectrum can be passed in with
-its own magnitudes and the total handed to `rate`. Group boundaries may also be a
-named structure such as `"CCFE-709"` instead of an explicit list. The source's
-position and direction are ignored, since nothing is transported.
+its own magnitudes and the total handed to `rate`. The source's position and
+direction are ignored, since nothing is transported.
+
+### Named group structures
+
+**Any group structure works.** The boundaries argument is just an ascending list
+of energies in eV, of whatever length your spectrum happens to have, and nothing
+about yani prefers one structure over another. The example above uses three
+groups.
+
+What the names below add is convenience for a handful of common structures, so
+that if your spectrum is already on one of them you do not type out its
+boundaries. They are not privileged, and using one is not required:
+
+<!-- doctest: skip -->
+```python
+spectrum = yani.NeutronSource(
+    energy=yani.sources.Histogram("CCFE-709", flux_709)   # 709 values
+)
+```
+
+| name | groups | range | typical use |
+| --- | ---: | --- | --- |
+| `CCFE-709` | 709 | 1e-5 eV to 1 GeV | fine-group fusion neutron spectra |
+| `VITAMIN-J-175` | 175 | 1e-5 eV to 19.6 MeV | the long-standing neutron transport standard |
+| `VITAMIN-J-42` | 42 | 1 keV to 50 MeV | photon, with resolution at the 511 keV and Co60 lines |
+| `CCFE-24-PHOTON` | 24 | 1 keV to 20 MeV | coarse photon |
+
+Passing a name that is not one of these raises with the list of the ones that
+are, so a typo never silently becomes something else.
+
+If you need the edges themselves, to bin your own data or to plot against them,
+read them back off the histogram:
+
+<!-- doctest: skip -->
+```python
+edges = yani.sources.Histogram("CCFE-709", [1.0] * 709).boundaries
+len(edges)              # 710, one more than the group count
+edges[0], edges[-1]     # 1e-05 eV, 1e+09 eV
+```
 
 Cross sections are collapsed against each distinct spectrum once and then scaled
 by each step's `rate`, rather than recollapsed every step.
+
+## Materials
+
+A composition dict plus a density. Element symbols expand over natural
+abundance, nuclide names are taken literally, and chemical formulas are parsed:
+
+<!-- doctest: skip -->
+```python
+foil = yani.Material({"Ag": 1.0}, density=10.49, volume=1.0)
+enriched_li = yani.Material(
+    {"Li": yani.enriched(1.0, target="Li6", percent=60.0)}, density=0.534, volume=10.0
+)
+breeder = yani.Material({"Li4SiO4": 1.0}, density=2.4, volume=100.0)
+```
+
+For a standard shielding or structural material, the PNNL Compendium
+(PNNL-15870 Rev. 2) ships with the package, 410 materials keyed by the report's
+own names, so the composition and density come from a citable source rather
+than from your own retyping:
+
+<!-- doctest: skip -->
+```python
+steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
+concrete = yani.materials.pnnl.material("Concrete, Ordinary (NIST)", volume=1e6)
+
+list(yani.materials.pnnl)          # every name in the compendium
+```
+
+Pass `volume` at construction for either route: it is what turns the solver's
+atom densities into the atom counts that activity and decay heat need.
 
 ## Results
 

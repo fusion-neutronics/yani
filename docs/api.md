@@ -5,11 +5,45 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 (`yani.Material`, `yani.PulseSchedule`, ...) rather than the private `yani._core`
 extension module they live in.
 
-These are the same classes the transport package ships, since both are built
-from one bindings crate; what is absent here is the transport surface, not a
-reimplementation of the shared one.
+!!! note "Why this page names its members"
+    The wheel is built from a bindings crate shared with the transport package,
+    and that crate registers its whole surface on both. So the module also
+    carries names an inventory calculation has no use for, `AngleDistribution`
+    and `sample_scatter_cosine` among them, along with a test helper. They are
+    importable but not part of this API, so this page lists what is, rather than
+    documenting everything the module happens to expose. Tracked in
+    [fusion-neutronics/core#452](https://github.com/fusion-neutronics/core/issues/452).
 
-::: yani
-    options:
-      show_root_heading: false
-      show_root_toc_entry: false
+## Materials
+
+::: yani.Material
+::: yani.Enriched
+::: yani.enriched
+
+## Irradiation schedules
+
+::: yani.Pulse
+::: yani.Cooldown
+::: yani.PulseSchedule
+::: yani.NeutronSource
+
+## Results
+
+::: yani.TransmutationResults
+::: yani.DoseCoefficients
+::: yani.DoseResult
+
+## Nuclear data
+
+::: yani.Nuclide
+::: yani.Element
+::: yani.Reaction
+::: yani.TransmutationChain
+::: yani.lookup_cross_section_data
+::: yani.set_cross_section_data_entry
+
+## Making data
+
+::: yani.convert_neutron_xs
+::: yani.convert_transmutation
+::: yani.convert_branching

@@ -1,9 +1,8 @@
 # yani
 
-**Y**et **A**nother **N**uclide **I**nventory: transmutation and activation
-without transport. A material, an irradiation schedule and a neutron spectrum
-in; inventories, activities, decay heat and decay photon spectra out. No
-geometry, no transport, no Monte Carlo.
+**Y**et **A**nother **N**uclide **I**nventory. A material, an irradiation
+schedule and a neutron spectrum in; inventories, activities, decay heat and
+decay photon spectra out.
 
 [Documentation](https://fusion-neutronics.github.io/yani/) |
 [PyPI](https://pypi.org/project/yani/)
