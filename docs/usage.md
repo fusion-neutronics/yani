@@ -59,7 +59,7 @@ direction are ignored, since nothing is transported.
 
 **Any group structure works.** The boundaries argument is just an ascending list
 of energies in eV, of whatever length your spectrum happens to have, and nothing
-about yani prefers one structure over another. The example above uses three
+about YANI prefers one structure over another. The example above uses three
 groups.
 
 What the names below add is convenience for a handful of common structures, so

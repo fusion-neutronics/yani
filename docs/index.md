@@ -1,6 +1,6 @@
-# yani
+# YANI
 
-**yani** (Yet Another Nuclide Inventory) computes transmutation and activation.
+**YANI** (Yet Another Nuclide Inventory) computes transmutation and activation.
 A material, an irradiation schedule and a neutron spectrum go in; inventories,
 activities, decay heat and decay photon spectra come out.
 
@@ -33,7 +33,7 @@ $$
 \mathbf{N}(t) = e^{At}\,\mathbf{N}(0)
 $$
 
-which yani evaluates with CRAM (the Chebyshev Rational Approximation Method) at
+which YANI evaluates with CRAM (the Chebyshev Rational Approximation Method) at
 order 48, following [Pusa 2010][pusa2010] and [Pusa 2015][pusa2015], using a
 sparse LU factorization whose symbolic factorization is reused across the poles.
 Reaction rates are held at their beginning-of-step values, so a schedule of $n$

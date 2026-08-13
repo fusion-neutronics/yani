@@ -1,4 +1,4 @@
-# yani
+# YANI
 
 **Y**et **A**nother **N**uclide **I**nventory. A material, an irradiation
 schedule and a neutron spectrum in; inventories, activities, decay heat and
@@ -59,7 +59,7 @@ puts two extension modules in one process, so `yamc.Material` and
 `yani.Material` are distinct types and the nuclear-data configuration exists
 twice.
 
-Pick yani when you already have a spectrum. Pick yamc when the spectrum should
+Pick YANI when you already have a spectrum. Pick yamc when the spectrum should
 come from a transport solve.
 
 ## License

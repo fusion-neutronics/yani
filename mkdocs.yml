@@ -7,8 +7,8 @@
 # them.
 #
 # Build: mkdocs build -f mkdocs.yml   (needs `pip install yani-core` first)
-site_name: yani
-site_description: Yet Another Nuclide Inventory -- transmutation and activation calculations
+site_name: YANI
+site_description: YANI -- Yet Another Nuclide Inventory -- transmutation and activation calculations
 site_url: https://fusion-neutronics.github.io/yani/
 repo_url: https://github.com/fusion-neutronics/yani
 docs_dir: docs
