@@ -24,18 +24,22 @@ yani.cross_section_data = "endf-b8.1"
 ```
 
 **The transmutation network**, for the decay constants, reaction products,
-fission yields and branching, comes from a chain file. It is assembled from up to
-four independently sourced subsections, so each is set on its own and a chain can
-mix libraries:
+fission yields and isomeric branching, is assembled from four independently
+sourced subsections, so each is set on its own and a network can mix libraries:
 
 <!-- doctest: skip -->
 ```python
-chain = "transmutation-endf-b8.1-sfr.arrow"
-yani.transmutation_decay_data = chain
-yani.transmutation_reactions = chain
-yani.transmutation_fission_yields = chain
-yani.transmutation_branch_ratios = chain   # optional
+yani.transmutation_decay_data = "endf-b8.1"
+yani.transmutation_reactions = "endf-b8.1"
+yani.transmutation_fission_yields = "endf-b8.1"
+yani.transmutation_branch_ratios = "endf-b8.1"
 ```
+
+Each takes a library keyword, which is downloaded and cached on first use.
+`transmutation_reactions` is the one worth changing first: a TENDL release
+(`"tendl-2025"`, `"tendl-2017"`) covers far more parent nuclides than
+ENDF/B-VIII.1 does, while decay data and fission yields have to stay on
+`"endf-b8.1"` because TENDL publishes neither.
 
 These are the same five settings, with the same accepted values (a library
 keyword, a directory, or an explicit per-nuclide mapping), as yamc's. The
@@ -59,10 +63,10 @@ An irradiation schedule, a spectrum, and one call:
 import yani
 
 yani.cross_section_data = "endf-b8.1"
-chain = "transmutation-endf-b8.1-sfr.arrow"
-yani.transmutation_decay_data = chain
-yani.transmutation_reactions = chain
-yani.transmutation_fission_yields = chain
+yani.transmutation_decay_data = "endf-b8.1"
+yani.transmutation_reactions = "endf-b8.1"
+yani.transmutation_fission_yields = "endf-b8.1"
+yani.transmutation_branch_ratios = "endf-b8.1"
 
 # A volume is required for anything extensive (activity, decay heat, photon
 # lines): the solver works in atoms/barn-cm and the volume turns that into atoms.

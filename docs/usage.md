@@ -100,7 +100,7 @@ Five module-level settings, read and written like attributes:
 | `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines |
 | `transmutation_reactions` | which reaction on which nuclide gives which product |
 | `transmutation_fission_yields` | fission product yields |
-| `transmutation_branch_ratios` | isomeric branching (optional) |
+| `transmutation_branch_ratios` | isomeric branching: which product is left in a metastable state |
 
 Each takes a library keyword, a directory, or an explicit per-nuclide mapping, and
 each can point somewhere different, so a network can mix libraries by subsection
