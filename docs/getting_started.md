@@ -109,6 +109,7 @@ final = results[-1]
 
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
+print(final.contact_dose(), "Gy/h")
 ```
 
 ## What comes out
@@ -237,6 +238,7 @@ can ask a material you can ask a result:
 ```python
 print(final.activity(by_nuclide=True))     # {"Ag110m": ..., "Ag108m": ..., ...}
 print(final.decay_heat(by_nuclide=True))   # W per nuclide
+print(final.contact_dose(by_nuclide=True)) # Gy/h per nuclide
 print(len(final.nuclides))                 # how much the network grew
 
 energies, intensities = final.decay_photon_spectrum()   # photons/s per line
