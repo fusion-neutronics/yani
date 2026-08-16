@@ -167,6 +167,18 @@ Integrating over depth cancels the geometry, which is why no distance and no
 volume appear in the answer. A `build_up` factor, 2.0 by default, stands in for
 the photons that scatter on the way out and still arrive.
 
+The two NIST tabulations it folds against are public, so a response function of
+your own can be built from the same data: `mu/rho` for any element from Z = 1 to
+100, and `mu_en/rho` for air. Both read log-log between their tabulated points
+and carry the same names as their OpenMC counterparts.
+
+<!-- doctest: skip -->
+```python
+iron = yani.data.mass_attenuation_coefficient("Fe")   # or by atomic number, 26
+iron.interpolate(1.0e6)                               # cm2/g at 1 MeV
+air = yani.data.mass_energy_absorption_coefficient("air")
+```
+
 The default quantity follows the FISPACT-II methodology and agrees with
 OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
 electrons is not modelled, so a strong beta emitter reads low at contact.
