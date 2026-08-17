@@ -32,6 +32,7 @@ schedule = yani.PulseSchedule([
 final = steel.transmute(schedule=schedule)[-1]
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
+print(final.contact_dose(), "Gy/h")
 ```
 
 ## What it solves

@@ -148,6 +148,41 @@ final.get_atoms_per_barn_cm()        # dict[str, float], the solver's own units
 Stable nuclides contribute nothing to activity or decay heat and are omitted from
 the by-nuclide dictionaries.
 
+`contact_dose()` is the third of these, and the one that needs no `volume`: it
+is the dose someone receives with a hand on the material, from the material's
+own decay photons, and a bigger lump of the same material reads the same at
+contact.
+
+<!-- doctest: skip -->
+```python
+final.contact_dose()                          # Gy/h, absorbed dose in air
+final.contact_dose(by_nuclide=True)           # dict[str, float], Gy/h per nuclide
+final.contact_dose(dose_quantity="effective") # Sv/h, ICRP-116 effective dose
+```
+
+It is a slab estimate rather than a transport result. The material is taken to
+be a half-space, so half the photons emitted at any depth head for the surface,
+and the ones that arrive are the ones the material did not attenuate itself.
+Integrating over depth cancels the geometry, which is why no distance and no
+volume appear in the answer. A `build_up` factor, 2.0 by default, stands in for
+the photons that scatter on the way out and still arrive.
+
+The two NIST tabulations it folds against are public, so a response function of
+your own can be built from the same data: `mu/rho` for any element from Z = 1 to
+100, and `mu_en/rho` for air. Both read log-log between their tabulated points
+and carry the same names as their OpenMC counterparts.
+
+<!-- doctest: skip -->
+```python
+iron = yani.data.mass_attenuation_coefficient("Fe")   # or by atomic number, 26
+iron.interpolate(1.0e6)                               # cm2/g at 1 MeV
+air = yani.data.mass_energy_absorption_coefficient("air")
+```
+
+The default quantity follows the FISPACT-II methodology and agrees with
+OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
+electrons is not modelled, so a strong beta emitter reads low at contact.
+
 The decay photon line spectrum comes back as the `(x, p)` pair the source
 distributions take, in photons per second, so it feeds straight into a photon
 transport run in yamc:

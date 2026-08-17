@@ -109,6 +109,7 @@ final = results[-1]
 
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
+print(final.contact_dose(), "Gy/h")
 ```
 
 ## What comes out
@@ -192,6 +193,47 @@ ax.legend()
 
 </details>
 
+Contact dose rate is a third reading of the same inventory, and the only one of
+the three that needs no `volume`: it is a slab estimate, so the geometry cancels
+and a bigger piece of the same foil reads the same with a hand on it. Its
+breakdown is always a subset of the activity's, because only the gamma emitters
+reach it -- a nuclide that carries the activity without emitting photons drops
+out of this plot entirely, which is what makes the two curves worth reading side
+by side.
+
+<details>
+<summary>Plotting code</summary>
+
+```python
+import matplotlib.pyplot as plt
+
+cooled = results[1:]                       # drop the irradiation step
+per_step = [m.contact_dose(by_nuclide=True) for m in cooled]
+
+# The five largest by peak value, everything else summed into "other".
+keys = {k for d in per_step for k in d}
+peak = {k: max(d.get(k, 0.0) for d in per_step) for k in keys}
+top = [k for k, _ in sorted(peak.items(), key=lambda kv: -kv[1])[:5]]
+
+fig, ax = plt.subplots()
+for name in top:
+    ax.plot(days, [d.get(name, 0.0) for d in per_step], marker="o", label=name)
+ax.plot(days, [sum(v for k, v in d.items() if k not in top) for d in per_step],
+        marker="o", color="grey", label="other")
+
+# The total is a line of its own here, since "can this be handled" is a question
+# about the sum rather than about which nuclide is responsible for it.
+ax.plot(days, [m.contact_dose() for m in cooled], color="black", label="total")
+
+ax.set_xscale("log"); ax.set_yscale("log")
+ax.set_ylim(max(peak.values()) / 1e6, max(peak.values()) * 4)
+ax.set_xlabel("time after shutdown [days]")
+ax.set_ylabel("contact dose rate [Gy/h]")
+ax.legend()
+```
+
+</details>
+
 The decay photon spectrum is a set of discrete lines rather than a curve, so it
 wants stems. `results[-1]` is ten years after shutdown, where the strongest
 lines are at 723, 434 and 614 keV, which are `Ag108_m1`'s gammas: this is the
@@ -237,6 +279,7 @@ can ask a material you can ask a result:
 ```python
 print(final.activity(by_nuclide=True))     # {"Ag110m": ..., "Ag108m": ..., ...}
 print(final.decay_heat(by_nuclide=True))   # W per nuclide
+print(final.contact_dose(by_nuclide=True)) # Gy/h per nuclide
 print(len(final.nuclides))                 # how much the network grew
 
 energies, intensities = final.decay_photon_spectrum()   # photons/s per line

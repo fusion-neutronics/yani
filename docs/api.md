@@ -30,6 +30,7 @@ if anything else on the module goes undocumented.
 ::: yani.TransmutationResults
 ::: yani.DoseCoefficients
 ::: yani.DoseResult
+::: yani.PhotonCoefficients
 
 ## Nuclear data
 
