@@ -201,6 +201,21 @@ reach it -- a nuclide that carries the activity without emitting photons drops
 out of this plot entirely, which is what makes the two curves worth reading side
 by side.
 
+![Contact dose rate of the foil, by nuclide, against cooling time](images/contact_dose.png)
+
+Here that costs `Ag109_m1` and `Pd109` their places: third and fourth in the
+activity, neither makes the five largest by dose, and `Rh106_m1` and `Ag108_m1`
+take their seats. Fourteen of the eighty-nine nuclides carrying activity emit no
+photons at all and are simply absent -- `H3`, `Ru106` and `Zr93` among them.
+
+The dose itself is `Ag106_m1`'s out to twenty days, better than 99% of it, and
+`Ag110_m1`'s by a hundred. What the log axis then shows, and the other two plots
+have no equivalent of, is the flat line the total settles onto: `Ag108_m1` has a
+438 year half-life, so across the whole ten years it neither grows nor decays,
+and at the right-hand edge it is the entire dose. Three and a half decades below
+the peak and last in the five for most of the plot, it is nonetheless what
+decides whether the foil can be handled once the rest has gone.
+
 <details>
 <summary>Plotting code</summary>
 
