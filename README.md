@@ -1,8 +1,8 @@
 # YANI
 
 **Y**et **A**nother **N**uclide **I**nventory. A material, an irradiation
-schedule and a neutron spectrum in; inventories, activities, decay heat and
-decay photon spectra out.
+schedule and a neutron spectrum in; inventories, activities, decay heat,
+contact dose and decay photon spectra out.
 
 [Try it online](https://fusion-neutronics.github.io/yani-online/) 🌐 |
 [Documentation](https://fusion-neutronics.github.io/yani/) 📝 |
