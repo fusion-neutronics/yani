@@ -9,6 +9,11 @@ pip install yani
 The wheel carries the compiled solver, so there is nothing to build and no
 transport stack to pull in.
 
+If you would rather not install yet,
+[yani-online](https://fusion-neutronics.github.io/yani-online/) runs the same
+solver in your browser and will write the setup you build there back out as a
+Python script.
+
 ## Point it at nuclear data
 
 Two kinds of data are needed, and they are configured separately.

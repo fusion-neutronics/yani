@@ -8,6 +8,19 @@ activities, decay heat and decay photon spectra come out.
 pip install yani
 ```
 
+!!! tip "Try it without installing anything"
+
+    [**yani-online**](https://fusion-neutronics.github.io/yani-online/) runs
+    YANI in the browser: build a material, build an irradiation and cooling
+    schedule, run a real transmutation, and read back inventory, activity,
+    decay heat, contact dose rate and decay photon lines.
+
+    It is the same Rust solver compiled to WebAssembly, against the same
+    continuous-energy cross sections, so it answers what the wheel answers
+    rather than a reduced version of it. The solve runs on your machine and
+    nothing is uploaded. The page will write your setup out as a Python script
+    when you want to carry it over here.
+
 ## What it solves
 
 The nuclide inventory of a material under irradiation is a system of coupled
