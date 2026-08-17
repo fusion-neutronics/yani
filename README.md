@@ -4,8 +4,8 @@
 schedule and a neutron spectrum in; inventories, activities, decay heat and
 decay photon spectra out.
 
-[Documentation](https://fusion-neutronics.github.io/yani/) |
-[PyPI](https://pypi.org/project/yani/)
+[Documentation](https://fusion-neutronics.github.io/yani/) 📝 |
+[PyPI](https://pypi.org/project/yani/) 🐍
 
 ```bash
 pip install yani
