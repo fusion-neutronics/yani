@@ -4,8 +4,14 @@
 schedule and a neutron spectrum in; inventories, activities, decay heat and
 decay photon spectra out.
 
+[Try it online](https://fusion-neutronics.github.io/yani-online/) 🌐 |
 [Documentation](https://fusion-neutronics.github.io/yani/) 📝 |
 [PyPI](https://pypi.org/project/yani/) 🐍
+
+The browser version needs no install and no account. It is the same Rust solver
+compiled to WebAssembly, against the same continuous-energy data, so it answers
+what the wheel answers rather than a reduced version of it. The solve runs on
+your machine; nothing is uploaded.
 
 ```bash
 pip install yani
