@@ -1,14 +1,17 @@
 # YANI paper abstract
 
 This paper introduces YANI (Yet Another Nuclide Inventory), a transmutation and
-activation code that computes how a material's nuclide inventory evolves in a
-neutron flux field, and the activity, decay heat, contact dose rate and decay
-photon emission that follow from it.
-The driving application is fusion reactor design and analysis, where activation
-of structural, breeding and shielding materials sets maintenance access,
-cooling requirements and waste classification, but the formulation is
-flux-field general: any irradiation environment for which a neutron spectrum
-and an irradiation history can be stated is in scope.
+activation code that computes how a material's nuclide inventory evolves under
+irradiation, and the activity, decay heat, contact dose rate and decay photon
+emission that follow from it.
+The input is a neutron flux field, whatever produces it: a fusion device, a
+fission reactor, an accelerator or spallation source, or a radioisotope
+neutron source are all in scope, since any irradiation environment for which a
+spectrum and an irradiation history can be stated is one the same solve
+covers.
+The driving application is fusion reactor design and analysis, where
+activation of structural, breeding and shielding materials sets maintenance
+access, cooling requirements and waste classification.
 YANI carries no particle transport and no eigenvalue capability of its own,
 taking the spectrum as given, which reduces export control concerns while
 keeping the codebase and API minimal, maintainable, and fusion-focused.
