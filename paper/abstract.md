@@ -41,10 +41,9 @@ workspace shared with the YAMC Monte Carlo transport code, so a transport
 spectrum and an inventory calculation meet across one set of nuclear data and
 one set of material definitions rather than across a file format boundary.
 Rapid adoption is supported through simple installation from a wheel that needs
-no compiler and no transport stack, a fully permissive license stack,
-documentation, extensive examples, user support, on-demand nuclear data
-retrieval, and a verification and validation (V&V) suite run against open
-activation benchmarks.
+no compiler, a fully permissive license stack, documentation, extensive
+examples, user support, on-demand nuclear data retrieval, and a verification
+and validation (V&V) suite run against open activation benchmarks.
 
 YANI reads nuclear data in a binary columnar Apache Arrow IPC format, providing
 a portable, cacheable representation of transport-ready cross sections and
