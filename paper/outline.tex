@@ -1,0 +1,242 @@
+% Chapter/section outline for the YANI paper.
+% Bullets are the intended content of each section, not final prose.
+% The abstract lives beside this file in paper/abstract.md.
+
+\section{Introduction}
+\begin{itemize}
+  \item Activation, not transport, is what sets maintenance access, cooling
+        and waste classification in a fusion plant: the inventory problem is
+        the one the design decisions actually hang on.
+  \item The problem statement is flux-field general -- fusion, fission,
+        accelerator and spallation sources, radioisotope sources -- and the
+        paper is written that way, with fusion as the driving case.
+  \item Landscape of existing inventory codes (FISPACT-II, ORIGEN, ALARA,
+        Serpent and OpenMC depletion), what each assumes about group
+        structure, network truncation and coupling to transport.
+  \item Gaps this work targets: multigroup pre-collapse, fixed-depth network
+        truncation, ground-state-only branching, installation and licensing
+        friction, and post-processing burden.
+  \item Contributions of the paper, and a roadmap of the sections.
+\end{itemize}
+
+\section{Theory}
+\begin{itemize}
+  \item Bateman equations with reaction terms; production and loss by both
+        decay and neutron reaction; definition of $N_i$, $\lambda$,
+        $\sigma\phi$.
+  \item Assembly of the burnup matrix $A$: which coefficients come from the
+        transmutation network and which from the spectrum collapse.
+  \item One step as a matrix exponential $\mathbf{N}(t)=e^{At}\mathbf{N}(0)$;
+        why the exponential is the cheap part and the coefficients are not.
+  \item CRAM at order 48 (Pusa 2010, 2015): rational approximation, pole
+        structure, accuracy against analytic chains, and the stiffness
+        argument for choosing it over explicit integration.
+  \item Sparse LU with a symbolic factorization reused across poles; sparsity
+        pattern of a real network; cost model per step.
+  \item Beginning-of-step reaction rates: what a single stepper does and does
+        not resolve, and the error incurred over a long high-flux step.
+  \item Continuous-energy collapse of $\sigma\phi$ against a user spectrum,
+        contrasted with a library pre-collapsed on someone else's weighting
+        spectrum; resonance self-shielding caveats.
+  \item Energy-dependent isomeric branching folded against the spectrum
+        rather than applied as an evaluation-average ratio.
+\end{itemize}
+
+\section{Network construction and reduction}
+\begin{itemize}
+  \item What a transmutation network is here: decay constants, decay modes
+        and branching, reaction products by MT, fission yields, isomeric
+        overlays.
+  \item Reachability from the starting nuclides: why a fixed reaction/decay
+        depth both drops real nuclides and loads unused ones.
+  \item The provable upper bound on the density each candidate nuclide can
+        reach given the irradiation time and rates, and the floor it is
+        tested against.
+  \item Effect on network size, data volume loaded and solve time for
+        representative fusion materials (steel, tungsten, lithium ceramics).
+  \item Verification that the reduction is conservative: comparison against
+        an unreduced solve.
+\end{itemize}
+
+\section{Nuclear data}
+\begin{itemize}
+  \item Pipeline: evaluated ENDF-6 in, NJOY processing, a Rust ENDF parser,
+        Apache Arrow IPC out; one conversion, many runs.
+  \item The on-disk representation: per-nuclide section objects, typed
+        columns, LZ4 compression, memory-mapped reads, and why this replaces
+        parsing fixed-width text at startup.
+  \item Schema: cross-section sections, transmutation networks, decay data,
+        fission yields, branching overlays, and how they are versioned.
+  \item Library coverage and what each library can supply
+        (ENDF/B-VIII.1, JEFF-4.0, TENDL-2025, TENDL-2017, FENDL-3.2d);
+        which have decay data and fission yields of their own.
+  \item Independently sourced subsections: mixing reactions from one library
+        with decay data and yields from another as a first-class
+        configuration, and the provenance record that goes with it.
+  \item Processing-code sensitivity: the IAEA-NDS NJOY fork versus upstream
+        for FENDL, quantified (URR probability tables, MT 301 heating,
+        MT 444 damage), and why the build refuses the wrong flavour.
+  \item Distribution: publication per library, on-demand fetch of only the
+        sections a calculation needs, disk cache, and the in-memory cache
+        that is topped up rather than rebuilt.
+  \item Integrity gate: readback validation, compression checks, and
+        rebuild-to-rebuild comparison that separates a re-encode from a
+        change in the numbers.
+\end{itemize}
+
+\section{Software design and implementation}
+\begin{itemize}
+  \item A single Rust workspace shared with the YAMC Monte Carlo transport
+        code; crate layout (solver, decay, conversion, bindings, WASM) and
+        what is shared rather than duplicated.
+  \item Python bindings: thin wrappers over Rust, typed stubs as the single
+        source of truth for the API and the generated documentation.
+  \item Caching and memory: process-wide caches keyed on data source, top-up
+        on a widened request, and the behaviour of a script that loops over
+        many materials or schedule variants.
+  \item Parallelism and where the time goes: per-material independence, and
+        the cost split between network build, rate collapse and the
+        exponential.
+  \item Packaging: wheels for Linux, macOS and Windows on x86 and ARM, with
+        no compiler required at install; the metadata-package arrangement
+        that keeps one source of truth for the API.
+  \item Licensing: a fully permissive stack, and what that allows downstream.
+  \item Testing and CI: unit tests, Python-level tests, doctested
+        documentation, and regression gates on numerical results.
+\end{itemize}
+
+\section{User interface}
+\begin{itemize}
+  \item Materials: composition by element or nuclide, natural abundance
+        expansion, density and volume, and the bundled PNNL Compendium
+        (PNNL-15870 Rev.~2) material library.
+  \item Spectra: arbitrary group structures, named structures as a
+        convenience, normalisation, and passing a transport tally straight
+        in.
+  \item Schedules: pulses and cooldowns, per-pulse spectra so a campaign
+        whose spectrum changes shape (DD then DT) is expressed directly,
+        and step-size guidance.
+  \item Nuclear data settings: the five module-level settings, per-nuclide
+        overrides, local files and downloaded keywords in one calculation.
+  \item Results: inventories, activity, decay heat, contact dose and photon
+        lines, each available totalled or by nuclide, and the plotting
+        helpers that keep post-processing out of user scripts.
+  \item Worked example end to end, with the code that produces each figure.
+\end{itemize}
+
+\section{Derived quantities}
+\begin{itemize}
+  \item Activity and decay heat from the inventory; treatment of stable
+        nuclides and of deep traces.
+  \item Decay photon line spectra as discrete energy/intensity pairs rather
+        than a binned response, and why lines matter for nuclide
+        identification and for feeding transport.
+  \item Contact dose: the half-space slab estimate, self-attenuation, the
+        build-up factor, and why no distance or volume enters.
+  \item Dose quantities: absorbed dose in air and ICRP-116 effective dose;
+        the NIST $\mu/\rho$ and $\mu_{en}/\rho$ tabulations used, and
+        agreement with the FISPACT-II methodology.
+  \item Known omission: no bremsstrahlung from decay electrons, and the
+        materials where that reads low.
+  \item Coupling to transport: emitting the photon source in the form a
+        coupled photon transport run consumes directly, and the shutdown
+        dose rate workflow that follows from it.
+\end{itemize}
+
+\section{Verification and validation}
+\begin{itemize}
+  \item Analytic verification: single decay chains, secular and transient
+        equilibrium, and constant-rate irradiation with closed-form
+        solutions.
+  \item Solver verification: CRAM order and step-size convergence, sparse
+        versus dense factorization, and mass conservation.
+  \item Code-to-code comparison against established inventory codes on
+        common materials and spectra, with the data library held fixed so
+        the comparison is of methods rather than of evaluations.
+  \item Validation against open activation benchmarks, CoNDERC among them:
+        activity, decay heat and gamma emission after irradiation, with
+        C/E ratios per nuclide and per cooling time.
+  \item Contact dose cross-check against an independent implementation of
+        the same methodology.
+  \item Sensitivity of the results to the choice of library and of NJOY
+        flavour, separating method error from evaluation spread.
+  \item Reproducibility: the V\&V suite as runnable scripts pinned to
+        library versions, run in CI.
+\end{itemize}
+
+\section{Performance}
+\begin{itemize}
+  \item Timing breakdown for a representative case: data load, network
+        build, rate collapse, factorization, exponential.
+  \item Scaling with network size, number of schedule steps and number of
+        materials; cold cache versus warm cache.
+  \item Startup cost of the columnar data format against a text-parsing
+        baseline, and the effect of fetching only the sections needed.
+  \item Memory footprint, and the effect of the network reduction on it.
+  \item Native versus WebAssembly throughput on the same case.
+  \item Cross-platform and cross-architecture results (Windows, macOS,
+        Linux; x86 and ARM).
+\end{itemize}
+
+\section{Browser deployment}
+\begin{itemize}
+  \item The same Rust solver compiled to WebAssembly: one codebase, not a
+        reduced browser edition.
+  \item Architecture of the page: self-contained, solve running
+        client-side, nuclear data as the only fetch, nothing uploaded.
+  \item Equivalence with the installed wheel: identical continuous-energy
+        data and identical answers, demonstrated on the benchmark cases.
+  \item What this changes for teaching, review and reproducibility: a
+        calculation that a reader can rerun with no install and no account.
+  \item Export of a browser session as a Python script, as the path from
+        exploration to a scripted workflow.
+\end{itemize}
+
+\section{Applications}
+\begin{itemize}
+  \item Foil activation as a minimal case, including a metastable product
+        that dominates the activity long after its ground state has decayed.
+  \item First-wall and blanket structural materials under a DT spectrum:
+        inventory, decay heat and contact dose against cooling time.
+  \item A phased campaign with a changing spectrum, showing what a single
+        averaged spectrum would have missed.
+  \item Shutdown dose rate, coupling a transport-derived spectrum to the
+        inventory solve and the emitted photon source back to transport.
+  \item Waste classification and recycling limits from the computed
+        inventory.
+\end{itemize}
+
+\section{Limitations and future work}
+\begin{itemize}
+  \item One stepper with beginning-of-step rates; predictor-corrector and
+        substepping as future work.
+  \item Network completeness is bounded by the configured data: a product
+        whose parent reaction is absent never appears.
+  \item Deep traces are bounds, not significant figures.
+  \item No self-shielding or spectrum feedback: the spectrum is an input and
+        does not evolve with the inventory.
+  \item No uncertainty propagation yet; covariance-driven uncertainties as a
+        planned extension.
+  \item Charged-particle and photon-induced transmutation channels, and
+        further library coverage.
+\end{itemize}
+
+\section{Conclusions}
+\begin{itemize}
+  \item What the code does, what was verified and validated, and at what
+        cost in runtime.
+  \item Where the design choices (continuous energy, reachability-bounded
+        networks, columnar data, one shared workspace with transport) paid
+        off.
+  \item Availability: package, source, data, documentation and the browser
+        deployment.
+\end{itemize}
+
+\section*{Back matter}
+\begin{itemize}
+  \item Code and data availability, with versions and DOIs.
+  \item Acknowledgements and funding.
+  \item Appendix: CRAM coefficients and the factorization reuse in detail.
+  \item Appendix: nuclear data schema tables and library provenance.
+  \item Appendix: full V\&V result tables not shown in the main text.
+\end{itemize}
