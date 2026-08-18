@@ -12,9 +12,6 @@ covers.
 The driving application is fusion reactor design and analysis, where
 activation of structural, breeding and shielding materials sets maintenance
 access, cooling requirements and waste classification.
-YANI carries no particle transport and no eigenvalue capability of its own,
-taking the spectrum as given, which reduces export control concerns while
-keeping the codebase and API minimal, maintainable, and fusion-focused.
 
 YANI provides the core capabilities expected of a modern inventory code,
 including solution of the Bateman equations with reaction terms as a matrix
