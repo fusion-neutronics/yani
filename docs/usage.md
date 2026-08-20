@@ -192,6 +192,59 @@ transport run in yamc:
 energies, intensities = final.decay_photon_spectrum()
 ```
 
+## Production routes
+
+`TransmutationChain` carries the topology behind the solve: which nuclide becomes
+which, and how. `reactions` holds the neutron-induced edges and `decays` the
+radioactive ones, both keyed by parent and both giving
+`(kind, target, branching)`:
+
+<!-- doctest: skip -->
+```python
+chain = yani.TransmutationChain("transmutation-endf-b8.1-sfr.arrow")
+
+chain.reactions["W186"]   # [('(n,2n)', 'W185', 1.0), ..., ('(n,a)', 'Hf183', 1.0)]
+chain.decays["Hf183"]     # [('beta-', 'Ta183', 1.0)]
+chain.decays["W185_m1"]   # [('IT', 'W185', 1.0)]
+```
+
+Stable nuclides have no decay modes and are absent from `decays`, as they are
+from `half_lives`. A `target` of `None` means the channel names no single
+product: fission on the reaction side, a product outside the chain on the decay
+side. Decay modes carry the evaluation's own spellings (`"beta-"`, `"ec/beta+"`,
+`"alpha"`, `"IT"`, `"sf"`, and emissions written as `"beta-,n"`), and the
+branchings for one parent sum to 1.
+
+The two share a tuple shape, so a route walk can put them in one edge list. With
+reactions alone the walk stops at the first product, one step short of most real
+routes:
+
+<!-- doctest: skip -->
+```python
+edges = {}
+for parent, es in chain.reactions.items():
+    edges.setdefault(parent, []).extend(es)
+for parent, es in chain.decays.items():
+    edges.setdefault(parent, []).extend(es)
+
+for kind1, mid, _ in edges["W186"]:              # two-step routes from W186 to Ta183
+    for kind2, end, _ in edges.get(mid, []):
+        if end == "Ta183":
+            print(f"W186{kind1}{mid}({kind2}){end}")
+
+# W186(n,3n)W184((n,np))Ta183
+# W186(n,4n)W183((n,p))Ta183
+# W186(n,a)Hf183(beta-)Ta183      <- the one that needs the decay edge
+```
+
+The branching on an edge is a share of its own channel, not a rate: it says how a
+channel splits, not how often the channel fires. Two routes into the same product
+are not weighted against each other by these numbers alone.
+
+Note that the chain this object holds is the base three-part merge. The isomeric
+branching overlay is applied inside the solve, so a `(n,2n)` edge here names the
+ground state where the overlay would split it between ground state and isomer.
+
 ## Nuclear data settings
 
 Five module-level settings, read and written like attributes:
