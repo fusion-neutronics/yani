@@ -75,23 +75,40 @@ spectrum = yani.NeutronSource(
 
 | name | groups | range | typical use |
 | --- | ---: | --- | --- |
-| `CCFE-709` | 709 | 1e-5 eV to 1 GeV | fine-group fusion neutron spectra |
-| `VITAMIN-J-175` | 175 | 1e-5 eV to 19.6 MeV | the long-standing neutron transport standard |
+| `XMAS-172` | 172 | 1.00001e-5 eV to 19.6403 MeV | the European (XMAS/JEF) lattice set |
+| `VITAMIN-J-175` | 175 | 1e-5 eV to 19.64 MeV | the long-standing neutron transport standard |
+| `SCALE-252` | 252 | 0 eV to 20 MeV | SCALE/AMPX |
+| `TRIPOLI-315` | 315 | 1e-5 eV to 19.64 MeV | TRIPOLI |
+| `SHEM-361` | 361 | 0 eV to 19.6403 MeV | resonance self-shielding in thermal lattices |
+| `LLNL-616` | 616 | 1e-5 eV to 20 MeV | LLNL |
+| `CCFE-709` | 709 | 1e-5 eV to 1 GeV | fine-group fusion activation spectra |
+| `SCALE-999` | 999 | 1e-5 eV to 20 MeV | fine-group SCALE/AMPX |
+| `UKAEA-1102` | 1102 | 1e-5 eV to 1 GeV | the finer companion to `CCFE-709`, same 1 GeV top |
+| `ECCO-1968` | 1968 | 1.00001e-5 eV to 19.64033 MeV | ECCO/ERANOS fine group |
 | `VITAMIN-J-42` | 42 | 1 keV to 50 MeV | photon, with resolution at the 511 keV and Co60 lines |
 | `CCFE-24-PHOTON` | 24 | 1 keV to 20 MeV | coarse photon |
 
 Passing a name that is not one of these raises with the list of the ones that
-are, so a typo never silently becomes something else.
+are, so a typo never silently becomes something else. Every name except
+`CCFE-24-PHOTON` carries the same boundaries as OpenMC's
+`openmc.mgxs.GROUP_STRUCTURES` entry of that name, so a spectrum tabulated for
+one code can be handed to the other without re-binning. Note that `SCALE-252`
+and `SHEM-361` start at exactly 0 eV, which is OpenMC's value; treat their
+bottom bin as open-ended.
 
-If you need the edges themselves, to bin your own data or to plot against them,
-read them back off the histogram:
+If you need the edges themselves, to bin your own data, to plot a spectrum
+against them, or to fold a cross section over them, ask for them by name:
 
 <!-- doctest: skip -->
 ```python
-edges = yani.sources.Histogram("CCFE-709", [1.0] * 709).boundaries
+edges = yani.group_structure("CCFE-709")
 len(edges)              # 710, one more than the group count
 edges[0], edges[-1]     # 1e-05 eV, 1e+09 eV
+
+yani.group_structure_names()   # every name in the table above
 ```
+
+The list is a copy, and the same edges a `Histogram` built on that name bins on.
 
 Cross sections are collapsed against each distinct spectrum once and then scaled
 by each step's `rate`, rather than recollapsed every step.
