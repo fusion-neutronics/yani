@@ -40,6 +40,8 @@ if anything else on the module goes undocumented.
 ::: yani.TransmutationChain
 ::: yani.lookup_cross_section_data
 ::: yani.set_cross_section_data_entry
+::: yani.group_structure
+::: yani.group_structure_names
 
 ## Making data
 
