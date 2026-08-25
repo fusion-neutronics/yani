@@ -4,8 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yani"
-# Kept in lockstep with yani-core: CI rewrites both this and the pin below from
-# the release tag, and refuses to publish if that version is not on PyPI yet.
+# Kept in lockstep with yani-core, and authoritative: publish.yml checks both
+# this and the pin below against the release tag and fails the release if either
+# disagrees, so bump them here first and tag what was merged. It also refuses to
+# publish if the pinned yani-core is not on PyPI yet.
 version = "0.11.0"
 description = "Yet Another Nuclide Inventory: transmutation and activation calculations"
 readme = "README.md"
