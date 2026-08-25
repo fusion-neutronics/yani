@@ -357,10 +357,63 @@ cross sections, so something has to reconstruct and Doppler broaden it.
 `source_format="ace"` reads an already-processed table and needs no NJOY, at the
 cost of one temperature and no heating sections.
 
+## Nuclear-data uncertainty
+
+Pass a `DataUncertainty` and every nuclide density comes back with a standard
+deviation beside it:
+
+<!-- doctest: skip -->
+```python
+results = material.transmute(
+    schedule=schedule,
+    data_uncertainty=yani.DataUncertainty(seed=42),
+)
+
+mid = material.id or 0
+mean = results.get_nuclide_density(mid, "Mn56", 1)
+sigma = results.get_nuclide_uncertainty(mid, "Mn56", 1)
+```
+
+The activation cross sections are resampled from their ENDF MF=33 covariance,
+folded against your own spectrum, and the schedule is re-solved per sample. That
+is exact to all orders in the matrix exponential; the solver is untouched and
+only its input changes. Omitting the argument costs nothing at all: no
+covariance is read, nothing is folded, and the inventories are bit-identical.
+
+A given nuclide's perturbation is a pure function of `(seed, sample, nuclide)`,
+so a seed reproduces a run regardless of sample count or iteration order. Leave
+`samples` unset and the driver adds samples until the sigmas settle.
+
+What it covers is the activation cross sections and nothing else. Half-lives,
+decay branching ratios, fission yields and the isomeric-branching overlay stay
+at their evaluated values. Because a zero sigma could mean either "well known"
+or "nothing published", the two are separated in `data_uncertainty_info`:
+
+<!-- doctest: skip -->
+```python
+info = results.data_uncertainty_info
+if info is not None:               # None unless data_uncertainty was passed
+    info["perturbed"]              # had usable MF=33 covariance
+    info["no_covariance_data"]     # evaluation carries none
+    info["rate_fraction_covered"]  # share of each rate the covariance grid spans
+    info["not_perturbed"]          # sources this does not propagate
+    info["has_gaps"]               # True if anything was left out
+```
+
+For activity or decay heat, take the spread over the ensemble rather than
+building it from per-nuclide sigmas: `get_uncertainty_inventories(mid, step)`
+returns every sample's full inventory. A parent and its daughter do not vary
+independently, so quadrature over nuclides would be wrong.
+
 ## Limits worth knowing
 
 - One stepper, with beginning-of-step reaction rates. Long steps at high flux
   will drift; shorten them rather than trusting a single step.
+- `data_uncertainty` covers the activation cross sections only, and there is no
+  statistical component: the flux you supply is taken as exact, since nothing is
+  transported. Cross-material covariance (`MAT1 != 0`) and covariances derived
+  from a standards evaluation are not consumed, and both are counted in
+  `data_uncertainty_info` rather than dropped silently.
 - The network is only as complete as the chain you configure. A product whose
   parent reaction is missing from `transmutation_reactions` simply never appears.
 - Nuclides many decades below the largest inventory carry no significant figures.
