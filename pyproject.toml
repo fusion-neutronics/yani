@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "yani"
 # Kept in lockstep with yani-core: CI rewrites both this and the pin below from
 # the release tag, and refuses to publish if that version is not on PyPI yet.
-version = "0.8.0"
+version = "0.11.0"
 description = "Yet Another Nuclide Inventory: transmutation and activation calculations"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,7 +28,7 @@ classifiers = [
 #
 # The pin is exact. A range would let `pip install yani==0.4.1` resolve to a
 # core wheel whose API does not match the docs published for 0.4.1.
-dependencies = ["yani-core==0.8.0"]
+dependencies = ["yani-core==0.11.0"]
 
 [project.urls]
 Homepage = "https://github.com/fusion-neutronics/yani"

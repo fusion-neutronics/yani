@@ -109,8 +109,9 @@ schedule = yani.PulseSchedule(
     + [yani.Cooldown(duration=(g, "d")) for g in gaps]                # then cooling
 )
 
-results = foil.transmute(schedule=schedule)   # list[Material], one per step
-final = results[-1]
+results = foil.transmute(schedule=schedule)    # TransmutationResults
+steps = results.step_materials(foil.id or 0)   # one Material per step
+final = steps[-1]
 
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
@@ -137,7 +138,7 @@ activity at the right-hand edge. Every point is a real solve, not a sketch.
 ```python
 import matplotlib.pyplot as plt
 
-cooled = results[1:]                       # drop the irradiation step
+cooled = steps[1:]                         # drop the irradiation step
 per_step = [m.activity(by_nuclide=True) for m in cooled]
 
 # The five largest by peak value, everything else summed into "other".
@@ -174,7 +175,7 @@ decay, not decays per second, and an isomeric transition is a cheap decay.
 ```python
 import matplotlib.pyplot as plt
 
-cooled = results[1:]                       # drop the irradiation step
+cooled = steps[1:]                         # drop the irradiation step
 per_step = [m.decay_heat(by_nuclide=True) for m in cooled]
 
 # The five largest by peak value, everything else summed into "other".
@@ -227,7 +228,7 @@ decides whether the foil can be handled once the rest has gone.
 ```python
 import matplotlib.pyplot as plt
 
-cooled = results[1:]                       # drop the irradiation step
+cooled = steps[1:]                         # drop the irradiation step
 per_step = [m.contact_dose(by_nuclide=True) for m in cooled]
 
 # The five largest by peak value, everything else summed into "other".
@@ -255,7 +256,7 @@ ax.legend()
 </details>
 
 The decay photon spectrum is a set of discrete lines rather than a curve, so it
-wants stems. `results[-1]` is ten years after shutdown, where the strongest
+wants stems. `steps[-1]` is ten years after shutdown, where the strongest
 lines are at 723, 434 and 614 keV, which are `Ag108_m1`'s gammas: this is the
 spectrum a detector outside the foil would see, and it identifies the nuclide.
 
@@ -267,7 +268,7 @@ spectrum a detector outside the foil would see, and it identifies the nuclide.
 ```python
 import matplotlib.pyplot as plt
 
-energies, intensities = results[-1].decay_photon_spectrum()
+energies, intensities = steps[-1].decay_photon_spectrum()
 
 # Several hundred lines come back, most of them numerically negligible. Keep
 # the ones within five decades of the strongest; the rest are not physics.
@@ -291,9 +292,11 @@ for e, i in keep[:4]:
 `days` above is the cumulative cooling time of each step, which is what the
 plots use for their x axis.
 
-`transmute()` returns one `Material` per timestep, in order, each carrying the
-inventory at the end of that step. They are ordinary materials, so anything you
-can ask a material you can ask a result:
+`transmute()` returns a `TransmutationResults`, keyed by material id.
+`step_materials()` unpacks it into one `Material` per timestep, in order, each
+carrying the inventory at the end of that step, and `get_final_material()` hands
+back the last of them directly. They are ordinary materials, so anything you can
+ask a material you can ask a result:
 
 <!-- doctest: skip -->
 ```python
