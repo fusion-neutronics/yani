@@ -24,17 +24,40 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Set the version and the yani-core pin from the release tag
+      - name: The release tag must match the committed version and pin
         if: github.event_name == 'release'
         shell: bash
         run: |
+          # This step used to rewrite both fields from the tag. That made the
+          # committed numbers advisory, and they drifted: the tree said 0.8.0
+          # while PyPI already carried yani 0.9.0 and yani-core 0.11.0, so
+          # anyone installing from a checkout got a core wheel three releases
+          # behind the docs built beside it.
+          #
+          # They are checked instead, because the tree is what everything else
+          # already reads. docs.yml installs the pin from pyproject and builds
+          # the reference against it, so if the tag and the tree disagree, the
+          # wheel that gets published and the docs that describe it disagree.
+          # Bump pyproject in a PR, merge it, then tag what was merged.
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
-          # Both the version and the pin, together: a release whose pin lagged
-          # would install a core wheel that does not match these docs.
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" pyproject.toml
-          sed -i "s/^dependencies = \[\"yani-core==.*\"\]/dependencies = [\"yani-core==$VERSION\"]/" pyproject.toml
-          grep -E '^(version|dependencies)' pyproject.toml
+          FILE_VERSION="$(grep -oP '^version = "\K[^"]+' pyproject.toml)"
+          PIN="$(grep -oP 'yani-core==\K[^"]+' pyproject.toml)"
+          echo "tag $VERSION | version $FILE_VERSION | pin yani-core==$PIN"
+
+          ok=true
+          if [ "$FILE_VERSION" != "$VERSION" ]; then
+            echo "::error::pyproject version is $FILE_VERSION, release tag is $VERSION" >&2
+            ok=false
+          fi
+          if [ "$PIN" != "$VERSION" ]; then
+            echo "::error::pyproject pins yani-core==$PIN, release tag is $VERSION" >&2
+            ok=false
+          fi
+          if [ "$ok" != true ]; then
+            echo "::error::Set both to $VERSION on main and re-tag; this workflow no longer rewrites them." >&2
+            exit 1
+          fi
 
       - name: The pinned yani-core must already be on PyPI
         shell: bash
