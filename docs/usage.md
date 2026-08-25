@@ -25,8 +25,8 @@ schedule = yani.PulseSchedule([
 ```
 
 Each pulse gets its own `rate` and its own `source`, so a campaign whose spectrum
-or magnitude changes between phases is expressed directly. `transmute()` returns
-one material per step, so the number of results is the number of steps.
+or magnitude changes between phases is expressed directly. The results carry one
+material per step, so the number of results is the number of steps.
 
 !!! note "What `rate` means depends on the entry point"
     For standalone `Material.transmute()`, `rate` is the **total flux magnitude**
@@ -145,17 +145,21 @@ atom densities into the atom counts that activity and decay heat need.
 
 ## Results
 
-`transmute()` returns `list[Material]`, one per step, each holding the inventory
-at the end of that step. Extensive quantities need the material's `volume` in cm³:
+`transmute()` returns a `TransmutationResults` -- the same object the coupled
+`Model.simulate_transmutation()` returns in yamc -- keyed by the material's `id`,
+or `0` when it has none. `step_materials()` unpacks it into `list[Material]`, one
+per step, each holding the inventory at the end of that step. Extensive
+quantities need the material's `volume` in cm³:
 
 <!-- doctest: skip -->
 ```python
 results = material.transmute(schedule=schedule)
+steps = results.step_materials(material.id or 0)
 
-for step, mat in enumerate(results, start=1):
+for step, mat in enumerate(steps, start=1):
     print(step, mat.activity(), "Bq", mat.decay_heat(), "W")
 
-final = results[-1]
+final = results.get_final_material(material.id or 0)   # the same as steps[-1]
 final.activity(by_nuclide=True)      # dict[str, float], Bq per nuclide
 final.decay_heat(by_nuclide=True)    # dict[str, float], W per nuclide
 final.nuclides                       # list[(name, fraction)]
@@ -280,6 +284,15 @@ borrowing ENDF/B-VIII.1 decay data is the usual arrangement. They are global
 process state, not per-call arguments. See
 [Point it at nuclear data](getting_started.md#point-it-at-nuclear-data) for
 which library publishes which subsection.
+
+`transmutation_reactions` and `transmutation_fission_yields` additionally accept
+`False`, which turns that subsection off. A decay-only calculation carries no
+reaction rates, so it needs no reaction topology; a material nothing in which
+fissions needs no yields, and neither does a library that publishes none of its
+own. Off is not the same as unset: `None` restores the default library, whereas
+`False` says the subsection is absent on purpose. A rate that then needs it is
+refused when the burnup matrix is built, naming the nuclide and the reaction,
+rather than being solved as though the reaction produced nothing.
 
 ## Where the data comes from
 

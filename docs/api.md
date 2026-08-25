@@ -57,3 +57,15 @@ yamc ships and this wheel does not.
 
 ::: yani.convert_neutron_transport
 ::: yani.convert_photon
+
+## Reading data back
+
+Both of these read a converted Arrow directory through the same loader transport
+uses and return a description of what is in it, which is how a conversion is
+checked without standing up a transport run. Neither goes through the
+process-wide stores, and the photon one publishes none of the process-wide
+photon grids, so inspecting two builds of the same nuclide or element in one
+interpreter reports on each of them rather than handing back the first.
+
+::: yani.read_nuclide_from_arrow
+::: yani.read_element_from_arrow
