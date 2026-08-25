@@ -4,3 +4,7 @@
 mkdocs>=1.6
 mkdocs-material>=9.5
 mkdocstrings[python]>=1.0
+
+# Type-checks the examples in the prose pages against the stubs inside the
+# yani-core wheel installed above. See docs/check_examples.py.
+mypy>=1.11

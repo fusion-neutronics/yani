@@ -88,6 +88,17 @@ jobs:
               sys.exit(1)
           EOF
 
+      - name: The documented examples must type-check against that wheel
+        shell: bash
+        run: |
+          # The reference is generated from the wheel, so it cannot go stale.
+          # The examples on the prose pages are hand-written and can: yani-core
+          # 0.11.0 changed what `Material.transmute()` returns, and every
+          # `results[-1]` here kept rendering while raising TypeError for
+          # anyone who ran it. A type check against the shipped .pyi stubs
+          # catches that without needing nuclear data or a solve.
+          python docs/check_examples.py
+
       - uses: actions/upload-artifact@v7
         with:
           name: site
