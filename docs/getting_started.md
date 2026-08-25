@@ -294,9 +294,10 @@ plots use for their x axis.
 
 `transmute()` returns a `TransmutationResults`, keyed by material id.
 `step_materials()` unpacks it into one `Material` per timestep, in order, each
-carrying the inventory at the end of that step, and `get_final_material()` hands
-back the last of them directly. They are ordinary materials, so anything you can
-ask a material you can ask a result:
+carrying the inventory at the end of that step. `get_final_material()` hands back
+the last of them directly, returning `None` rather than raising if the id is not
+one it stepped. They are ordinary materials, so anything you can ask a material
+you can ask a result:
 
 <!-- doctest: skip -->
 ```python

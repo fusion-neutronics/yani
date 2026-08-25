@@ -159,7 +159,7 @@ steps = results.step_materials(material.id or 0)
 for step, mat in enumerate(steps, start=1):
     print(step, mat.activity(), "Bq", mat.decay_heat(), "W")
 
-final = results.get_final_material(material.id or 0)   # the same as steps[-1]
+final = steps[-1]
 final.activity(by_nuclide=True)      # dict[str, float], Bq per nuclide
 final.decay_heat(by_nuclide=True)    # dict[str, float], W per nuclide
 final.nuclides                       # list[(name, fraction)]
