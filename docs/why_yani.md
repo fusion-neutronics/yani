@@ -29,7 +29,7 @@ live yet.
 **A citable material library ships in the wheel.** The PNNL Compendium
 (PNNL-15870 Rev. 2), 410 named materials with their compositions and
 densities, is bundled rather than a separate download, so a standard
-shielding or structural material is `yani.materials.pnnl.material("Steel,
+shielding or structural material is `yani.materials.pnnl.material(key="Steel,
 Stainless 316", volume=...)` away instead of a retyping exercise from someone
 else's PDF. See [Materials](usage.md#materials).
 
