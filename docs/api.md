@@ -32,6 +32,15 @@ if anything else on the module goes undocumented.
 ::: yani.DoseResult
 ::: yani.PhotonCoefficients
 
+## Nuclear-data uncertainty
+
+Passed to `Material.transmute()`, not read from it; the sigmas and the coverage
+report it produces come back on `TransmutationResults` above. What it covers,
+and what a sigma of zero does and does not mean, is in
+[Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
+
+::: yani.DataUncertainty
+
 ## Nuclear data
 
 ::: yani.Nuclide
