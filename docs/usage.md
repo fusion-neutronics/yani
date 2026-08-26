@@ -154,7 +154,7 @@ quantities need the material's `volume` in cm³:
 <!-- doctest: skip -->
 ```python
 results = material.transmute(schedule=schedule)
-steps = results.step_materials(material.id or 0)
+steps = results.step_materials(material_id=material.id or 0)
 
 for step, mat in enumerate(steps, start=1):
     print(step, mat.activity(), "Bq", mat.decay_heat(), "W")
@@ -370,8 +370,8 @@ results = material.transmute(
 )
 
 mid = material.id or 0
-mean = results.get_nuclide_density(mid, "Mn56", 1)
-sigma = results.get_nuclide_uncertainty(mid, "Mn56", 1)
+mean = results.get_nuclide_density(material_id=mid, nuclide="Mn56", step=1)
+sigma = results.get_nuclide_uncertainty(material_id=mid, nuclide="Mn56", step=1)
 ```
 
 The activation cross sections are resampled from their ENDF MF=33 covariance,
@@ -401,7 +401,7 @@ if info is not None:               # None unless data_uncertainty was passed
 ```
 
 For activity or decay heat, take the spread over the ensemble rather than
-building it from per-nuclide sigmas: `get_uncertainty_inventories(mid, step)`
+building it from per-nuclide sigmas: `get_uncertainty_inventories(material_id=mid, step=step)`
 returns every sample's full inventory. A parent and its daughter do not vary
 independently, so quadrature over nuclides would be wrong.
 

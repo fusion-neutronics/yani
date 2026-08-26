@@ -36,7 +36,7 @@ schedule = yani.PulseSchedule([
 ])
 
 results = steel.transmute(schedule=schedule)
-final = results.step_materials(steel.id or 0)[-1]
+final = results.step_materials(material_id=steel.id or 0)[-1]
 print(final.activity(), "Bq")
 print(final.decay_heat(), "W")
 print(final.contact_dose(), "Gy/h")
