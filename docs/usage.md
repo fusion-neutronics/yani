@@ -411,8 +411,17 @@ independently, so quadrature over nuclides would be wrong.
 
 ## Limits worth knowing
 
-- One stepper, with beginning-of-step reaction rates. Long steps at high flux
-  will drift; shorten them rather than trusting a single step.
+- **A step is exact at any length, for a fixed spectrum.** The burnup matrix is
+  built from decay constants and `sigma*phi` rates and does not depend on the
+  composition, so it is constant over a step and the matrix exponential is
+  solved exactly. One year in a single step and one year in 365 agree to
+  round-off. Shortening steps to chase accuracy buys nothing here.
+
+  What a long step DOES miss is the spectrum changing as the composition does,
+  which `transmute()` cannot see because the flux is your input rather than
+  something it solves for. If the field would harden or soften appreciably over
+  the campaign, split the schedule and give each pulse its own spectrum. That is
+  a statement about the physics you are feeding it, not about the solver.
 - `data_uncertainty` covers the activation cross sections only, and there is no
   statistical component: the flux you supply is taken as exact, since nothing is
   transported. Cross-material covariance (`MAT1 != 0`) and covariances derived
