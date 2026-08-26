@@ -44,6 +44,30 @@ at, so the only averaging is the one your own spectrum implies. This matters
 most exactly where it is usually skipped: narrow resonances that a coarse
 group structure smears across a bin.
 
+**An uncertainty on the answer, not just the answer.** Pass
+`data_uncertainty=` and every nuclide density comes back with a standard
+deviation beside it. The activation cross sections are resampled from the
+evaluation's own ENDF MF=33 covariance, folded against your spectrum, and the
+schedule is re-solved for each sample. That is exact to all orders in the
+matrix exponential: nothing is linearized, and the sandwich rule is not used,
+so correlations between nuclides survive. A parent and its daughter come back
+with the same absolute uncertainty, because every daughter atom came out of a
+parent atom. If your spectrum arrives from a Monte Carlo run with a per-bin
+error, that propagates too, and separately, so you can see which of the two
+dominates.
+
+**A sigma of zero says which kind of zero it is.** The hard part of an
+uncertainty is not producing one, it is knowing what it left out. A nuclide
+whose evaluation publishes no covariance and a nuclide whose covariance is
+genuinely small would otherwise both report `0.0`, and only one of those is
+reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
+perturbed, which have no published covariance, what share of each reaction rate
+the covariance grid actually spans, which evaluated matrices were not positive
+semi-definite and had to be repaired, and which sources are not propagated at
+all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
+carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
+gives two very different sigmas, and the report is what tells you why.
+
 **Gamma lines, not a binned photon response.** `decay_photon_spectrum()`
 returns discrete energy/intensity pairs, not a spectrum pre-collapsed onto a
 group structure. A binned response answers "how much energy in this
