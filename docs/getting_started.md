@@ -91,13 +91,15 @@ yani.transmutation_fission_yields = "endf-b8.1"  # nor fission yields
 #
 # A volume is required for anything extensive (activity, decay heat, photon
 # lines): the solver works in atoms/barn-cm and the volume turns that into atoms.
-foil = yani.Material({"Ag": 1.0}, density=10.49, volume=1.0)
+foil = yani.Material(composition={"Ag": 1.0}, density=10.49, volume=1.0)
 
 # The spectrum rides on the pulse. The Histogram normalizes the shape, so a
 # multigroup flux from a tally can be passed straight in; the pulse `rate` is the
 # total flux magnitude in n/cm2/s.
 spectrum = yani.NeutronSource(
-    energy=yani.sources.Histogram([1e-5, 1e5, 1e6, 1.5e7], [1e12, 1e13, 1e14])
+    energy=yani.sources.Histogram(
+        boundaries=[1e-5, 1e5, 1e6, 1.5e7], probabilities=[1e12, 1e13, 1e14]
+    )
 )
 # Sample the decay at these times after shutdown, in days. A Cooldown takes the
 # duration OF THAT STEP, so the schedule needs the gaps between them.
@@ -105,8 +107,8 @@ days = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 1000, 3650]
 gaps = [0.05, 0.05, 0.1, 0.3, 0.5, 1, 3, 5, 10, 30, 50, 100, 800, 2650]
 
 schedule = yani.PulseSchedule(
-    [yani.Pulse(rate=1.11e14, duration=(100, "d"), source=spectrum)]  # 100 days on
-    + [yani.Cooldown(duration=(g, "d")) for g in gaps]                # then cooling
+    steps=[yani.Pulse(rate=1.11e14, duration=(100, "d"), source=spectrum)]  # 100 days on
+    + [yani.Cooldown(duration=(g, "d")) for g in gaps]                      # then cooling
 )
 
 results = foil.transmute(schedule=schedule)    # TransmutationResults

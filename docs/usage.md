@@ -16,7 +16,7 @@ seconds as a plain number or a `(value, unit)` tuple:
 
 <!-- doctest: skip -->
 ```python
-schedule = yani.PulseSchedule([
+schedule = yani.PulseSchedule(steps=[
     yani.Pulse(rate=1e14, duration=(2, "h"), source=spectrum),
     yani.Cooldown(duration=(30, "min")),
     yani.Pulse(rate=5e13, duration=(2, "h"), source=spectrum),   # different rate
@@ -46,7 +46,7 @@ energy_groups = [1e-5, 0.625, 1e5, 2e7]   # eV, ascending, n+1 boundaries
 multigroup_flux = [1e12, 5e12, 1e14]      # n groups: thermal, epithermal, fast
 
 spectrum = yani.NeutronSource(
-    energy=yani.sources.Histogram(energy_groups, multigroup_flux)
+    energy=yani.sources.Histogram(boundaries=energy_groups, probabilities=multigroup_flux)
 )
 pulse = yani.Pulse(rate=sum(multigroup_flux), duration=(1, "h"), source=spectrum)
 ```
@@ -69,7 +69,7 @@ boundaries. They are not privileged, and using one is not required:
 <!-- doctest: skip -->
 ```python
 spectrum = yani.NeutronSource(
-    energy=yani.sources.Histogram("CCFE-709", flux_709)   # 709 values
+    energy=yani.sources.Histogram(boundaries="CCFE-709", probabilities=flux_709)   # 709 values
 )
 ```
 
@@ -101,7 +101,7 @@ against them, or to fold a cross section over them, ask for them by name:
 
 <!-- doctest: skip -->
 ```python
-edges = yani.group_structure("CCFE-709")
+edges = yani.group_structure(name="CCFE-709")
 len(edges)              # 710, one more than the group count
 edges[0], edges[-1]     # 1e-05 eV, 1e+09 eV
 
@@ -120,11 +120,13 @@ abundance, nuclide names are taken literally, and chemical formulas are parsed:
 
 <!-- doctest: skip -->
 ```python
-foil = yani.Material({"Ag": 1.0}, density=10.49, volume=1.0)
+foil = yani.Material(composition={"Ag": 1.0}, density=10.49, volume=1.0)
 enriched_li = yani.Material(
-    {"Li": yani.enriched(1.0, target="Li6", percent=60.0)}, density=0.534, volume=10.0
+    composition={"Li": yani.enriched(fraction=1.0, target="Li6", percent=60.0)},
+    density=0.534,
+    volume=10.0,
 )
-breeder = yani.Material({"Li4SiO4": 1.0}, density=2.4, volume=100.0)
+breeder = yani.Material(composition={"Li4SiO4": 1.0}, density=2.4, volume=100.0)
 ```
 
 For a standard shielding or structural material, the PNNL Compendium
@@ -134,8 +136,8 @@ than from your own retyping:
 
 <!-- doctest: skip -->
 ```python
-steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
-concrete = yani.materials.pnnl.material("Concrete, Ordinary (NIST)", volume=1e6)
+steel = yani.materials.pnnl.material(key="Steel, Stainless 316", volume=1000.0)
+concrete = yani.materials.pnnl.material(key="Concrete, Ordinary (NIST)", volume=1e6)
 
 list(yani.materials.pnnl)          # every name in the compendium
 ```
@@ -195,9 +197,9 @@ and carry the same names as their OpenMC counterparts.
 
 <!-- doctest: skip -->
 ```python
-iron = yani.data.mass_attenuation_coefficient("Fe")   # or by atomic number, 26
-iron.interpolate(1.0e6)                               # cm2/g at 1 MeV
-air = yani.data.mass_energy_absorption_coefficient("air")
+iron = yani.data.mass_attenuation_coefficient(element="Fe")   # or by atomic number, 26
+iron.interpolate(energy=1.0e6)                               # cm2/g at 1 MeV
+air = yani.data.mass_energy_absorption_coefficient(material="air")
 ```
 
 The default quantity follows the FISPACT-II methodology and agrees with
@@ -222,7 +224,7 @@ radioactive ones, both keyed by parent and both giving
 
 <!-- doctest: skip -->
 ```python
-chain = yani.TransmutationChain("transmutation-endf-b8.1-sfr.arrow")
+chain = yani.TransmutationChain(path="transmutation-endf-b8.1-sfr.arrow")
 
 chain.reactions["W186"]   # [('(n,2n)', 'W185', 1.0), ..., ('(n,a)', 'Hf183', 1.0)]
 chain.decays["Hf183"]     # [('beta-', 'Ta183', 1.0)]
@@ -333,7 +335,9 @@ call rather than a separate toolchain:
 <!-- doctest: skip -->
 ```python
 # Cross sections for the rate collapse, from ENDF (needs NJOY) or from ACE.
-yani.convert_neutron_xs("n-026_Fe_056.endf", "out/", njoy_exec="njoy")
+yani.convert_neutron_xs(
+    input_path="n-026_Fe_056.endf",
+    output_dir="out/", njoy_exec="njoy")
 
 # The transmutation network, from decay, fission-yield and neutron evaluations.
 yani.convert_transmutation(

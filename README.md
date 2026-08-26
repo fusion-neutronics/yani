@@ -26,11 +26,13 @@ yani.transmutation_branch_ratios = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"      # TENDL has no decay data
 yani.transmutation_fission_yields = "endf-b8.1"  # nor fission yields
 
-steel = yani.materials.pnnl.material("Steel, Stainless 316", volume=1000.0)
+steel = yani.materials.pnnl.material(key="Steel, Stainless 316", volume=1000.0)
 spectrum = yani.NeutronSource(
-    energy=yani.sources.Histogram([1e-5, 1e5, 1e6, 1.5e7], [1e12, 1e13, 1e14])
+    energy=yani.sources.Histogram(
+        boundaries=[1e-5, 1e5, 1e6, 1.5e7], probabilities=[1e12, 1e13, 1e14]
+    )
 )
-schedule = yani.PulseSchedule([
+schedule = yani.PulseSchedule(steps=[
     yani.Pulse(rate=1.11e14, duration=(1, "a"), source=spectrum),
     yani.Cooldown(duration=(1, "d")),
 ])
