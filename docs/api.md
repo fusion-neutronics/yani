@@ -25,6 +25,7 @@ build fails if anything else on the module goes undocumented.
 
 ::: yani.Pulse
 ::: yani.Cooldown
+::: yani.cooldown_steps
 ::: yani.PulseSchedule
 ::: yani.NeutronSource
 

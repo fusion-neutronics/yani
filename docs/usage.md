@@ -28,6 +28,23 @@ Each pulse gets its own `rate` and its own `source`, so a campaign whose spectru
 or magnitude changes between phases is expressed directly. The results carry one
 material per step, so the number of results is the number of steps.
 
+A decay curve wants points at cumulative times, while `Cooldown` takes the
+duration of its own step, so a sweep means differencing the times by hand.
+`cooldown_steps()` does that for you:
+
+<!-- doctest: skip -->
+```python
+schedule = yani.PulseSchedule(steps=[
+    yani.Pulse(rate=1e14, duration=(2, "h"), source=spectrum),
+    *yani.cooldown_steps(start=(1, "h"), stop=(10, "a"), n=40),
+])
+```
+
+The steps land at cumulative times from `start` to `stop`, log-spaced by
+default: decay is exponential, so a linear sweep spends its points on the flat
+tail and misses the early fall. `spacing="linear"` is the other one, and
+anything else raises.
+
 !!! note "What `rate` means depends on the entry point"
     For standalone `Material.transmute()`, `rate` is the **total flux magnitude**
     in n/cm²/s: the spectrum supplies the shape and `rate` supplies the size. For
@@ -178,6 +195,17 @@ final.get_atoms_per_barn_cm()        # dict[str, float], the solver's own units
 
 Stable nuclides contribute nothing to activity or decay heat and are omitted from
 the by-nuclide dictionaries.
+
+`per` is the way out of needing a size at all. `per="cm3"` gives Bq/cm³ or W/cm³
+and needs neither `volume` nor `density`, and `per="g"` gives Bq/g or W/g and
+needs only `density`. The decay photon spectrum takes the same argument:
+
+<!-- doctest: skip -->
+```python
+final.activity(per="cm3")                  # Bq/cm3, no volume needed
+final.decay_heat(per="g")                  # W/g, needs only density
+final.decay_photon_spectrum(per="cm3")     # photons/s/cm3
+```
 
 `contact_dose()` is the third of these, and the one that needs no `volume`: it
 is the dose someone receives with a hand on the material, from the material's
