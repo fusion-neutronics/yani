@@ -53,8 +53,18 @@ matrix exponential: nothing is linearized, and the sandwich rule is not used,
 so correlations between nuclides survive. A parent and its daughter come back
 with the same absolute uncertainty, because every daughter atom came out of a
 parent atom. If your spectrum arrives from a Monte Carlo run with a per-bin
-error, that propagates too, and separately, so you can see which of the two
-dominates.
+error, hand it to the pulse as `flux_std_dev` and that propagates too, as its
+own source, so you can see which of the two dominates.
+
+**The error bar reaches the answers you quote, not just the densities.**
+Activity, decay heat, contact dose and every decay photon line come back as an
+`Estimate`, a nominal value with the ensemble's spread beside it. Each is
+evaluated once per replica and summed inside that replica, which is the only way
+to get them right: adding the per-nuclide sigmas in quadrature double-counts a
+variance that partly cancels, and contact dose is not even linear in the
+densities, since a replica that makes more of an emitter also absorbs more of
+it. A calculated band beside a measured one is what turns a C/E into a statement
+about whether the disagreement is larger than the data allows.
 
 **A sigma of zero says which kind of zero it is.** The hard part of an
 uncertainty is not producing one, it is knowing what it left out. A nuclide
@@ -67,6 +77,18 @@ semi-definite and had to be repaired, and which sources are not propagated at
 all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
 carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
 gives two very different sigmas, and the report is what tells you why.
+
+**Resonance self-shielding from a slowing-down solve, with a warning when you
+skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its
+mean chord, and the flux inside it is depressed where the total cross section is
+large. The solve assumes nothing about resonances being narrow: the cheaper
+narrow-resonance approximation is deliberately not offered, because it
+over-shields strong elastic scatterers badly enough to be worse than applying no
+correction at all. Leave the correction out, which is the default since a
+material carries no geometry, and the run still tells you what that cost:
+`self_shielding_info["would_shield"]` bounds the suppression each resonance
+absorber could have seen, so a dilute run of one is a warning rather than a
+silence. See [Self-shielding](usage.md#self-shielding).
 
 **Gamma lines, not a binned photon response.** `decay_photon_spectrum()`
 returns discrete energy/intensity pairs, not a spectrum pre-collapsed onto a
@@ -110,9 +132,14 @@ that, and reused from then on. Looping over many materials, spectra or
 schedule variants in one script pays the parse cost once, not once per
 `transmute()` call, and a later call that needs a wider slice of the same
 source (say, more reactions) tops the cache up rather than re-parsing it from
-scratch. Downloads are cached separately, to disk under `~/.cache/yamc`, so a
-second run of the script does not refetch either, but the in-memory cache is
-what saves a second call in the same process from touching disk at all.
+scratch. The cross sections a `transmute()` needs are kept on the material
+itself as well, so a second call on the same material does no file reading at
+all: on a steel against ENDF/B-8.1 that is 1.8 s of a 2.3 s call. A sweep over
+thousands of distinct compositions hands them back with
+`release_nuclear_data()`. Downloads are cached separately, to disk under
+`~/.cache/yamc`, so a second run of the script does not refetch either, but the
+in-memory cache is what saves a second call in the same process from touching
+disk at all.
 
 **The chain that gets built is exactly the one your material can reach, no
 manual depth setting required.** Rather than truncating the transmutation

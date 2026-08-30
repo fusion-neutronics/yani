@@ -145,6 +145,14 @@ list(yani.materials.pnnl)          # every name in the compendium
 Pass `volume` at construction for either route: it is what turns the solver's
 atom densities into the atom counts that activity and decay heat need.
 
+`transmute()` loads the cross sections it needs into the material and leaves
+them there, so calling it again on the same material does no file reading at
+all. That is the right trade for a material you transmute more than once and the
+wrong one for a sweep over thousands of distinct compositions, each of which
+would otherwise hold a few hundred nuclides' data for as long as it lives. Call
+`material.release_nuclear_data()` when you are done with one; the material stays
+usable, and the next call that needs the data loads it again.
+
 ## Results
 
 `transmute()` returns a `TransmutationResults` -- the same object the coupled
@@ -214,6 +222,59 @@ transport run in yamc:
 ```python
 energies, intensities = final.decay_photon_spectrum()
 ```
+
+## Self-shielding
+
+A lump of a resonance absorber shields itself: the flux inside it is depressed
+exactly where the total cross section is large, so the reaction rate is lower
+than the same material spread thin. Nothing is corrected unless you ask, because
+a `Material` carries no geometry to infer a size from. Give the lump a shape, or
+state its mean chord `4V/S` in cm yourself:
+
+<!-- doctest: skip -->
+```python
+results = foil.transmute(
+    schedule=schedule,
+    self_shielding_shape=yani.shapes.FoilLump(thickness=0.1),   # cm
+)
+```
+
+`SphereLump()` and `CubeLump()` are fixed by the material's `volume` and take no
+arguments, while `FoilLump(thickness=)`, `CylinderLump(radius=)` and
+`WireLump(radius=)` carry the one dimension a volume cannot imply. Give a shape
+or `self_shielding_chord=`, not both. A sphere has the least surface for its
+volume, so it has the longest chord and shields more than any other shape of the
+same size: an upper bound rather than a safe default, which is why there is no
+default at all.
+
+The flux inside the lump comes from a slowing-down solve, which assumes nothing
+about resonances being narrow. The cheaper narrow-resonance approximation is
+deliberately not offered, because it over-shields strong elastic scatterers
+badly enough to be worse than applying no correction at all: on W186(n,gamma) in
+FNG-tung, measured at 1.29 b, the slowing-down solve gives C/E 0.80, no
+correction gives 0.86 and narrow resonance gives 0.46.
+
+What was done comes back on the results, and a run that shielded nothing says so
+rather than staying silent:
+
+<!-- doctest: skip -->
+```python
+shielding = results.self_shielding_info
+if shielding is not None:              # None only for a coupled yamc run
+    shielding["method"], shielding["chord_cm"]   # how, and the chord used
+    shielding["shielded"]              # nuclides the correction reached
+    shielding["not_shielded"]          # and why each of the others was left
+    shielding["strongest_factor"]      # smallest factor any group average took
+```
+
+A `chord_cm` of `None` means the run was dilute and nothing was corrected. A
+`strongest_factor` of `1.0` means the correction ran and changed nothing in
+practice, which is a different statement. A dilute run fills `would_shield`
+instead: nuclides whose own resonances could have suppressed a reaction, each
+mapped to the strongest suppression it could have seen. That bound is computed
+from the one reaction, ignoring the rest of the material and the geometry, both
+of which push the real factor back toward one, so it says "this answer may be
+high, and here is by how much at the very most".
 
 ## Production routes
 
@@ -388,10 +449,37 @@ A given nuclide's perturbation is a pure function of `(seed, sample, nuclide)`,
 so a seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the sigmas settle.
 
-What it covers is the activation cross sections and nothing else. Half-lives,
-decay branching ratios, fission yields and the isomeric-branching overlay stay
-at their evaluated values. Because a zero sigma could mean either "well known"
-or "nothing published", the two are separated in `data_uncertainty_info`:
+Two things are perturbed: the activation cross sections, and the flux spectrum
+when you supply an error on it. `DataUncertainty.available_sources()` names them,
+`cross_sections` and `flux_spectrum`, and `sources=` restricts a run to one of
+them, which is how a contribution is measured rather than guessed. Naming a
+source this build cannot perturb raises rather than being quietly ignored.
+Half-lives, decay branching ratios, fission yields and the isomeric-branching
+overlay stay at their evaluated values.
+
+A spectrum that came from a Monte Carlo run carries a statistical error of its
+own. Hand it to the pulse, per bin, in the same order and units as the histogram
+values, and it is sampled alongside the cross sections:
+
+<!-- doctest: skip -->
+```python
+flux_sigma = [2e10, 8e10, 1e12]         # one per group, as the histogram has
+
+pulse = yani.Pulse(
+    rate=sum(multigroup_flux),
+    duration=(1, "h"),
+    source=spectrum,
+    flux_std_dev=flux_sigma,
+)
+```
+
+Omitting it is the common case, since a spectrum taken from a published
+reference set carries no stated error. A run then reports the omission in
+`data_uncertainty_info["spectra_without_flux_sigma"]` rather than letting the
+flux read as known exactly.
+
+Because a zero sigma could mean either "well known" or "nothing published", the
+two are separated in `data_uncertainty_info`:
 
 <!-- doctest: skip -->
 ```python
@@ -401,13 +489,52 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_covariance_data"]     # evaluation carries none
     info["rate_fraction_covered"]  # share of each rate the covariance grid spans
     info["not_perturbed"]          # sources this does not propagate
+    info["sources"]                # the ones it did
     info["has_gaps"]               # True if anything was left out
 ```
 
-For activity or decay heat, take the spread over the ensemble rather than
-building it from per-nuclide sigmas: `get_uncertainty_inventories(material_id=mid, step=step)`
-returns every sample's full inventory. A parent and its daughter do not vary
-independently, so quadrature over nuclides would be wrong.
+Activity, decay heat and contact dose carry the same band, each as an `Estimate`
+holding the unperturbed value and the ensemble's spread on it:
+
+<!-- doctest: skip -->
+```python
+activity = results.get_activity_uncertainty(material_id=mid, step=1)
+activity.nominal                    # the unperturbed run, always present
+activity.mean, activity.std_dev     # None below two replicas
+activity.relative_std_dev
+
+results.get_decay_heat_uncertainty(material_id=mid, step=1)
+results.get_contact_dose_uncertainty(material_id=mid, step=1, dose_quantity="effective")
+results.get_activity_uncertainty(material_id=mid, step=1, by_nuclide=True)   # dict[str, Estimate]
+```
+
+Each is evaluated once per replica and summed within that replica, so the
+correlations between nuclides survive. Building the same number out of the
+per-nuclide sigmas is wrong in a specific direction: evaluating from the mean
+inventory gives no spread at all, and adding sigmas in quadrature double-counts
+a variance that partly cancels, since every Mn56 atom in an irradiated iron foil
+came out of an Fe56 atom. `mean` and `std_dev` are `None` below two replicas,
+because a spread over one sample is unmeasured rather than zero.
+
+The decay photon spectrum comes back line by line, as `LineEstimate`s over the
+union of the lines the unperturbed run and every replica emit:
+
+<!-- doctest: skip -->
+```python
+lines = results.get_decay_photon_spectrum_uncertainty(material_id=mid, step=1)
+for line in lines or []:
+    line.energy, line.nominal, line.std_dev
+    line.emitting              # replicas that emitted it at all
+```
+
+A line a replica does not emit counts as a zero in it, which is the only rule
+under which two lines' spreads are taken over the same sample, and `emitting` is
+what keeps that zero-fill visible: it is the difference between a line that is
+dim and a line that is sometimes not there.
+
+`get_uncertainty_inventories(material_id=mid, step=step)` is still there for a
+quantity these four do not cover, and returns every replica's full inventory to
+take the spread over yourself.
 
 ## Limits worth knowing
 
@@ -422,11 +549,17 @@ independently, so quadrature over nuclides would be wrong.
   something it solves for. If the field would harden or soften appreciably over
   the campaign, split the schedule and give each pulse its own spectrum. That is
   a statement about the physics you are feeding it, not about the solver.
-- `data_uncertainty` covers the activation cross sections only, and there is no
-  statistical component: the flux you supply is taken as exact, since nothing is
-  transported. Cross-material covariance (`MAT1 != 0`) and covariances derived
-  from a standards evaluation are not consumed, and both are counted in
-  `data_uncertainty_info` rather than dropped silently.
+- `data_uncertainty` covers the activation cross sections, and the flux spectrum
+  when a pulse carries `flux_std_dev`. Without one the flux is taken as exact,
+  which is a statement about the input rather than a claim about it, since
+  nothing is transported here. Half-lives, decay branching ratios and fission
+  yields are held at their evaluated values throughout. Cross-material
+  covariance (`MAT1 != 0`) and covariances derived from a standards evaluation
+  are not consumed, and both are counted in `data_uncertainty_info` rather than
+  dropped silently.
+- Nothing is self-shielded unless you give a shape or a chord, so a dilute run
+  of a resonance absorber reads high. `self_shielding_info["would_shield"]`
+  bounds by how much, on the run that skipped it.
 - The network is only as complete as the chain you configure. A product whose
   parent reaction is missing from `transmutation_reactions` simply never appears.
 - Nuclides many decades below the largest inventory carry no significant figures.
