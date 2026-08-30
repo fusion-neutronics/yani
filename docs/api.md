@@ -6,11 +6,14 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 extension module they live in.
 
 The members are named one by one rather than pulled in with a single
-`::: yani`, so that the page can group them by what they are for. One part of
-the module is deliberately left out: the `get_*`/`set_*` accessors behind the
+`::: yani`, so that the page can group them by what they are for. Two parts of
+the module are deliberately left out: the `get_*`/`set_*` accessors behind the
 nuclear-data settings, which are documented as the settings themselves under
-[Nuclear data settings](usage.md#nuclear-data-settings). The docs build fails
-if anything else on the module goes undocumented.
+[Nuclear data settings](usage.md#nuclear-data-settings), and the `data`,
+`materials`, `shapes` and `sources` submodules, whose contents appear in
+[Usage](usage.md) under the names you write them with, `yani.sources.Histogram`
+and `yani.shapes.FoilLump` rather than submodule pages of their own. The docs
+build fails if anything else on the module goes undocumented.
 
 ## Materials
 
@@ -22,6 +25,7 @@ if anything else on the module goes undocumented.
 
 ::: yani.Pulse
 ::: yani.Cooldown
+::: yani.cooldown_steps
 ::: yani.PulseSchedule
 ::: yani.NeutronSource
 
@@ -34,12 +38,17 @@ if anything else on the module goes undocumented.
 
 ## Nuclear-data uncertainty
 
-Passed to `Material.transmute()`, not read from it; the sigmas and the coverage
-report it produces come back on `TransmutationResults` above. What it covers,
-and what a sigma of zero does and does not mean, is in
+`DataUncertainty` is passed to `Material.transmute()`, not read from it; the
+sigmas and the coverage report it produces come back on `TransmutationResults`
+above. `Estimate` and `LineEstimate` are what the derived quantities come back
+as, a nominal value with the ensemble's spread beside it, from
+`get_activity_uncertainty` and the three getters like it. What the uncertainty
+covers, and what a sigma of zero does and does not mean, is in
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ::: yani.DataUncertainty
+::: yani.Estimate
+::: yani.LineEstimate
 
 ## Nuclear data
 

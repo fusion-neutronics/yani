@@ -55,7 +55,9 @@ jobs:
           UNDOCUMENTED = {
               # PyO3 submodules. Their contents are documented under the names
               # people write, `yani.sources.Histogram`, not as submodule pages.
-              "data", "materials", "sources",
+              # `shapes` arrived with the self-shielding arguments in 0.12.0 and
+              # is written up under Self-shielding.
+              "data", "materials", "shapes", "sources",
               # The accessor pair behind each of the five nuclear-data
               # settings. The settings are the documented interface
               # (`yani.cross_section_data = "tendl-2025"`); nobody calls these.
