@@ -357,6 +357,67 @@ Note that the chain this object holds is the base three-part merge. The isomeric
 branching overlay is applied inside the solve, so a `(n,2n)` edge here names the
 ground state where the overlay would split it between ground state and isomer.
 
+### Weighted, from a solve
+
+Those last two paragraphs are why the walk above is the low-level option: it can
+enumerate routes but not rank them, and the branching it reads is the file's
+rather than the one the solve used. `get_production_routes()` answers the same
+question from a solve that has happened, so both are fixed. Asked for the Ta183
+of the example above:
+
+<!-- doctest: skip -->
+```python
+routes = results.get_production_routes(material_id=mid, product="Ta183", step=0)
+for route in routes or []:          # None if the material or the step is unknown
+    print(f"{route['route']:<32} {route['share']:.1%}")
+
+# W183(n,p)Ta183                    72.4%
+# W186(n,a)Hf183(BETA-)Ta183        16.1%   <- the one that needs the decay edge
+# W184(n,np)Ta183                    7.1%
+# W184(n,d)Ta183                     4.4%
+```
+
+Each entry also carries `steps`, the same route as `(parent, kind, target)`
+triples with the chain's own spellings (`('Hf183', 'beta-', 'Ta183')`), where the
+`route` string uppercases decay kinds the way the published pathway tables print
+them.
+
+The walk starts from the nuclides the material began with, which is the other
+thing a bare chain cannot do for you. Asked what makes W187, a chain answers
+`Os190(n,a)` and `Ir192(n,npa)` as readily as `W186(n,gamma)`, and nothing in a
+tungsten foil is osmium.
+
+`share` is the fraction of that product's production arriving down the route: the
+atoms it starts from, times what its reaction drove per atom of its parent over
+the step, times the branching of every decay it passes through, so a route
+through a 1% branch delivers 1% of what the reaction made. Reaction steps carry
+the step duration too, so `reaction_depth=2` is in the same units as the default
+1 and comes out smaller by roughly a factor of the fluence. `production` is the
+same number unnormalised, in atoms per barn-cm, because 100% of almost nothing
+and 100% of the inventory read alike otherwise.
+
+The flux-weighted isomeric branching comes from the same place:
+
+<!-- doctest: skip -->
+```python
+branching = results.get_isomeric_branching(material_id=mid, step=0) or {}
+branching["W186"]
+# {'(n,2n)': [('W185_m1', 0.535), ('W185', 0.465)]}
+```
+
+Which state a reaction leaves its product in is energy dependent, so the one
+number describing a spectrum is the branching collapsed against it, and that
+exists only inside a solve. In the chain file that same channel reads
+`W186 (n,2n) -> W185 1.000000` and `-> W185_m1 0.000000`, a placeholder the
+overlay replaces at solve time. Only channels landing in more than one final
+state are returned, since a single-product channel has no branching to report and
+listing it at 1.0 buries the ones that do.
+
+It is the number that says whether a disagreement belongs to a cross section or
+to a branching ratio, which are different data and different fixes. On a foil
+whose decay heat comes from an isomer it is also the difference between a right
+answer and one out by a factor of several.
+
 ## Nuclear data settings
 
 Five module-level settings, read and written like attributes:
@@ -384,6 +445,18 @@ own. Off is not the same as unset: `None` restores the default library, whereas
 `False` says the subsection is absent on purpose. A rate that then needs it is
 refused when the burnup matrix is built, naming the nuclide and the reaction,
 rather than being solved as though the reaction produced nothing.
+
+A reactions network built for one material and pointed at another is refused on
+the same terms. Networks are often scoped to the nuclides they were built from,
+because walking a whole library to activate one foil is wasted work, and scoping
+them makes them substitutable by mistake: two conversions sharing an output path
+leave the second one's behind under a name that still says the first. Nothing
+about solving against the wrong one fails on its own. Every step runs, no rate is
+negative, and the composition comes back as it went in, so the mistake surfaces
+as a decay heat of exactly zero much later with nothing to point at. An
+irradiated schedule whose material has no drivable nuclide is therefore refused
+up front, naming both what the material holds and what the network has reactions
+for. A decay-only schedule is exempt, since driving nothing is correct for it.
 
 ## Where the data comes from
 
@@ -516,10 +589,31 @@ if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
     info["no_covariance_data"]     # evaluation carries none
     info["rate_fraction_covered"]  # share of each rate the covariance grid spans
+    info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
     info["has_gaps"]               # True if anything was left out
 ```
+
+Read `rate_fraction_covered_total` before any sigma above it. Counting the
+nuclides with MF=33 asks whether an evaluation says something; this asks whether
+it says it about the reactions the run actually drove, weighted by rate and by
+the parent's own density.
+
+The two come apart badly, and tungsten is where they come apart completely. Two
+major libraries state covariance for all five natural tungsten isotopes, so a
+count reads as complete coverage, and what they state it for is `(n,3n)` and
+`(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat has none.
+The ensemble then perturbs about 6% of the production and reports a spread under
+0.1%, which is the most confident number available and the least earned.
+
+Both weights matter. Rate alone, without the density of the parent each rate
+belongs to, counts a channel on a trace isotope the same as one on the bulk: on
+an iron foil that is the difference between 32% and 96%, and so between calling
+a 1.2% sigma untrustworthy and taking it seriously.
+
+It is `None` for a decay-only schedule, which drove no production and so has no
+share to report rather than a share of zero.
 
 Activity, decay heat and contact dose carry the same band, each as an `Estimate`
 holding the unperturbed value and the ensemble's spread on it:
