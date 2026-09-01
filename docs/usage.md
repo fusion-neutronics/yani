@@ -367,7 +367,8 @@ of the example above:
 
 <!-- doctest: skip -->
 ```python
-for route in results.get_production_routes(material_id=mid, product="Ta183", step=0):
+routes = results.get_production_routes(material_id=mid, product="Ta183", step=0)
+for route in routes or []:          # None if the material or the step is unknown
     print(f"{route['route']:<32} {route['share']:.1%}")
 
 # W183(n,p)Ta183                    72.4%
@@ -399,7 +400,8 @@ The flux-weighted isomeric branching comes from the same place:
 
 <!-- doctest: skip -->
 ```python
-results.get_isomeric_branching(material_id=mid, step=0)["W186"]
+branching = results.get_isomeric_branching(material_id=mid, step=0) or {}
+branching["W186"]
 # {'(n,2n)': [('W185_m1', 0.535), ('W185', 0.465)]}
 ```
 
