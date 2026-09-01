@@ -514,6 +514,12 @@ yani.convert_branching(
 )
 ```
 
+Both network converters record which nuclides carry reactions of their own, as
+`parents` on each subsection of the manifest they write. A nuclide that appears
+only as somebody else's product is not a parent, and that distinction is what
+lets an irradiated solve refuse a network scoped to a different material rather
+than returning the starting composition unchanged.
+
 `convert_neutron_transport` and `convert_photon` are present too, since all the
 wheels share one bindings crate, but they write sections only transport reads.
 
@@ -683,6 +689,13 @@ take the spread over yourself.
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
   bounds by how much, on the run that skipped it.
 - The network is only as complete as the chain you configure. A product whose
-  parent reaction is missing from `transmutation_reactions` simply never appears.
+  parent reaction is missing from `transmutation_reactions` simply never appears,
+  and neither does any route through it.
+- A route table is per step, and only as deep as you ask for. Each route is
+  weighted by what its own reactions drove over that one step, which is right
+  while the intermediates barely burn. A route needing more reactions than
+  `reaction_depth` or more decays than `decay_depth` does not appear at all, and
+  the shares are shares of the routes that did, so raise the depths before
+  reading an absence as "this cannot happen".
 - Nuclides many decades below the largest inventory carry no significant figures.
   Treat a deep trace as a bound, not a number.
