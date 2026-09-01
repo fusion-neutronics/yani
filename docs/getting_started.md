@@ -132,7 +132,7 @@ takes over for a few hundred days, so what dominates depends on when you look.
 `Ag106` and `Pd109` are gone within days. Past a few years `Ag110_m1` has
 decayed too and `Ag108_m1` is what is left: it never peaks high enough to make
 the five largest, so the grey "other" line is the one still carrying the
-activity at the right-hand edge. Every point is a real solve, not a sketch.
+activity at the right-hand edge.
 
 <details>
 <summary>Plotting code</summary>
@@ -155,8 +155,8 @@ ax.plot(days, [sum(v for k, v in d.items() if k not in top) for d in per_step],
         marker="o", color="grey", label="other")
 
 ax.set_xscale("log"); ax.set_yscale("log")
-# Six decades. Below that a decayed-away nuclide is numerical dust, and
-# letting it set the scale squashes everything that matters.
+# Show six decades. Anything below that has decayed away, and letting it set
+# the y limits squashes the rest of the plot.
 ax.set_ylim(max(peak.values()) / 1e6, max(peak.values()) * 4)
 ax.set_xlabel("time after shutdown [days]"); ax.set_ylabel("activity [Bq]")
 ax.legend()
@@ -192,8 +192,8 @@ ax.plot(days, [sum(v for k, v in d.items() if k not in top) for d in per_step],
         marker="o", color="grey", label="other")
 
 ax.set_xscale("log"); ax.set_yscale("log")
-# Six decades. Below that a decayed-away nuclide is numerical dust, and
-# letting it set the scale squashes everything that matters.
+# Show six decades. Anything below that has decayed away, and letting it set
+# the y limits squashes the rest of the plot.
 ax.set_ylim(max(peak.values()) / 1e6, max(peak.values()) * 4)
 ax.set_xlabel("time after shutdown [days]"); ax.set_ylabel("decay heat [W]")
 ax.legend()
@@ -272,8 +272,8 @@ import matplotlib.pyplot as plt
 
 energies, intensities = steps[-1].decay_photon_spectrum()
 
-# Several hundred lines come back, most of them numerically negligible. Keep
-# the ones within five decades of the strongest; the rest are not physics.
+# Several hundred lines come back. Keep the ones within five decades of the
+# strongest; the weaker ones are too faint to plot.
 pairs = sorted(zip(energies, intensities), key=lambda p: -p[1])
 floor = pairs[0][1] / 1e5
 keep = [(e / 1e6, i) for e, i in pairs if i >= floor]
