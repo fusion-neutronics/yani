@@ -76,7 +76,11 @@ the covariance grid actually spans, which evaluated matrices were not positive
 semi-definite and had to be repaired, and which sources are not propagated at
 all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
 carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
-gives two very different sigmas, and the report is what tells you why.
+gives two very different sigmas, and the report is what tells you why. A count
+of evaluations carrying MF=33 is the reassuring form of that question rather
+than the sharp one: `rate_fraction_covered_total` weights coverage by rate and
+by parent density, so a library that covers every isotope in your material and
+none of the channel making the product you care about reads as the gap it is.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its
@@ -97,6 +101,18 @@ window"; lines answer "which nuclide is that", which is what you need for
 identifying an isotope from an emitted spectrum or feeding a photon transport
 run without inheriting someone else's binning choice.
 
+**The routes into a product come back weighted, and from the solve rather than
+from the chain.** Asked what makes W187, a chain offers `Os190(n,a)` as readily
+as `W186(n,gamma)`, and nothing in a tungsten foil is osmium.
+`get_production_routes()` walks outward from the nuclides your material actually
+started with instead, and weights each route by what its own reactions drove
+over the step. It has to, because a branching on a chain edge is a share of its
+own channel rather than a rate, so it cannot weight two routes against each
+other at all. What comes back has the shape of a published pathway table, with a
+share on every row, which is the difference between "this route exists" and
+"this route is most of the answer". See
+[Production routes](usage.md#production-routes).
+
 **Isomeric branching is tracked, not folded into the ground state, and it is
 flux-weighted rather than a fixed number.** A reaction that leaves a fraction
 of its product in a metastable state is modeled as a branch to that state,
@@ -108,7 +124,12 @@ different spectra but the same target nuclide can legitimately get different
 branching fractions, because they should. `Ag110_m1` dominating the activity
 of a silver foil for years after `Ag110` itself has decayed away, as in the
 [getting started](getting_started.md) example, is the kind of result that
-disappears if branching is not tracked.
+disappears if branching is not tracked. The flux-weighted number is readable
+rather than buried in the solve: `get_isomeric_branching()` reports the split
+each step was solved with, which is what says whether a disagreement with a
+measurement belongs to a cross section or to a branching ratio, two different
+kinds of data with two different fixes. See
+[Weighted, from a solve](usage.md#weighted-from-a-solve).
 
 **Verification and validation runs against every open benchmark we have
 found**, [CoNDERC][conderc] among them. The rest is a todo, honestly labeled:
