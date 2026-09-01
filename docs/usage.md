@@ -297,12 +297,12 @@ if shielding is not None:              # None only for a coupled yamc run
 
 A `chord_cm` of `None` means the run was dilute and nothing was corrected. A
 `strongest_factor` of `1.0` means the correction ran and changed nothing in
-practice, which is a different statement. A dilute run fills `would_shield`
+practice. A dilute run fills `would_shield`
 instead: nuclides whose own resonances could have suppressed a reaction, each
 mapped to the strongest suppression it could have seen. That bound is computed
 from the one reaction, ignoring the rest of the material and the geometry, both
-of which push the real factor back toward one, so it says "this answer may be
-high, and here is by how much at the very most".
+of which push the real factor back toward one. It is an upper bound on the
+error, not an estimate of it.
 
 ## Production routes
 
@@ -339,10 +339,10 @@ for parent, es in chain.reactions.items():
 for parent, es in chain.decays.items():
     edges.setdefault(parent, []).extend(es)
 
-for kind1, mid, _ in edges["W186"]:              # two-step routes from W186 to Ta183
-    for kind2, end, _ in edges.get(mid, []):
+for kind1, via, _ in edges["W186"]:              # two-step routes from W186 to Ta183
+    for kind2, end, _ in edges.get(via, []):
         if end == "Ta183":
-            print(f"W186{kind1}{mid}({kind2}){end}")
+            print(f"W186{kind1}{via}({kind2}){end}")
 
 # W186(n,3n)W184((n,np))Ta183
 # W186(n,4n)W183((n,p))Ta183
@@ -359,11 +359,10 @@ ground state where the overlay would split it between ground state and isomer.
 
 ### Weighted, from a solve
 
-Those last two paragraphs are why the walk above is the low-level option: it can
-enumerate routes but not rank them, and the branching it reads is the file's
-rather than the one the solve used. `get_production_routes()` answers the same
-question from a solve that has happened, so both are fixed. Asked for the Ta183
-of the example above:
+The walk above can enumerate routes but not rank them, and the branching it
+reads is the file's, not the one the solve used. `get_production_routes()`
+answers the same question from a solve that has happened. Asked for the Ta183 of
+the example above:
 
 <!-- doctest: skip -->
 ```python
@@ -382,8 +381,8 @@ triples with the chain's own spellings (`('Hf183', 'beta-', 'Ta183')`), where th
 `route` string uppercases decay kinds the way the published pathway tables print
 them.
 
-The walk starts from the nuclides the material began with, which is the other
-thing a bare chain cannot do for you. Asked what makes W187, a chain answers
+The walk starts from the nuclides the material began with, which a bare chain
+cannot do. Asked what makes W187, a chain lists
 `Os190(n,a)` and `Ir192(n,npa)` as readily as `W186(n,gamma)`, and nothing in a
 tungsten foil is osmium.
 
@@ -413,10 +412,9 @@ overlay replaces at solve time. Only channels landing in more than one final
 state are returned, since a single-product channel has no branching to report and
 listing it at 1.0 buries the ones that do.
 
-It is the number that says whether a disagreement belongs to a cross section or
-to a branching ratio, which are different data and different fixes. On a foil
-whose decay heat comes from an isomer it is also the difference between a right
-answer and one out by a factor of several.
+This is what separates a disagreement caused by a cross section from one caused
+by a branching ratio. On a foil whose decay heat comes from an isomer, getting it
+wrong is a factor of several.
 
 ## Nuclear data settings
 
@@ -448,10 +446,10 @@ rather than being solved as though the reaction produced nothing.
 
 A reactions network built for one material and pointed at another is refused on
 the same terms. Networks are often scoped to the nuclides they were built from,
-because walking a whole library to activate one foil is wasted work, and scoping
-them makes them substitutable by mistake: two conversions sharing an output path
-leave the second one's behind under a name that still says the first. Nothing
-about solving against the wrong one fails on its own. Every step runs, no rate is
+because walking a whole library to activate one foil is wasted work. The cost is
+that two scoped networks look alike from the outside: two conversions writing to
+the same output path leave the second network under a filename that names the
+first. Solving against the wrong one does not fail. Every step runs, no rate is
 negative, and the composition comes back as it went in, so the mistake surfaces
 as a decay heat of exactly zero much later with nothing to point at. An
 irradiated schedule whose material has no drivable nuclide is therefore refused
@@ -516,9 +514,9 @@ yani.convert_branching(
 
 Both network converters record which nuclides carry reactions of their own, as
 `parents` on each subsection of the manifest they write. A nuclide that appears
-only as somebody else's product is not a parent, and that distinction is what
-lets an irradiated solve refuse a network scoped to a different material rather
-than returning the starting composition unchanged.
+only as somebody else's product is not a parent. That distinction is what lets
+an irradiated solve refuse a network scoped to a different material instead of
+returning the starting composition unchanged.
 
 `convert_neutron_transport` and `convert_photon` are present too, since all the
 wheels share one bindings crate, but they write sections only transport reads.
@@ -559,8 +557,8 @@ so a seed reproduces a run regardless of sample count or iteration order. Leave
 Two things are perturbed: the activation cross sections, and the flux spectrum
 when you supply an error on it. `DataUncertainty.available_sources()` names them,
 `cross_sections` and `flux_spectrum`, and `sources=` restricts a run to one of
-them, which is how a contribution is measured rather than guessed. Naming a
-source this build cannot perturb raises rather than being quietly ignored.
+them, which is how a contribution is measured. Naming a
+source this build cannot perturb raises.
 Half-lives, decay branching ratios, fission yields and the isomeric-branching
 overlay stay at their evaluated values.
 
@@ -601,25 +599,23 @@ if info is not None:               # None unless data_uncertainty was passed
     info["has_gaps"]               # True if anything was left out
 ```
 
-Read `rate_fraction_covered_total` before any sigma above it. Counting the
-nuclides with MF=33 asks whether an evaluation says something; this asks whether
-it says it about the reactions the run actually drove, weighted by rate and by
-the parent's own density.
+Read `rate_fraction_covered_total` before any sigma above it. A count of
+nuclides with MF=33 measures how much covariance exists. This measures how much
+of it lands on the reactions the run drove, weighted by rate and by the parent's
+own density.
 
-The two come apart badly, and tungsten is where they come apart completely. Two
-major libraries state covariance for all five natural tungsten isotopes, so a
-count reads as complete coverage, and what they state it for is `(n,3n)` and
-`(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat has none.
-The ensemble then perturbs about 6% of the production and reports a spread under
-0.1%, which is the most confident number available and the least earned.
+Tungsten shows how far the two can diverge. Two major libraries state
+covariance for all five natural tungsten isotopes, so a count reads as complete
+coverage, and what they state it for is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
+making 98% of a tungsten foil's decay heat has none. The ensemble perturbs about
+6% of the production and reports a spread under 0.1%.
 
-Both weights matter. Rate alone, without the density of the parent each rate
+Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
-an iron foil that is the difference between 32% and 96%, and so between calling
-a 1.2% sigma untrustworthy and taking it seriously.
+an iron foil that is 32% against 96%.
 
-It is `None` for a decay-only schedule, which drove no production and so has no
-share to report rather than a share of zero.
+For a decay-only schedule there is no production to weight by, so the value is
+`None`, not zero.
 
 Activity, decay heat and contact dose carry the same band, each as an `Estimate`
 holding the unperturbed value and the ensemble's spread on it:
@@ -656,9 +652,9 @@ for line in lines or []:
 ```
 
 A line a replica does not emit counts as a zero in it, which is the only rule
-under which two lines' spreads are taken over the same sample, and `emitting` is
-what keeps that zero-fill visible: it is the difference between a line that is
-dim and a line that is sometimes not there.
+under which two lines' spreads are taken over the same sample. `emitting` keeps
+that zero-fill visible, so a dim line and an intermittent one stay
+distinguishable.
 
 `get_uncertainty_inventories(material_id=mid, step=step)` is still there for a
 quantity these four do not cover, and returns every replica's full inventory to
@@ -672,30 +668,27 @@ take the spread over yourself.
   solved exactly. One year in a single step and one year in 365 agree to
   round-off. Shortening steps to chase accuracy buys nothing here.
 
-  What a long step DOES miss is the spectrum changing as the composition does,
+  What a long step **does** miss is the spectrum changing as the composition does,
   which `transmute()` cannot see because the flux is your input rather than
   something it solves for. If the field would harden or soften appreciably over
   the campaign, split the schedule and give each pulse its own spectrum. That is
   a statement about the physics you are feeding it, not about the solver.
 - `data_uncertainty` covers the activation cross sections, and the flux spectrum
   when a pulse carries `flux_std_dev`. Without one the flux is taken as exact,
-  which is a statement about the input rather than a claim about it, since
-  nothing is transported here. Half-lives, decay branching ratios and fission
-  yields are held at their evaluated values throughout. Cross-material
+  since nothing is transported here. Half-lives, decay branching ratios and
+  fission yields are held at their evaluated values throughout. Cross-material
   covariance (`MAT1 != 0`) and covariances derived from a standards evaluation
-  are not consumed, and both are counted in `data_uncertainty_info` rather than
-  dropped silently.
+  are not consumed; both are counted in `data_uncertainty_info`.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
   bounds by how much, on the run that skipped it.
 - The network is only as complete as the chain you configure. A product whose
-  parent reaction is missing from `transmutation_reactions` simply never appears,
-  and neither does any route through it.
-- A route table is per step, and only as deep as you ask for. Each route is
-  weighted by what its own reactions drove over that one step, which is right
-  while the intermediates barely burn. A route needing more reactions than
-  `reaction_depth` or more decays than `decay_depth` does not appear at all, and
-  the shares are shares of the routes that did, so raise the depths before
-  reading an absence as "this cannot happen".
+  parent reaction is missing from `transmutation_reactions` never appears, and
+  neither does any route through it.
+- A route table covers one step, to the depth you ask for. Each route is weighted
+  by what its own reactions drove over that step, which is right while the
+  intermediates barely burn. A route needing more reactions than `reaction_depth`
+  or more decays than `decay_depth` does not appear, and the shares are shares of
+  the routes that did. Raise the depths before reading an absence as impossible.
 - Nuclides many decades below the largest inventory carry no significant figures.
   Treat a deep trace as a bound, not a number.
