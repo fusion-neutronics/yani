@@ -21,10 +21,9 @@ dependency chain forces a copyleft license onto whatever you build with it, so
 using it in a closed pipeline or a commercial tool is not a licensing
 question, just an engineering one.
 
-**A WASM build is on the roadmap.** The solver is Rust, which compiles to
-`wasm32` cleanly, so running a calculation entirely client-side, with a
-try-it-now demo in the browser, is planned rather than requiring a server. Not
-live yet.
+**A WASM build is on the roadmap.** The solver is Rust and compiles to `wasm32`
+cleanly, so a calculation can run entirely client-side, with a try-it-now demo
+in the browser and no server. Not live yet.
 
 **A citable material library ships in the wheel.** The PNNL Compendium
 (PNNL-15870 Rev. 2), 410 named materials with their compositions and
@@ -56,15 +55,14 @@ parent atom. If your spectrum arrives from a Monte Carlo run with a per-bin
 error, hand it to the pulse as `flux_std_dev` and that propagates too, as its
 own source, so you can see which of the two dominates.
 
-**The error bar reaches the answers you quote, not just the densities.**
+**Every quantity you would put in a report carries the same band.**
 Activity, decay heat, contact dose and every decay photon line come back as an
 `Estimate`, a nominal value with the ensemble's spread beside it. Each is
-evaluated once per replica and summed inside that replica, which is the only way
-to get them right: adding the per-nuclide sigmas in quadrature double-counts a
-variance that partly cancels, and contact dose is not even linear in the
-densities, since a replica that makes more of an emitter also absorbs more of
-it. A calculated band beside a measured one is what turns a C/E into a statement
-about whether the disagreement is larger than the data allows.
+evaluated once per replica and summed inside that replica: adding the
+per-nuclide sigmas in quadrature double-counts a variance that partly cancels,
+and contact dose is not even linear in the densities, since a replica that
+makes more of an emitter also absorbs more of it. A calculated band beside a
+measured one says whether the disagreement is larger than the data allows.
 
 **A sigma of zero says which kind of zero it is.** The hard part of an
 uncertainty is not producing one, it is knowing what it left out. A nuclide
@@ -72,27 +70,27 @@ whose evaluation publishes no covariance and a nuclide whose covariance is
 genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no published covariance, what share of each reaction rate
-the covariance grid actually spans, which evaluated matrices were not positive
+the covariance grid spans, which evaluated matrices were not positive
 semi-definite and had to be repaired, and which sources are not propagated at
 all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
 carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
-gives two very different sigmas, and the report is what tells you why. A count
-of evaluations carrying MF=33 is the reassuring form of that question rather
-than the sharp one: `rate_fraction_covered_total` weights coverage by rate and
-by parent density, so a library that covers every isotope in your material and
-none of the channel making the product you care about reads as the gap it is.
+gives two very different sigmas, and the report is what tells you why.
+`rate_fraction_covered_total` weights coverage by reaction rate and by parent
+density instead of counting evaluations. Two major libraries state covariance
+for all five natural tungsten isotopes and none for the `(n,2n)` making 98% of
+a foil's decay heat, so the count reads as full coverage where the weighted
+figure reads 6%.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its
 mean chord, and the flux inside it is depressed where the total cross section is
 large. The solve assumes nothing about resonances being narrow: the cheaper
-narrow-resonance approximation is deliberately not offered, because it
-over-shields strong elastic scatterers badly enough to be worse than applying no
-correction at all. Leave the correction out, which is the default since a
-material carries no geometry, and the run still tells you what that cost:
+narrow-resonance approximation is not offered, because it over-shields strong
+elastic scatterers badly enough to be worse than applying no correction at all.
+Leave the correction out, which is the default since a material carries no
+geometry, and the run still reports what it skipped:
 `self_shielding_info["would_shield"]` bounds the suppression each resonance
-absorber could have seen, so a dilute run of one is a warning rather than a
-silence. See [Self-shielding](usage.md#self-shielding).
+absorber could have seen. See [Self-shielding](usage.md#self-shielding).
 
 **Gamma lines, not a binned photon response.** `decay_photon_spectrum()`
 returns discrete energy/intensity pairs, not a spectrum pre-collapsed onto a
@@ -101,16 +99,13 @@ window"; lines answer "which nuclide is that", which is what you need for
 identifying an isotope from an emitted spectrum or feeding a photon transport
 run without inheriting someone else's binning choice.
 
-**The routes into a product come back weighted, and from the solve rather than
-from the chain.** Asked what makes W187, a chain offers `Os190(n,a)` as readily
-as `W186(n,gamma)`, and nothing in a tungsten foil is osmium.
-`get_production_routes()` walks outward from the nuclides your material actually
-started with instead, and weights each route by what its own reactions drove
-over the step. It has to, because a branching on a chain edge is a share of its
-own channel rather than a rate, so it cannot weight two routes against each
-other at all. What comes back has the shape of a published pathway table, with a
-share on every row, which is the difference between "this route exists" and
-"this route is most of the answer". See
+**Production routes come back with a share on each one.**
+`get_production_routes()` lists the routes into a product and weights each by
+what the material's own reactions drove over the step. A chain on its own can do
+neither: it offers `Os190(n,a)` for W187 as readily as `W186(n,gamma)`, and
+nothing in a tungsten foil is osmium, and the branching on one of its edges is a
+share of that channel alone, so it cannot rank two routes. The result has the
+shape of a published pathway table. See
 [Production routes](usage.md#production-routes).
 
 **Isomeric branching is tracked, not folded into the ground state, and it is
@@ -124,11 +119,9 @@ different spectra but the same target nuclide can legitimately get different
 branching fractions, because they should. `Ag110_m1` dominating the activity
 of a silver foil for years after `Ag110` itself has decayed away, as in the
 [getting started](getting_started.md) example, is the kind of result that
-disappears if branching is not tracked. The flux-weighted number is readable
-rather than buried in the solve: `get_isomeric_branching()` reports the split
-each step was solved with, which is what says whether a disagreement with a
-measurement belongs to a cross section or to a branching ratio, two different
-kinds of data with two different fixes. See
+disappears if branching is not tracked. `get_isomeric_branching()` reports the
+split each step was solved with, which separates a disagreement caused by a
+cross section from one caused by a branching ratio. See
 [Weighted, from a solve](usage.md#weighted-from-a-solve).
 
 **Verification and validation runs against every open benchmark we have
@@ -155,12 +148,10 @@ schedule variants in one script pays the parse cost once, not once per
 source (say, more reactions) tops the cache up rather than re-parsing it from
 scratch. The cross sections a `transmute()` needs are kept on the material
 itself as well, so a second call on the same material does no file reading at
-all: on a steel against ENDF/B-8.1 that is 1.8 s of a 2.3 s call. A sweep over
-thousands of distinct compositions hands them back with
+all: on a steel against ENDF/B-VIII.1 that is 1.8 s of a 2.3 s call. A sweep
+over thousands of distinct compositions hands them back with
 `release_nuclear_data()`. Downloads are cached separately, to disk under
-`~/.cache/yamc`, so a second run of the script does not refetch either, but the
-in-memory cache is what saves a second call in the same process from touching
-disk at all.
+`~/.cache/yamc`, so a second run of the script does not refetch.
 
 **The chain that gets built is exactly the one your material can reach, no
 manual depth setting required.** Rather than truncating the transmutation
