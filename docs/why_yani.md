@@ -89,8 +89,11 @@ narrow-resonance approximation is not offered, because it over-shields strong
 elastic scatterers badly enough to be worse than applying no correction at all.
 Leave the correction out, which is the default since a material carries no
 geometry, and the run still reports what it skipped:
-`self_shielding_info["would_shield"]` bounds the suppression each resonance
-absorber could have seen. See [Self-shielding](usage.md#self-shielding).
+`self_shielding_info["would_shield"]` names the resonance absorbers it left
+uncorrected and how strongly their own resonances could bite. That is a screen
+rather than a bound, since it carries no geometry, so it says which answers to
+distrust rather than by how much. See
+[Self-shielding](usage.md#self-shielding).
 
 **Gamma lines, not a binned photon response.** `decay_photon_spectrum()`
 returns discrete energy/intensity pairs, not a spectrum pre-collapsed onto a
