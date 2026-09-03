@@ -297,12 +297,23 @@ if shielding is not None:              # None only for a coupled yamc run
 
 A `chord_cm` of `None` means the run was dilute and nothing was corrected. A
 `strongest_factor` of `1.0` means the correction ran and changed nothing in
-practice. A dilute run fills `would_shield`
-instead: nuclides whose own resonances could have suppressed a reaction, each
-mapped to the strongest suppression it could have seen. That bound is computed
-from the one reaction, ignoring the rest of the material and the geometry, both
-of which push the real factor back toward one. It is an upper bound on the
-error, not an estimate of it.
+practice. A dilute run fills `would_shield` instead: nuclides whose own
+resonances are structured enough to have suppressed a reaction, each mapped to
+how strongly.
+
+`would_shield` is an indicator, not a correction and not a bound. There is no
+geometry in it. The weight is `1 / (1 + N * sigma_x)` on that one reaction and
+that nuclide's own density, which fixes the background at 1/cm, while the
+correction proper uses `1 / chord_cm` against the material's total with
+in-scattering. So it can sit either side of the real factor: a lump thinner than
+a centimetre of chord shields less, and a material whose other nuclides dominate
+the total across a resonance dips the flux further than one reaction can
+express. On the FNS tungsten foil it reads 0.634 for W186, against a
+slowing-down correction that gives 0.750 at a 1 mm chord and saturates at 0.730.
+
+Read it as "this answer may be high, and this is a resonance absorber", which
+is the warning a dilute run should carry rather than silence. For the size of
+the effect, ask for a shielded run.
 
 ## Production routes
 
@@ -681,7 +692,9 @@ take the spread over yourself.
   are not consumed; both are counted in `data_uncertainty_info`.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
-  bounds by how much, on the run that skipped it.
+  flags which nuclides on the run that skipped it, and how strongly their own
+  resonances could bite. It is a screen, not a bound: only a shielded run says
+  by how much.
 - The network is only as complete as the chain you configure. A product whose
   parent reaction is missing from `transmutation_reactions` never appears, and
   neither does any route through it.
