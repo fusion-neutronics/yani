@@ -432,8 +432,8 @@ Each takes a library keyword or a path, and each can point somewhere different,
 so a network can mix libraries by subsection: a TENDL reactions network
 borrowing ENDF/B-VIII.1 decay data is the usual arrangement. They are global
 process state, not per-call arguments. See
-[Point it at nuclear data](getting_started.md#point-it-at-nuclear-data) for
-which library publishes which subsection.
+[Nuclear data libraries](libraries.md) for which library publishes which
+subsection, and how much is in each.
 
 `transmutation_reactions` and `transmutation_fission_yields` additionally accept
 `False`, which turns that subsection off. A decay-only calculation carries no

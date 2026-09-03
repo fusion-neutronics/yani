@@ -37,6 +37,7 @@ PAGES = [
     "README.md",
     "docs/index.md",
     "docs/getting_started.md",
+    "docs/libraries.md",
     "docs/usage.md",
     "docs/why_yani.md",
 ]

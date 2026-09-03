@@ -78,5 +78,6 @@ nav:
   - Overview: index.md
   - Why YANI: why_yani.md
   - Getting started: getting_started.md
+  - Nuclear data libraries: libraries.md
   - Usage: usage.md
   - API reference: api.md

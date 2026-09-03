@@ -57,5 +57,8 @@ is the coefficients of $A$. Those come from a transmutation network (decay
 constants, branching, reaction products, fission yields) and from folding your
 spectrum against continuous-energy cross sections to get each $\sigma\phi$.
 
+Which of the six available libraries supplies which of those, and how much is in
+each, is in [Nuclear data libraries](libraries.md).
+
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26
