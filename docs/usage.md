@@ -416,6 +416,54 @@ This is what separates a disagreement caused by a cross section from one caused
 by a branching ratio. On a foil whose decay heat comes from an isomer, getting it
 wrong is a factor of several.
 
+### Where in energy a rate came from
+
+A one-group rate cannot say which part of the spectrum made it.
+`get_reaction_rate_spectrum()` resolves one channel's rate onto the groups of
+the spectrum that drove it:
+
+<!-- doctest: skip -->
+```python
+capture = results.get_reaction_rate_spectrum(
+    material_id=mid, nuclide="W186", kind="(n,gamma)", step=0
+) or {}
+
+edges = capture["boundaries"]     # group boundaries in eV, one longer than rates
+per_group = capture["rates"]      # each group's contribution, 1/s
+
+sum(per_group)                    # the rate get_reaction_rates() reports
+```
+
+The two agree because they come from the same walk of the same cross sections,
+self-shielding included, so this is a decomposition of the rate the solve used
+rather than a second estimate of it.
+
+The attribution is what the single number hides. A capture cross section spans
+decades, and an effective one-group value of tens of millibarns against a
+spectrum that is almost all fast is either a fast-capture rate or a
+resonance-region rate. Which one it is decides whether a disagreement belongs to
+the resonance processing or to the fast cross section, and those are different
+data and different fixes:
+
+<!-- doctest: skip -->
+```python
+below_100_keV = sum(r for lo, r in zip(edges, per_group) if lo < 1.0e5)
+print(f"{below_100_keV / sum(per_group):.1%} of the capture rate is resonance region")
+```
+
+It is also the per-group form of what `rate_fraction_covered` reports as one
+number: whether a covariance grid that stops short of the spectrum stops short of
+anywhere the rate actually is. On a shielded run it says which groups the flux
+depression moved, which `strongest_factor` gives only as a worst case.
+
+Nothing is stored for it. One reaction over a 709-group structure is cheap to
+walk when asked, and keeping the breakdown for every channel would be tens of
+megabytes, so a run that never asks pays nothing. `None` comes back for a step
+that drove no flux, for a nuclide or channel the data does not carry, for
+`(n,n')`, whose rate comes from the branching overlay rather than from a group
+average, and for a coupled yamc run, which scores its rates at the collision
+energy and keeps no group structure to resolve them onto.
+
 ## Nuclear data settings
 
 Five module-level settings, read and written like attributes:
