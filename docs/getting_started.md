@@ -40,23 +40,15 @@ yani.transmutation_decay_data = "endf-b8.1"
 yani.transmutation_fission_yields = "endf-b8.1"
 ```
 
-The split above is not arbitrary. Each library publishes only some of what a
-calculation needs:
+The split above is not arbitrary. TENDL is a neutron-only evaluation, so it has
+no decay or fission-yield sublibrary and those two come from a library that does.
+It is still what you want for `reactions`, because it covers far more parent
+nuclides, and that is what decides whether an activation product appears in your
+inventory at all.
 
-| library | cross sections | `decay` | `reactions` | `fission_yields` | `branching` |
-| --- | :---: | :---: | :---: | :---: | :---: |
-| `tendl-2025` | yes | -- | yes | -- | yes |
-| `tendl-2017` | yes | -- | yes | -- | yes |
-| `endf-b8.1` | yes | yes | yes | yes | yes |
-| `jeff-4.0` | yes | yes | yes | yes | yes |
-| `fendl-3.2d` | yes | -- | -- | -- | -- |
-
-TENDL is a neutron-only evaluation, so it has no decay or fission-yield
-sublibrary and those two must come from `endf-b8.1` or `jeff-4.0`. It is still
-what you want for `reactions`, because it covers far more parent nuclides, and
-that is what decides whether an activation product appears in your inventory at
-all. `jeff-4.0` is the one alternative that supplies a complete network from a
-single library.
+Six libraries are available, and each publishes only some of what a calculation
+needs. Which does which, and how much is in each, is in
+[Nuclear data libraries](libraries.md).
 
 Pointing a subsection at a library that does not publish it fails immediately,
 with a message listing what that library does have, rather than failing partway
