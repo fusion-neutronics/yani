@@ -127,6 +127,18 @@ split each step was solved with, which separates a disagreement caused by a
 cross section from one caused by a branching ratio. See
 [Weighted, from a solve](usage.md#weighted-from-a-solve).
 
+**A reaction rate can be read back per energy group, not just as one number.**
+`get_reaction_rate_spectrum()` resolves one channel's rate onto the groups of the
+spectrum that drove it, and the entries sum to the collapsed rate because both
+come from the same walk of the same cross sections. A capture cross section spans
+decades, so an effective one-group value of tens of millibarns against a
+14 MeV-dominated spectrum is either fast capture or resonance capture, and only
+the breakdown says which -- which is the difference between a disagreement that
+belongs to the resonance processing and one that belongs to the fast cross
+section. It is also the per-group form of `rate_fraction_covered`, and on a
+shielded run it says which groups the depression moved. See
+[Where in energy a rate came from](usage.md#where-in-energy-a-rate-came-from).
+
 **Verification and validation runs against every open benchmark we have
 found**, [CoNDERC][conderc] among them. The rest is a todo, honestly labeled:
 if you know of an open, reproducible benchmark this list is missing, tell us
