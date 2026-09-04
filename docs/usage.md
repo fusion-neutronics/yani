@@ -479,13 +479,13 @@ energy and keeps no group structure to resolve them onto.
 
 Five module-level settings, read and written like attributes:
 
-| setting | supplies |
-| --- | --- |
-| `cross_section_data` | continuous-energy cross sections for the rate collapse |
-| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines |
-| `transmutation_reactions` | which reaction on which nuclide gives which product |
-| `transmutation_fission_yields` | fission product yields |
-| `transmutation_branch_ratios` | isomeric branching: which product is left in a metastable state |
+| setting | supplies | decides | left unset |
+| --- | --- | --- | --- |
+| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | nothing at all: every `sigma * phi` is zero |
+| `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
+| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
+| `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
+| `transmutation_branch_ratios` | isomeric branching against incident energy | which product is left in a metastable state | no overlay, so every product lands in its ground state |
 
 Each takes a library keyword or a path, and each can point somewhere different,
 so a network can mix libraries by subsection: a TENDL reactions network
@@ -494,12 +494,39 @@ process state, not per-call arguments. See
 [Nuclear data libraries](libraries.md) for which library publishes which
 subsection, and how much is in each.
 
+Note which way the last column goes. Four of the five have a default and answer
+something without being set. `cross_section_data` has none: leave it alone and
+there are no cross sections to fold, so every rate is zero, the composition comes
+back as it went in and the decay heat is `0.0` with nothing to say why.
+
+### The two that both say reactions
+
+`cross_section_data` and `transmutation_reactions` are halves of one calculation
+rather than alternatives, and the rate collapse is where they meet. For each
+nuclide, the network lists the channels it has; each channel's name is mapped to
+an MT number; and the cross sections are what that MT is priced with. So the
+network decides **which channels are considered at all** and the cross sections
+decide **how fast each one runs**. Neither substitutes for the other: swap the
+library behind `transmutation_reactions` and products appear or disappear, swap
+the one behind `cross_section_data` and the same products arrive at different
+rates.
+
+Two consequences follow from that loop, and both are quiet:
+
+* A channel the network names whose MT the cross sections do not carry is
+  skipped. `(n,n')` is the standing example: it has no transport MT, so its rate
+  comes from the branching overlay's partials rather than from a group average,
+  which is why it is absent from a `get_reaction_rate_spectrum()` answer.
+* The two fail differently. A missing `cross_section_data` is silent, per the
+  column above. A network pointed at the wrong material is refused before the
+  solve, naming what the material holds against what the network drives.
+
 `transmutation_reactions` and `transmutation_fission_yields` additionally accept
 `False`, which turns that subsection off. A decay-only calculation carries no
 reaction rates, so it needs no reaction topology; a material nothing in which
 fissions needs no yields, and neither does a library that publishes none of its
-own. Off is not the same as unset: `None` restores the default library, whereas
-`False` says the subsection is absent on purpose. A rate that then needs it is
+own. Off is not the same as unset: for these two `None` restores the default
+library, whereas `False` says the subsection is absent on purpose. A rate that then needs it is
 refused when the burnup matrix is built, naming the nuclide and the reaction,
 rather than being solved as though the reaction produced nothing.
 

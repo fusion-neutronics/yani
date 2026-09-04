@@ -15,7 +15,7 @@ yani.transmutation_decay_data = "endf-b8.1"
 
 | keyword | what it is |
 | --- | --- |
-| `endf-b8.1` | ENDF/B-VIII.1. The default every unset setting falls back to. |
+| `endf-b8.1` | ENDF/B-VIII.1. What the transmutation subsections fall back to when unset. |
 | `jeff-4.0` | JEFF-4.0. |
 | `jendl-5.0` | JENDL-5. |
 | `tendl-2025` | TENDL-2025. The widest isotope coverage of the six. |
@@ -23,8 +23,10 @@ yani.transmutation_decay_data = "endf-b8.1"
 | `fendl-3.2d` | FENDL-3.2d. Cross sections only, no transmutation data. |
 
 Every setting also takes a path to a converted directory instead of a keyword,
-and `cross_section_data` takes a dict keyed by nuclide. See
-[Where the data comes from](usage.md#where-the-data-comes-from).
+and `cross_section_data` takes a dict keyed by nuclide. Which setting does what,
+and what each one does when left alone, is in
+[Nuclear data settings](usage.md#nuclear-data-settings); `cross_section_data` is
+the one with no default.
 
 ## What each library publishes
 
@@ -84,6 +86,15 @@ times the evaluations of ENDF/B-VIII.1 and thirteen times the reaction edges,
 and ENDF/B-VIII.1 carries the decay data that TENDL has none of. That is why the
 usual arrangement is a TENDL `reactions` network with ENDF/B-VIII.1 `decay` and
 `fission_yields` beside it.
+
+Mixing that way asks the decay subsection to cover everything the reactions
+network can reach, and the published pairings do: the TENDL-2025 network puts
+3,116 nuclides in play, and both ENDF/B-VIII.1 and JENDL-5 carry decay data for
+every one of them. It is worth knowing what the miss would look like, because a
+hand-built or scoped chain can produce it. A product with no decay entry gets no
+decay term in the burnup matrix, so it accumulates and never decays, reports zero
+activity and zero heat, and is indistinguishable from a genuinely stable
+product.
 
 ### Covariance is presence, not coverage
 
