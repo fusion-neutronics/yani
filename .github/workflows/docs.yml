@@ -3,20 +3,28 @@ name: Documentation
 on:
   push:
     branches: [main]
+  # Every pull request, whatever it targets. Filtering on `branches: [main]`
+  # meant a stacked pull request was never built: #35 was opened against
+  # another pull request's branch, so the docs job never fired, and GitHub
+  # reported "all checks passed" for the one check that did run while the
+  # branch pinned a yani-core that does not exist. Retargeting to main when the
+  # parent merged did not help either, since a base change raises
+  # `pull_request: edited`, which is not a default trigger type.
   pull_request:
-    branches: [main]
   workflow_dispatch:
-
-# One deploy at a time; queued rather than cancelled so a merge is never
-# published over by an older run.
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
     name: Build the docs
     runs-on: ubuntu-latest
+    # Per branch rather than one queue for the whole workflow: builds are
+    # independent of each other and only the deploy has to be serialised.
+    # Sharing the deploy's group would make every pull request wait behind
+    # every other one. A superseded build of the same branch is cancelled,
+    # since nothing reads its result once a newer commit exists.
+    concurrency:
+      group: docs-build-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v7
 
@@ -113,8 +121,15 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: build
+    # main only, and never from a pull request, so a branch can be built
+    # without publishing over what is live.
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    # One deploy at a time; queued rather than cancelled so a merge is never
+    # published over by an older run.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     permissions:
       pages: write
       id-token: write
