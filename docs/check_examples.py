@@ -53,6 +53,7 @@ flux_709: list[float]            # a 709-group flux, tabulated elsewhere
 neutron: list[str]               # ENDF evaluation paths, per convert_* call
 decay: list[str]
 fpy: list[str]
+jendl_decay: list[str]           # a second library's decay files, for the fill
 """
 
 # Errors that say something about the page rather than about yani's API.

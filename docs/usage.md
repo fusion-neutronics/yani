@@ -105,6 +105,13 @@ spectrum = yani.NeutronSource(
 | `VITAMIN-J-42` | 42 | 1 keV to 50 MeV | photon, with resolution at the 511 keV and Co60 lines |
 | `CCFE-24-PHOTON` | 24 | 1 keV to 20 MeV | coarse photon |
 
+Two of them reach far past the evaluations. `CCFE-709` and `UKAEA-1102` top out
+at 1 GeV, while most ENDF/B-VIII.1 evaluations stop at 20 MeV, so a spectrum on
+one of those structures with flux in its top groups is refused, naming the
+nuclide and the energy its evaluation stops at. Leaving those groups empty is
+the normal case and costs nothing. Which library reaches how far is in
+[Energy range](libraries.md#energy-range).
+
 Passing a name that is not one of these raises with the list of the ones that
 are, so a typo never silently becomes something else. Every name except
 `CCFE-24-PHOTON` carries the same boundaries as OpenMC's
@@ -603,6 +610,70 @@ Both network converters record which nuclides carry reactions of their own, as
 only as somebody else's product is not a parent. That distinction is what lets
 an irradiated solve refuse a network scoped to a different material instead of
 returning the starting composition unchanged.
+
+### What the converters report about the library
+
+Neither converter corrects its input. What they do is say what the input claims
+that cannot be right, so that a number carrying your decay heat can be looked up
+before it is believed.
+
+The `decay` subsection's `provenance.json` carries two records:
+
+* `decay_energy_placeholders` names every nuclide whose average decay energies
+  are the Q/3 stand-in rather than an evaluated scheme, and the rule used to
+  detect them. Listed by name rather than counted, because the question a reader
+  asks is whether a nuclide carrying heat in their inventory is one of them.
+* `decay_inconsistencies` lists, per kind, the records that cannot all be true:
+  flagged unstable with a half-life of zero, branching ratios that do not sum to
+  one, and isomeric transitions whose light and electromagnetic averages do not
+  add up to the transition's Q. That last one matters most for decay heat, since
+  an isomeric transition emits no neutrino and so must pay out its whole Q.
+  ENDF/B-VIII.1 books Hf177m1 at 1.52 MeV against a 1.32 MeV transition.
+
+`convert_branching` returns a dict rather than writing one, since a build script
+is what decides whether to publish:
+
+* `level_routes` counts how each excited production level was matched to an
+  isomeric state: by energy, by energy within a tenth, by level index, as the
+  only candidate, or not at all. A level matched by index is right only while
+  two level schemes happen to agree, so a rebuild against another decay library
+  moving levels out of `energy` is the regression the plain counts hide.
+* `flagged_levels` is one line per level worth reading before publishing.
+* `partial_sum_mismatches` is one line per reaction whose MF=10 partial cross
+  sections do not reconstruct its MF=3 total, or whose MF=9 yields do not sum to
+  one, by more than 2% of the nonelastic cross section. The rates are shared out
+  in the partials' proportions either way, so this does not move a yani answer;
+  it moves a code that folds the partials as they stand, and it points at the
+  evaluation. TENDL-2017's Ir191 (n,2n) partials sum to 95% of MF=3 at 14 MeV
+  because the file lists two of Ir190's three states.
+
+### Filling placeholder decay energies
+
+Where the decay library has no evaluated scheme for a nuclide and another
+library does, the second one's average energies can be substituted:
+
+<!-- doctest: skip -->
+```python
+yani.convert_transmutation(
+    decay_files=decay, fpy_files=fpy, neutron_files=neutron,
+    output_path="out/transmutation_endf-b8.1.arrow",
+    library="endf-b8.1",
+    decay_fill_files=jendl_decay, decay_fill_library="jendl-5.0",
+)
+```
+
+Only a placeholder is replaced, only from a record that is not itself a
+placeholder, and only when the two half-lives agree within 25%, which is what
+keeps a differently-assigned isomer out. Only the mean energy and its
+uncertainty move: half-lives, decay modes and spectra stay as the decay library
+has them, so the network's topology is untouched. Every substitution is written
+to `provenance.json` as `decay_energy_fill`, with the value before and after, and
+each nuclide's `decay_energy_source` reads `evaluation`, `placeholder` or
+`filled:<library>`.
+
+Without `decay_fill_files` nothing is substituted and the numbers are
+byte-identical to what the decay library published, so the placeholder list is
+worth reading even when you do not act on it.
 
 `convert_neutron_transport` and `convert_photon` are present too, since all the
 wheels share one bindings crate, but they write sections only transport reads.
