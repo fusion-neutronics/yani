@@ -127,10 +127,44 @@ uniform. Counting evaluations by the ceiling they were converted to:
 | `tendl-2017` | 200 MeV throughout |
 
 So ENDF/B-VIII.1 is the only one that is mostly a 20 MeV library, and even its
-Fe56 and W186 reach 150 MeV. A spectrum with flux above a nuclide's ceiling
-collapses against nothing up there, which reads as a rate that is too low rather
-than as an error, so it is worth checking the ceiling of the nuclides that carry
-your reaction rather than the library's headline.
+Fe56 and W186 reach 150 MeV. A spectrum whose flux reaches above a nuclide's
+ceiling is **refused before the collapse**, naming the nuclide and the energy
+its evaluation stops at, because there is no cross section up there to fold
+against and any answer would be an invention. So check the ceiling of the
+nuclides that carry your reaction rather than the library's headline.
+
+Groups above the ceiling that carry no flux cost nothing, which is what makes a
+padded spectrum safe: the fold stops at the last tabulated point and contributes
+zero above it, rather than carrying the last value forward to 1 GeV. Those are
+different answers whenever the top groups are populated, and the second one is
+wrong: a threshold reaction whose cross section is still rising at 20 MeV would
+otherwise be priced at its 20 MeV value across two more decades.
+
+### Some decay records are placeholders
+
+A nuclide whose decay scheme nobody has evaluated still gets a decay file. The
+conversions from the Nuclear Wallet Cards and from NUBASE carry a half-life and
+the decay modes and, in place of measured average energies, book a third of each
+beta or electron-capture branch's Q to the light particles, a third to the
+photons and the last third to the neutrino. That is not a rough estimate:
+electron capture hands most of Q to the neutrino, so for an EC emitter the
+placeholder can be several times the recoverable energy. ENDF/B-VIII.1 books
+Sn111 at 1.63 MeV per decay against the 0.69 MeV JENDL-5 evaluates from its
+decay scheme.
+
+| library | placeholder decay records |
+| --- | ---: |
+| `endf-b8.1` | 1144 |
+| `jeff-4.0` | 1529 |
+| `jendl-5.0` | 375 |
+
+They are exotic nuclides, so most runs never touch one, but decay heat at short
+cooling times is carried by exactly the short-lived products that tend to be
+unevaluated: on the FNS tin, cadmium, palladium and nickel foils these records
+carry 12 to 35% of the heat in the first minutes. The converter labels them
+rather than hiding them, and can substitute another library's evaluation for
+them; see
+[Filling placeholder decay energies](usage.md#filling-placeholder-decay-energies).
 
 ### Temperatures and size
 
