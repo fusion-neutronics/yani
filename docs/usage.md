@@ -417,10 +417,20 @@ The flux-weighted isomeric branching comes from the same place:
 
 <!-- doctest: skip -->
 ```python
-branching = results.get_isomeric_branching(material_id=mid, step=0) or {}
-branching["W186"]
-# {'(n,2n)': [('W185_m1', 0.535), ('W185', 0.465)]}
+branching = results.get_isomeric_branching(material_id=mid, step=0) or []
+branching[0]
+# {'parent': 'W186', 'reaction': '(n,2n)', 'production': 9.35e-14,
+#  'split': [('W185_m1', 0.535), ('W185', 0.465)]}
 ```
+
+Channels come back ordered by what they made, the channel's rate times its
+parent's atom density at the start of the step, rather than by rate alone. A
+rate is per atom of its parent, so ordering on that promotes whatever sits on a
+trace isotope: on the FNS tungsten foil `W180 (n,2n)` has the highest per-atom
+rate of any channel in the foil, and W180 is 0.12% of it, so weighted by what it
+actually made the channel falls to fifth, two orders of magnitude below the
+`W186 (n,2n)` carrying most of that foil's decay heat. A parent the step did not
+start with has a production of `0.0` and sorts last rather than being dropped.
 
 Which state a reaction leaves its product in is energy dependent, so the one
 number describing a spectrum is the branching collapsed against it, and that
