@@ -66,6 +66,7 @@ covers, and what a sigma of zero does and does not mean, is in
 ::: yani.convert_neutron_xs
 ::: yani.convert_transmutation
 ::: yani.convert_branching
+::: yani.radionuclide_production
 
 The two below write sections only transport reads, so nothing here consumes
 their output. They are on this wheel so that a data-generation script works
