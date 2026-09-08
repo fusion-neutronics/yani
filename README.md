@@ -46,8 +46,8 @@ schedule = yani.PulseSchedule(steps=[
 # perform the simulation
 results = steel.transmute(schedule=schedule)
 
-# access the last material in the time steps
-final = results.step_materials(material_id=steel.id)[-1]
+# access the last material in the time steps (id 0 when the material has none)
+final = results.step_materials(material_id=steel.id or 0)[-1]
 
 # convenient access to useful properties of the material
 print(final.activity(), "Bq")
