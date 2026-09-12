@@ -166,6 +166,44 @@ rather than hiding them, and can substitute another library's evaluation for
 them; see
 [Filling placeholder decay energies](usage.md#filling-placeholder-decay-energies).
 
+### Some reactions do not list the isomer
+
+A reaction that can leave its product in a metastable state has to say so in
+the evaluation, one entry per final state. One that lists the ground state
+alone is not merely less accurate: the isomer is absent from any network built
+from it, so no code can make it, and a measurement that sees its decay heat
+cannot be reproduced by any means. Nothing about such a channel looks wrong
+from outside. It is present, its cross section is reasonable, and only the
+state list is short.
+
+Two channels where that decides an answer, both from the FNS decay-heat
+benchmark:
+
+| channel | `jeff-4.0` | `endf-b8.1` | `jendl-5.0` | `tendl-2017` | `tendl-2025` |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| `Os190 (n,n')` to Os190m, 1706 keV | yes | no file | yes | **no** | yes |
+| `Ir191 (n,2n)` to Ir190m2, 377 keV | yes | yes | yes | **no** | yes |
+
+The heat from an osmium foil five minutes after a 14 MeV irradiation is
+Os190m, so on `tendl-2017` the calculated heat is a third of the measurement
+and no solver setting recovers it. On `tendl-2025` it is within about 20%.
+That is a larger effect than any of the differences above, and it is invisible
+in the cross sections.
+
+So a library can be asked what states it lists, before a run rather than after:
+
+<!-- doctest: skip -->
+```python
+channels = yani.radionuclide_production(neutron)
+for channel in channels:
+    if channel["reaction"] == "(n,2n)":
+        print(channel["parent"], [s["excitation_energy_eV"] for s in channel["states"]])
+```
+
+The excitation energy is what compares between libraries. The level index beside
+it is the evaluation's own numbering and is not comparable: Ir190's 377 keV
+isomer is level 3 in ENDF/B-VIII.1 and level 37 in JEFF-4.0 and TENDL-2025.
+
 ### Temperatures and size
 
 All six are converted at the same six temperatures, 250, 293.6, 600, 900, 1200
