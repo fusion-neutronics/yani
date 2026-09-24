@@ -6,6 +6,7 @@ contact dose and decay photon spectra out.
 
 [Try it online](https://fusion-neutronics.github.io/yani-online/) 🌐 |
 [Documentation](https://fusion-neutronics.github.io/yani/) 📝 |
+[Validation](https://fusion-neutronics.github.io/yani-verification-and-validation/) 📊 |
 [PyPI](https://pypi.org/project/yani/) 🐍
 
 The browser version needs no install and no account. It is the same Rust solver
