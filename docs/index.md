@@ -62,5 +62,13 @@ each, is in [Nuclear data libraries](libraries.md). How the collapse, the
 self-shielding correction and the uncertainty propagation actually work is in
 [Method](method.md).
 
+## Whether the answers are right
+
+YANI is run against 497 measured cases from two IAEA CoNDERC archives, both of
+which publish another inventory code's results beside the measurement, so a
+disagreement can be attributed rather than merely noted. Every case has a
+figure, every number has the script that produced it, and what is *not* covered
+is listed too. See [Validation](validation.md).
+
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26

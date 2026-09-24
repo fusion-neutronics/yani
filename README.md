@@ -6,6 +6,7 @@ contact dose and decay photon spectra out.
 
 [Try it online](https://fusion-neutronics.github.io/yani-online/) 🌐 |
 [Documentation](https://fusion-neutronics.github.io/yani/) 📝 |
+[Validation](https://fusion-neutronics.github.io/yani-verification-and-validation/) 📊 |
 [PyPI](https://pypi.org/project/yani/) 🐍
 
 The browser version needs no install and no account. It is the same Rust solver
@@ -61,3 +62,16 @@ The nuclide inventory under irradiation is the Bateman equations with reaction
 terms, `dN/dt = A N`, solved as a matrix exponential `N(t) = exp(A t) N(0)` by
 CRAM at order 48. The solver is Rust; the wheel needs no compiler and no
 external toolchain.
+
+## Licence
+
+Dual-licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this work by you, as defined in the Apache-2.0 license, shall
+be dual-licensed as above, without any additional terms or conditions.
