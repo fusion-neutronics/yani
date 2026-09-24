@@ -258,6 +258,63 @@ transport run in yamc:
 energies, intensities = final.decay_photon_spectrum()
 ```
 
+## Clearance and waste classification
+
+YANI computes what a material becomes, not what a regulator makes of it. The
+limits are jurisdiction, and they belong in a package that tracks them.
+[`radiological-material-clearance-finder`][rmcf] is one: 22 limit sets covering
+clearance, exemption and disposal classification for the UK, Germany, the US,
+the EU and the IAEA, each generated from the official source and carrying its
+provenance.
+
+It is not a dependency of YANI and does not need to be. Its input is a mapping
+of nuclide to atom density in atoms per barn-cm, which is exactly what
+`get_material_nuclides()` returns.
+
+<!-- doctest: skip -->
+```python
+from radiological_material_clearance_finder import Material as Clearance
+from radiological_material_clearance_finder import clearance_index, time_to_clear
+
+results = steel.transmute(schedule=schedule)
+material_id = steel.id or 0
+
+# One Pulse before the cooldowns, so step 1 is shutdown. `times` carries one
+# more entry than the schedule has steps, because step 0 is the material as
+# it went in.
+shutdown = 1
+series = {}
+for step in range(shutdown, results.num_steps + 1):
+    densities = results.get_material_nuclides(material_id, step)
+    if densities is None:  # a material_id the run does not carry
+        continue
+    series[results.times[step] - results.times[shutdown]] = (
+        Clearance.from_atom_densities(densities, volume=steel.volume)
+    )
+
+print(clearance_index(series[max(series)], "IAEA_GSR3_clearance").index)
+print(time_to_clear(series, "IAEA_GSR3_clearance"))
+```
+
+**Start the series at shutdown, not at step 0.** Step 0 is the unirradiated
+material, which clears trivially, and a series that begins there has an index
+that falls below the limit and then climbs. `time_to_clear` refuses that with
+an `IngrowthError` rather than reporting the first crossing, which is the right
+answer to the wrong series.
+
+A daughter growing in faster than its parent decays can do the same thing to a
+series that does start at shutdown, so the refusal is not only about step 0.
+That is a real property of the inventory and worth seeing rather than
+smoothing over.
+
+For SS316 held in a 14 MeV field at 1e14 n/cm²/s for a year, `time_to_clear`
+returns `None` against both the IAEA and EU sets: it has not cleared after 100
+years of cooling, where the index is still 1.4e5. Long-lived activation
+products are what a clearance limit is for, and an answer of "not within the
+window you sampled" is the honest form of that.
+
+[rmcf]: https://github.com/fusion-energy/radiological_material_clearance_finder
+
 ## Self-shielding
 
 A lump of a resonance absorber shields itself: the flux inside it is depressed
