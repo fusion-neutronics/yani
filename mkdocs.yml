@@ -80,5 +80,6 @@ nav:
   - Getting started: getting_started.md
   - Nuclear data libraries: libraries.md
   - Usage: usage.md
+  - Method: method.md
   - Validation: validation.md
   - API reference: api.md

@@ -58,7 +58,9 @@ constants, branching, reaction products, fission yields) and from folding your
 spectrum against continuous-energy cross sections to get each $\sigma\phi$.
 
 Which of the six available libraries supplies which of those, and how much is in
-each, is in [Nuclear data libraries](libraries.md).
+each, is in [Nuclear data libraries](libraries.md). How the collapse, the
+self-shielding correction and the uncertainty propagation actually work is in
+[Method](method.md).
 
 ## Whether the answers are right
 
