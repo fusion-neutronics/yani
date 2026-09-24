@@ -21,9 +21,14 @@ dependency chain forces a copyleft license onto whatever you build with it, so
 using it in a closed pipeline or a commercial tool is not a licensing
 question, just an engineering one.
 
-**A WASM build is on the roadmap.** The solver is Rust and compiles to `wasm32`
-cleanly, so a calculation can run entirely client-side, with a try-it-now demo
-in the browser and no server. Not live yet.
+**It runs in a browser too, with nothing installed at all.** The solver is Rust
+and compiles to `wasm32` cleanly, so
+[the browser build](https://fusion-neutronics.github.io/yani-online/) is that
+same solver against the same continuous-energy data, not a reduced version of
+it. There is no server, no account and no upload: the calculation runs on your
+own machine, and the page is a single file you can save and open offline. It is
+the fastest way to try YANI before installing anything, and the easiest way to
+hand a colleague a worked example, since a link carries the whole setup.
 
 **A citable material library ships in the wheel.** The PNNL Compendium
 (PNNL-15870 Rev. 2), 410 named materials with their compositions and
