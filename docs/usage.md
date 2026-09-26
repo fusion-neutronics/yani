@@ -724,7 +724,8 @@ seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the nuclide density sigmas
 settle. Convergence is judged on the densities alone, and a decay energy moves
 none of them, so a run whose only active source is `decay_energy` takes 128
-samples, or `samples`, with no convergence check.
+samples, or `samples`, with no convergence check, and reports `converged` as
+True.
 
 Five sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
