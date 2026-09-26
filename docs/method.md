@@ -292,10 +292,12 @@ Five sources are propagated: the activation cross sections, the flux spectrum
 (on `Material.transmute`), the half-lives, the decay energies, and the tallies'
 statistical error (on a transport run). Everything below is held at its
 evaluated or nominal value in every replica. Most of these carry an uncertainty
-or a model error of their own that is then missing from the sigma, and for some
-results it is the largest term. Self-shielding works the other way: holding it
-removes a feedback that narrows the spread, so the sigma it touches comes out
-too large.
+or a model error of their own that is then missing from the sigma, so holding
+them understates it, and for some results it is the largest term. Two can go
+either way, because holding them also removes a feedback that narrows the
+spread: self-shielding, and the flux's response to the cross sections of a
+material that shapes its own flux. Their bullets say which way each goes, and
+where.
 
 - **Decay branching ratios and fission yields.** Both have published
   uncertainties, per decay mode and per yield, that are not propagated yet.
@@ -328,26 +330,33 @@ too large.
   not counted. Tungsten's `(n,2n)` is one of them: ENDF/B-VIII.1, JEFF-4.0 and
   FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
-  depression solved from the evaluated cross sections, so a larger capture cross
-  section does not deepen its own dip. That feedback narrows the spread, so
-  holding it overstates a shielded absorber's capture sigma, by up to 1.8x on an
-  Au197 0.1 mm foil under $1/E$ (1.70% held against 0.96% with the feedback),
-  on top of the fold defect above. The elastic and total covariance never
-  reaches the correction either, which would add a term where MF=33 states a
-  resonance-range uncertainty for elastic scattering ([#167][core167]).
+  depression solved from the evaluated cross sections, and holding it drops two
+  terms that pull opposite ways. A larger capture cross section would deepen its
+  own dip, a feedback that narrows the spread, and it does not. The elastic and
+  total covariance never reaches the correction either, a term that widens the
+  spread where MF=33 states a resonance-range uncertainty for elastic
+  scattering. Which wins depends on the evaluation. For a 0.1 mm Au197 foil
+  under $1/E$ on VITAMIN-J-175, ENDF/B-VIII.1 states no resonance-range elastic
+  uncertainty, and the held sigma is too large by 1.8x (1.70% held against 0.96%
+  with the feedback). TENDL-2017 states one, and there the held sigma is too
+  small: 5.34% held against 6.07% with the feedback and the elastic term
+  together (2.23% with the feedback alone). These figures fold the shielded
+  partials correctly, and the fold defect above overstates on top of them
+  ([#167][core167]).
 - **The flux's response to the cross sections.** In yamc's
   `Model.simulate_transmutation`, a replica's cross sections rescale the tallied
   rates and leave the tallied flux as it was. For a trace activation product
-  that is exact to first order in its own cross section; for a material that
-  shapes its own flux, a breeder's Li6(n,t) for one, or a product behind many
-  mean free paths of steel, it is not. The covariance is folded per nuclide, so
-  the cross sections of the materials the neutrons passed through (a shield, a
-  multiplier, a breeder) never move the flux on either path, and on
-  `Material.transmute` the spectrum's uncertainty is only what the pulse is
-  given. The coupled method refuses `data_uncertainty` because its
-  step-to-step tally noise is not propagated yet ([#162][core162]); it is also
-  where the flux's response to a perturbed cross section would come in
-  ([#166][core166]).
+  that is exact to first order in its own cross section. A material that shapes
+  its own flux is not: a larger Li6(n,t) cross section in a breeder depresses
+  the flux it sees, the same narrowing feedback as self-shielding, so holding
+  the flux overstates that rate's sigma. The covariance is folded per nuclide,
+  so the cross sections of the materials the neutrons passed through (a shield,
+  a multiplier, a breeder) never move the flux on either path, and that missing
+  term understates the sigma of a product behind many mean free paths of steel.
+  On `Material.transmute` the spectrum's uncertainty is only what the pulse is
+  given. The coupled method refuses `data_uncertainty` because its step-to-step
+  tally noise is not propagated yet ([#162][core162]); it is also where the
+  flux's response to a perturbed cross section would come in ([#166][core166]).
 - **Decay photon line intensities.** Each line's emission per decay stays the
   evaluated one, so a line's band is the band on the activity of the nuclides
   emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
