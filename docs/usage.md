@@ -721,13 +721,34 @@ A given nuclide's perturbation is a pure function of `(seed, sample, nuclide)`,
 so a seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the sigmas settle.
 
-Two things are perturbed: the activation cross sections, and the flux spectrum
-when you supply an error on it. `DataUncertainty.available_sources()` names them,
-`cross_sections` and `flux_spectrum`, and `sources=` restricts a run to one of
-them, which is how a contribution is measured. Naming a
-source this build cannot perturb raises.
-Half-lives, decay branching ratios, fission yields and the isomeric-branching
-overlay stay at their evaluated values.
+Five sources can be perturbed, and `DataUncertainty.available_sources()` names
+them:
+
+- `cross_sections`: the activation cross sections, from their ENDF MF=33
+  covariance folded against your spectrum.
+- `flux_spectrum`: the spectrum itself, from the error you hand the pulse
+  (below). A spectrum with no stated error contributes nothing.
+- `half_life`: the half-life of every unstable nuclide the material can reach,
+  from the decay data's own sigma on it. A replica's half-lives are used in its
+  solve and in the activity, decay heat and dose evaluated from it, so a
+  saturated activity stays as insensitive to its own half-life as it physically
+  is.
+- `decay_energy`: each nuclide's mean decay energy, from the sigma on each of
+  its beta, gamma and alpha components, or on the total where the data gives no
+  split. A decay energy never enters the solve, so this moves decay heat and
+  nothing else.
+- `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
+  their per-history covariance, on a yamc `Model.simulate_transmutation` run
+  with the independent method. A spectrum run's rates are a deterministic
+  collapse, so on `Material.transmute` it has nothing to act on and is left out
+  of the report's `sources`, as `flux_spectrum` is on a transport run.
+
+`sources=` restricts a run to some of them, which is how a contribution is
+measured. Naming a source this build cannot perturb raises. Decay branching
+ratios, fission yields, isomeric branching, the material composition and the
+other inputs listed under
+[What is not propagated](method.md#what-is-not-propagated) stay at their
+evaluated or nominal values.
 
 A spectrum that came from a Monte Carlo run carries a statistical error of its
 own. Hand it to the pulse, per bin, in the same order and units as the histogram
@@ -750,6 +771,13 @@ reference set carries no stated error. A run then reports the omission in
 `data_uncertainty_info["spectra_without_flux_sigma"]` rather than letting the
 flux read as known exactly.
 
+A per-bin sigma treats the bins as independent, and a tally's bins are not: the
+same histories score them, so they move together, and a per-bin sigma
+understates the error on any rate that sums over a band of them. Where the
+correlations are known, give the pulse the full covariance of the histogram
+values as `flux_covariance` instead of `flux_std_dev`. It has to be symmetric
+and positive semi-definite, and is checked.
+
 Because a zero sigma could mean either "well known" or "nothing published", the
 two are separated in `data_uncertainty_info`:
 
@@ -761,10 +789,20 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_covariance_data"]     # evaluation carries none
     info["rate_fraction_covered"]  # share of each rate the covariance grid spans
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
-    info["not_perturbed"]          # sources this does not propagate
-    info["sources"]                # the ones it did
+    info["half_lives_perturbed"]   # unstable nuclides whose half-life was sampled
+    info["no_half_life_uncertainty"]     # ... and those whose data states no sigma
+    info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
+    info["not_perturbed"]          # inputs held at nominal that it names, see below
+    info["sources"]                # the sources that applied to this run
     info["has_gaps"]               # True if anything was left out
 ```
+
+`not_perturbed` names decay branching, fission yields, isomeric branching and
+cross-material covariance, and a half-life or decay-energy source the run
+switched off. The other inputs held at nominal, from resonance-parameter
+covariance to photon line intensities and the material composition, are listed
+under [What is not propagated](method.md#what-is-not-propagated) and are not in
+the report yet.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
@@ -784,8 +822,9 @@ an iron foil that is 32% against 96%.
 For a decay-only schedule there is no production to weight by, so the value is
 `None`, not zero.
 
-Activity, decay heat and contact dose carry the same band, each as an `Estimate`
-holding the unperturbed value and the ensemble's spread on it:
+Activity, decay heat and contact dose come back with a band from the same
+ensemble, each as an `Estimate` holding the unperturbed value and the ensemble's
+spread on it:
 
 <!-- doctest: skip -->
 ```python
@@ -823,6 +862,12 @@ under which two lines' spreads are taken over the same sample. `emitting` keeps
 that zero-fill visible, so a dim line and an intermittent one stay
 distinguishable.
 
+Every one of these bands is the inventory's, evaluated with each replica's own
+half-lives and, for decay heat, its own decay energies. A line's emission per
+decay is the evaluated one in every replica, so a line's band is the band on the
+activity of the nuclides emitting it, and contact dose holds its attenuation
+coefficients, response and build-up factor the same way.
+
 `get_uncertainty_inventories(material_id=mid, step=step)` is still there for a
 quantity these four do not cover, and returns every replica's full inventory to
 take the spread over yourself.
@@ -840,12 +885,15 @@ take the spread over yourself.
   something it solves for. If the field would harden or soften appreciably over
   the campaign, split the schedule and give each pulse its own spectrum. That is
   a statement about the physics you are feeding it, not about the solver.
-- `data_uncertainty` covers the activation cross sections, and the flux spectrum
-  when a pulse carries `flux_std_dev`. Without one the flux is taken as exact,
-  since nothing is transported here. Half-lives, decay branching ratios and
-  fission yields are held at their evaluated values throughout. Cross-material
-  covariance (`MAT1 != 0`) and covariances derived from a standards evaluation
-  are not consumed; both are counted in `data_uncertainty_info`.
+- `data_uncertainty` covers the activation cross sections, the half-lives, the
+  decay energies, and the flux spectrum when a pulse carries `flux_std_dev` or
+  `flux_covariance`. Without one the flux is taken as exact, since nothing is
+  transported here. Decay branching ratios, fission yields, isomeric branching,
+  resonance-parameter covariance (MF=32), cross-material, NC and lumped MF=33
+  blocks, the self-shielding correction, photon line intensities, the dose
+  constants and the material composition are held at their evaluated or nominal
+  values; [What is not propagated](method.md#what-is-not-propagated) says how
+  much each can matter.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
   flags which nuclides on the run that skipped it, and how strongly their own
