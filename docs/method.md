@@ -319,11 +319,15 @@ material that shapes its own flux. Their bullets say which way each goes, and
 where.
 
 - **Decay branching ratios and fission yields.** Both have published
-  uncertainties, per decay mode and per yield, that are not propagated yet.
+  uncertainties, per decay mode and per yield, that are not propagated yet. The
+  weights that mix a nuclide's yield sets by incident energy come from the
+  nominal spectrum in every replica, so a flux draw does not move them.
 - **Isomeric branching.** The split of a reaction's product between the ground
   state and an isomer. Where an evaluation states its uncertainty it does so in
   MF=40, which is parsed and not used yet. With the branching overlay
-  configured (`transmutation_branch_ratios`), the `(n,n')` channels it adds to
+  configured (`transmutation_branch_ratios`), the flux-weighted split is folded
+  once against the nominal spectrum, so on `Material.transmute` a flux draw
+  moves the rates and never the split. The `(n,n')` channels the overlay adds to
   reach a metastable state, In115 to In115m among them, have no group-averaged
   cross section behind them. They carry no cross-section covariance, and on
   `Material.transmute` no flux-spectrum uncertainty either.
