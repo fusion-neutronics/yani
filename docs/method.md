@@ -291,7 +291,8 @@ results it is the largest term.
   stated through other reactions' covariances (NC), and lumped reactions
   (MT=851 to 870), which state the uncertainty of a sum of reactions, are not
   used. `skipped_cross_material` and `skipped_nc` count the first two; the lumps
-  are not counted ([#166][core166]).
+  are not counted. Tungsten's `(n,2n)` is one of them: ENDF/B-VIII.1, JEFF-4.0
+  and FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, so a larger capture cross
   section does not deepen its own dip, and the elastic and total covariance
