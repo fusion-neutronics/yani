@@ -53,23 +53,28 @@ group structure smears across a bin.
 **An uncertainty on the answer, not just the answer.** Pass
 `data_uncertainty=` and every nuclide density comes back with a standard
 deviation beside it. The activation cross sections are resampled from the
-evaluation's own ENDF MF=33 covariance, folded against your spectrum, and the
+evaluation's own ENDF MF=33 covariance, folded against your spectrum, the
+half-lives and decay energies from the decay data's own sigmas, and the
 schedule is re-solved for each sample. That is exact to all orders in the
 matrix exponential: nothing is linearized, and the sandwich rule is not used,
 so correlations between nuclides survive. A parent and its daughter come back
 with the same absolute uncertainty, because every daughter atom came out of a
 parent atom. If your spectrum arrives from a Monte Carlo run with a per-bin
 error, hand it to the pulse as `flux_std_dev` and that propagates too, as its
-own source, so you can see which of the two dominates.
+own source, so you can see which source dominates.
 
-**Every quantity you would put in a report carries the same band.**
-Activity, decay heat, contact dose and every decay photon line come back as an
-`Estimate`, a nominal value with the ensemble's spread beside it. Each is
-evaluated once per replica and summed inside that replica: adding the
-per-nuclide sigmas in quadrature double-counts a variance that partly cancels,
-and contact dose is not even linear in the densities, since a replica that
-makes more of an emitter also absorbs more of it. A calculated band beside a
-measured one says whether the disagreement is larger than the data allows.
+**Every quantity you would put in a report carries a band from the same
+ensemble.** Activity, decay heat, contact dose and every decay photon line come
+back as an `Estimate`, a nominal value with the ensemble's spread beside it.
+Each is evaluated once per replica, with that replica's own half-lives, and
+summed inside that replica: adding the per-nuclide sigmas in quadrature
+double-counts a variance that partly cancels, and contact dose is not even
+linear in the densities, since a replica that makes more of an emitter also
+absorbs more of it. The band is the inventory's: a line's emission per decay,
+and the attenuation, response and build-up behind contact dose, are the same in
+every replica, so a photon line's band is the band on the activity of the
+nuclides emitting it. A calculated band beside a measured one says whether the
+disagreement is larger than the propagated data allows.
 
 **A sigma of zero says which kind of zero it is.** The hard part of an
 uncertainty is not producing one, it is knowing what it left out. A nuclide
@@ -78,10 +83,12 @@ genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no published covariance, what share of each reaction rate
 the covariance grid spans, which evaluated matrices were not positive
-semi-definite and had to be repaired, and which sources are not propagated at
-all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
-carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
-gives two very different sigmas, and the report is what tells you why.
+semi-definite and had to be repaired, and which sources were held at nominal
+(not yet every one of them;
+[What is not propagated](method.md#what-is-not-propagated) has the full list).
+On ENDF/B-VIII.1 the second point is not academic -- 42% of evaluations carry
+MF=33, against 100% of TENDL-2025 -- so the same run on two libraries gives two
+very different sigmas, and the report is what tells you why.
 `rate_fraction_covered_total` weights coverage by reaction rate and by parent
 density instead of counting evaluations. Two major libraries state covariance
 for all five natural tungsten isotopes and none for the `(n,2n)` making 98% of

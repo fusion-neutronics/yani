@@ -129,11 +129,11 @@ can state up front, so the option is not offered. See
 
 ## Nuclear-data uncertainty
 
-The solve is deterministic and every expensive input is a reaction rate, so the
-uncertainty is propagated by perturbing the rates and running the same solve
-again. That is exact to all orders in the matrix exponential: nothing is
-linearised, the sandwich rule is not used, and the solver is not touched at all,
-only its input.
+The solve is deterministic and every entry of its matrix is a rate, so the
+uncertainty is propagated by perturbing what those rates are made of and running
+the same solve again. That is exact to all orders in the matrix exponential:
+nothing is linearised, the sandwich rule is not used, and the solver is not
+touched at all, only its input.
 
 ### Folding the covariance
 
@@ -204,6 +204,18 @@ sigma: a ratio under $10^{-3}$ can sit beside a dominant channel whose sigma
 grew by more than 10%. A matrix that needed a large repair is one whose sampled
 spread no longer means what the evaluation said.
 
+The other sources are drawn on their own stated sigma. The flux is drawn once
+per replica, per group, from the pulse's `flux_std_dev` or through the factor of
+its `flux_covariance`, and shared by every nuclide, because every reaction that
+sees a group sees the same flux in it. A rate is linear in the flux, so the
+perturbed rate is the collapse's own per-group terms reweighted, exactly, with
+nothing collapsed again. A half-life is drawn per nuclide from the decay data's
+sigma on it, and a decay energy from the sigma on each of its beta, gamma and
+alpha components, or on the total where the data gives no split. In a transport
+run the tallied rates are drawn jointly from their per-history covariance.
+These draws are normal, and one that would go below zero is floored;
+`flux_bins_floored`, `half_lives_floored` and `statistical_floored` count them.
+
 Seeds are pure functions of their arguments: a rate depends on
 `(seed, replica, nuclide)` and on nothing else. Not on how many replicas were
 run, not on the order they ran in, and not on which other nuclides were in the
@@ -212,8 +224,8 @@ material.
 ### Derived quantities
 
 Activity, decay heat, contact dose and every photon line are evaluated once per
-replica and the spread taken over the results, rather than combined from
-per-nuclide sigmas.
+replica, with that replica's own half-lives, and the spread taken over the
+results, rather than combined from per-nuclide sigmas.
 
 Quadrature would be wrong: every Mn56 atom in an irradiated iron foil came out
 of an Fe56 atom, so the two densities move against each other and their spreads
@@ -224,12 +236,81 @@ exactly zero, which reads as a confident result rather than a missing one. And
 contact dose is not linear in the densities at all, since a replica that makes
 more of an emitter also absorbs more of it.
 
+The half-lives have to be the replica's here as well as in the solve. A
+saturated activity is $\lambda N = R$, so it barely depends on its own
+half-life, and evaluating it with the nominal $\lambda$ would hand it the whole
+spread of $N = R / \lambda$ instead. A line's intensity per atom is its emission
+per decay times $\lambda$, so it is rescaled with the replica's $\lambda$ for the
+same reason, which keeps the emission per decay at its evaluated value. Decay
+energies enter only here: they are drawn where decay heat is evaluated and move
+nothing else.
+
 ### What is not propagated
 
-Half-lives, decay branching ratios, fission yields and the isomeric-branching
-overlay are held at their evaluated values. They carry their own uncertainties
-and are out of scope for now. `data_uncertainty_info` says so per run rather
-than leaving it to be inferred from a small sigma. See
+Five sources are propagated: the activation cross sections, the flux spectrum
+(on `Material.transmute`), the half-lives, the decay energies, and the tallies'
+statistical error (on a transport run). Everything below is held at its
+evaluated or nominal value in every replica, so it contributes nothing to any
+sigma. Each carries an uncertainty or a model error of its own, and for some
+results it is the largest term.
+
+- **Decay branching ratios and fission yields.** Both have published
+  uncertainties, per decay mode and per yield, that are not propagated yet
+  ([#140][core140]).
+- **Isomeric branching.** The split of a reaction's product between the ground
+  state and an isomer. Where an evaluation states its uncertainty it does so in
+  MF=40, which is parsed and not used yet ([#140][core140]).
+- **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
+  covariance in the resonance range as an MF=32 part plus the MF=33 part, and
+  many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
+  MF=33 at zero there. MF=32 is not read, so a capture rate driven by resonance
+  flux can come back with a sigma near zero: for capture in a $1/E$ field,
+  TENDL-2025 Co59 carries 4.7% with MF=32 and 0.0% from MF=33 alone
+  ([#166][core166]).
+- **MF=33 blocks that are not used.** Covariance between different
+  evaluations (`MAT1 != 0`, the links to the standards among them), blocks
+  stated through other reactions' covariances (NC), and lumped reactions
+  (MT=851 to 870), which state the uncertainty of a sum of reactions, are not
+  used. `skipped_cross_material` and `skipped_nc` count the first two; the lumps
+  are not counted ([#166][core166]).
+- **Self-shielding.** With a shape or a chord, every replica uses the flux
+  depression solved from the evaluated cross sections, so a larger capture cross
+  section does not deepen its own dip, and the elastic and total covariance
+  never reaches the correction ([#167][core167]).
+- **The tallied flux, in a transport run.** In yamc's
+  `Model.simulate_transmutation`, a replica's cross sections rescale the tallied
+  rates and leave the tallied flux as it was. For a trace activation product
+  that is exact to first order in its own cross section; for a material that
+  shapes its own flux, a breeder's Li6(n,t) for one, it is not. The coupled
+  method, where that response would come in, refuses `data_uncertainty` until it
+  can be propagated there ([#162][core162], [#166][core166]).
+- **Decay photon line intensities.** Each line's emission per decay stays the
+  evaluated one, so a line's band is the band on the activity of the nuclides
+  emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
+  lines. On contact dose it is negligible for Co60 (0.014%) and not for Mn56
+  (0.6 to 1.8%) or W187 (0.8 to 3.7%), the range running from independent lines
+  to fully correlated ones ([#163][core163]).
+- **Dose constants and build-up.** Contact dose uses the same photon attenuation
+  coefficients, the same response (air energy absorption, or the ICRP-116
+  coefficients for effective dose) and the same constant build-up factor in
+  every replica. None of those tables publishes a per-value uncertainty, and the
+  build-up factor is a model choice whose error is the larger term: the default
+  of 2 reads 16 to 17% high for Co60 in steel against a photon transport
+  calculation of the same half-space ([#164][core164]).
+- **Material composition and natural abundances.** Element and impurity
+  fractions, density and natural isotopic abundances are the same in every
+  replica. For activation driven by a trace impurity this is often the largest
+  omission: in a 316L-like steel with 0.1 wt% cobalt, the contact dose at 10
+  years is 99.6% Co60 and moves 0.69% per 1% on the cobalt fraction. A material
+  carries only the elements it is given, and the bundled PNNL compendium's
+  `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
+  ([#165][core165]).
+
+`data_uncertainty_info["not_perturbed"]` names decay branching, fission yields,
+isomeric branching and cross-material covariance on every run, and the
+half-life or decay energy when a run switches that source off. The rest of this
+list is not in it yet, so a sigma is the spread from the five sources above and
+nothing more. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
@@ -251,3 +332,10 @@ means are bit-identical to a build without any of it.
 
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26
+[core140]: https://github.com/fusion-neutronics/core/issues/140
+[core162]: https://github.com/fusion-neutronics/core/issues/162
+[core163]: https://github.com/fusion-neutronics/core/issues/163
+[core164]: https://github.com/fusion-neutronics/core/issues/164
+[core165]: https://github.com/fusion-neutronics/core/issues/165
+[core166]: https://github.com/fusion-neutronics/core/issues/166
+[core167]: https://github.com/fusion-neutronics/core/issues/167

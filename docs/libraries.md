@@ -107,10 +107,15 @@ natural isotopes covered by the count and 6% of the production covered in fact.
 Depth varies as much as presence. JENDL-5 carries covariance for only 13% of its
 evaluations, and its Fe56 covers 56 channels against ENDF/B-VIII.1's 7.
 
-Cross sections are the only covariance family that reaches the data. The ENDF
-parser also reads angular-distribution and radionuclide-production covariance
-(MF=34 and MF=40 against MF=33 for cross sections), and nothing consumes them, so
-they cannot be propagated and are reported as not propagated.
+Cross sections are the only covariance family that reaches the data, and only
+its MF=33 part. Resonance-parameter covariance (MF=32), where many evaluations
+keep their whole resonance-range uncertainty, is not read, so a capture rate
+driven by resonance flux can carry a sigma near zero on a library whose MF=33 is
+zero there. The ENDF parser reads angular-distribution and
+radionuclide-production covariance (MF=34 and MF=40), and nothing consumes them
+yet. The decay data's own sigmas on half-lives and decay energies are carried
+as well, and propagated. Everything held at nominal is listed under
+[What is not propagated](method.md#what-is-not-propagated).
 
 ### Energy range
 
