@@ -161,21 +161,48 @@ covered.
 
 ### Drawing a replica
 
+For the cross sections, one replica is
+
 $$
-L = V\sqrt{\Lambda}, \qquad z \sim N(0, I), \qquad R' = R\,(1 + Lz)
+L = V\sqrt{\Lambda}, \qquad z \sim N(0, I), \qquad \delta = Lz
 $$
 
-floored at zero, from the eigendecomposition of the *relative* covariance. The
-eigendecomposition is a cyclic Jacobi rotation rather than a library call: the
-matrices are one per nuclide over that nuclide's activation channels, single
+from the eigendecomposition of the *relative* covariance. Each $\delta_i$ is
+normal with standard deviation $\sigma_i = \sqrt{\sum_j L_{ij}^2}$ and carries
+channel $i$'s correlations with the others. It moves the rate through the
+lognormal marginal matched to it in mean and variance:
+
+$$
+s_i^2 = \ln\left(1 + \sigma_i^2\right), \qquad
+R_i' = R_i \exp\left(s_i\,\frac{\delta_i}{\sigma_i} - \frac{s_i^2}{2}\right)
+$$
+
+so the mean of $R_i'$ is $R_i$ and its variance is $\sigma_i^2 R_i^2$, both
+exactly, and no sampled rate can be negative. The linear form
+$R_i(1 + \delta_i)$ can, and did: on the FNS decay-heat benchmark it sent 8.3%
+of all sampled rates below zero, 13% on iron, and flooring them at zero biases
+the mean upward. For a small $\sigma_i$ the two differ only at order
+$\sigma_i^2$, so a well known cross section samples almost exactly as it would
+under the linear form, and only the channels a Gaussian cannot describe move.
+What the transform does not keep exactly is the linear correlation between
+channels: the deviates keep their Gaussian dependence and each is transformed
+monotonically, so rank correlation is preserved exactly and the Pearson
+correlation shifts by a factor that goes to one as $\sigma$ goes to zero.
+
+The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
+the matrices are one per nuclide over that nuclide's activation channels, single
 digits to low tens on a side, where Jacobi is fast, needs no dependency, is
 bit-reproducible because it is pure arithmetic in a fixed order, and gives the
-eigenvectors the clipping below needs anyway. A Cholesky would be the obvious
-choice if the matrices were positive definite, and the point is that they are
-not: MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues
-are clipped to zero, and how much was discarded is reported. A matrix that
-needed a large repair is one whose sampled spread no longer means what the
-evaluation said.
+eigenvectors the clipping needs anyway. A Cholesky would be the obvious choice
+if the matrices were positive definite, and the point is that they are not:
+MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues are
+clipped to zero. That repair only ever adds variance, and it can give a spread
+to a channel whose evaluated variance is zero. `matrices_clipped` counts the
+matrices that needed it and `worst_relative_clip` reports the largest
+$|\lambda_\text{min}| / \lambda_\text{max}$, which is not the change in any one
+sigma: a ratio under $10^{-3}$ can sit beside a dominant channel whose sigma
+grew by more than 10%. A matrix that needed a large repair is one whose sampled
+spread no longer means what the evaluation said.
 
 Seeds are pure functions of their arguments: a rate depends on
 `(seed, replica, nuclide)` and on nothing else. Not on how many replicas were
