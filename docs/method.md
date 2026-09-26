@@ -230,6 +230,14 @@ channels: the deviates keep their Gaussian dependence and each is transformed
 monotonically, so rank correlation is preserved exactly and the Pearson
 correlation shifts by a factor that goes to one as $\sigma$ goes to zero.
 
+The evaluation states a covariance and no distribution, so the lognormal shape
+is a choice, and for a channel whose sigma is near 1 or above it is that choice,
+not the data, that sets the tails. Such a channel is heavy-tailed enough that
+its sampled spread converges slowly: at 1024 replicas, the most the driver adds
+on its own, the median sample standard deviation is 0.98 of sigma at
+$\sigma = 1$, 0.91 at 2, 0.84 at 3 and 0.51 at 9. TENDL-2017 has channels at
+$10^4$% and more, and the report does not flag them yet ([#166][core166]).
+
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
 the matrices are one per nuclide over that nuclide's activation channels, single
 digits to low tens on a side, where Jacobi is fast, needs no dependency, is
