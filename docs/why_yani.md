@@ -80,7 +80,7 @@ disagreement is larger than the propagated data allows.
 uncertainty is not producing one, it is knowing what it left out. A nuclide
 whose evaluation publishes no covariance and a nuclide whose covariance is
 genuinely small would otherwise both report `0.0`, and only one of those is
-reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
+reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no published covariance, what share of each reaction rate
 the covariance grid spans, which evaluated matrices were not positive
 semi-definite and had to be repaired, and which sources were held at nominal
@@ -103,7 +103,7 @@ narrow-resonance approximation is not offered, because it over-shields strong
 elastic scatterers badly enough to be worse than applying no correction at all.
 Leave the correction out, which is the default since a material carries no
 geometry, and the run still reports what it skipped:
-`self_shielding_info["would_shield"]` names the resonance absorbers it left
+`would_shield` in `get_self_shielding_info` names the resonance absorbers it left
 uncorrected and how strongly their own resonances could bite. That is a screen
 rather than a bound, since it carries no geometry, so it says which answers to
 distrust rather than by how much. See
