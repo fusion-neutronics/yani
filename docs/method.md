@@ -312,15 +312,17 @@ where.
   covariance in the resonance range as an MF=32 part plus the MF=33 part, and
   many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
   MF=33 at zero there. MF=32 is not read, so a capture rate driven by resonance
-  flux can come back with a sigma near zero: for capture in a $1/E$ field,
-  TENDL-2025 Co59 carries 4.7% with MF=32 and 0.0% from MF=33 alone. The
-  coverage report does not flag it yet: the zero-valued MF=33 block counts as
-  covering the rate (the second defect under
-  [Folding the covariance](#folding-the-covariance)), so the nuclide is listed
-  under `perturbed` with a `rate_fraction_covered` near 1. ENDF/B-VIII.1 W186 is
-  one such case: its capture block states zero variance from $10^{-5}$ eV to
-  10 keV, and W187 comes out at 0.0023% with that capture reported as fully
-  covered ([#166][core166]).
+  flux can come back with a sigma near zero: for capture in a $1/E$ field, NJOY
+  ERRORR gives ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone.
+  The coverage report does not flag it yet. W186's capture block states zero
+  variance from $10^{-5}$ eV to 10 keV, and that block counts as covering the
+  rate (the second defect under
+  [Folding the covariance](#folding-the-covariance)), so W186 is listed under
+  `perturbed` with its capture reported as fully covered, and W187 comes out at
+  0.0023% ([#166][core166]). The same check gives 6.32% against 0.01% on the
+  JEFF-4.0 Ag109 tape and 4.71% against 0.00% on the TENDL-2025 Co59 tape.
+  yani's TENDL-2025 covariance is not published yet, so a run on it today lists
+  Co59 under `no_covariance_data` instead.
 - **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
   covariance with another evaluation (the links to the standards among them)
   and today also include blocks naming the evaluation's own MAT; blocks stated
