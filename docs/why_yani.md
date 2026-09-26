@@ -57,10 +57,11 @@ evaluation's own ENDF MF=33 covariance, folded against your spectrum, the
 half-lives and decay energies from the decay data's own sigmas, and the
 schedule is re-solved for each sample. That is exact to all orders in the
 matrix exponential: nothing is linearized, and the sandwich rule is not used,
-so correlations between nuclides survive. Every daughter atom came out of a
-parent atom, so in each replica the two densities move against each other, and
-a quantity summed over both keeps that cancellation. If your spectrum arrives
-from a Monte Carlo run with an error on it, hand it to the pulse as
+so correlations between nuclides survive. When a replica moves a channel, the
+channel's product moves against its target and together with the nuclides the
+product decays to, and a quantity summed over them keeps both: the spreads of
+the first pair partly cancel and those of the second add. If your spectrum
+arrives from a Monte Carlo run with an error on it, hand it to the pulse as
 `flux_std_dev`, or as a full `flux_covariance`, and that propagates too, as its
 own source, so you can see which source dominates.
 
