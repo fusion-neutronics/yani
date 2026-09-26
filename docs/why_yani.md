@@ -91,9 +91,9 @@ MF=33, against 100% of TENDL-2025 -- so the same run on two libraries gives two
 very different sigmas, and the report is what tells you why.
 `rate_fraction_covered_total` weights coverage by reaction rate and by parent
 density instead of counting evaluations. Two major libraries state covariance
-for all five natural tungsten isotopes and none for the `(n,2n)` making 98% of
-a foil's decay heat, so the count reads as full coverage where the weighted
-figure reads 6%.
+for all five natural tungsten isotopes, and state it for the `(n,2n)` making 98%
+of a foil's decay heat only lumped with `(n,2np)`, which is not used, so the
+count reads as full coverage where the weighted figure reads 6%.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its

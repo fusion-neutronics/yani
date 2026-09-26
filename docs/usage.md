@@ -811,8 +811,9 @@ own density.
 
 Tungsten shows how far the two can diverge. Two major libraries state
 covariance for all five natural tungsten isotopes, so a count reads as complete
-coverage, and what they state it for is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
-making 98% of a tungsten foil's decay heat has none. The ensemble perturbs about
+coverage, and what reaches the run is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
+making 98% of a tungsten foil's decay heat is stated only lumped with `(n,2np)`,
+as the uncertainty of their sum, which is not used. The ensemble perturbs about
 6% of the production and reports a spread under 0.1%.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
