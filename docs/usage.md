@@ -795,7 +795,7 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
     info["not_perturbed"]          # inputs held at nominal that it names, see below
     info["sources"]                # the sources that applied to this run
-    info["has_gaps"]               # True if anything was left out
+    info["has_gaps"]               # True if something the report tracks was left out
 ```
 
 `not_perturbed` names decay branching, fission yields, isomeric branching and
@@ -803,7 +803,7 @@ cross-material covariance, and a half-life or decay-energy source the run
 switched off. The other inputs held at nominal, from resonance-parameter
 covariance to photon line intensities and the material composition, are listed
 under [What is not propagated](method.md#what-is-not-propagated) and are not in
-the report yet.
+the report yet, and none of them sets `has_gaps`.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
