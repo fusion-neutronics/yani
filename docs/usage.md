@@ -805,10 +805,16 @@ if info is not None:               # None unless data_uncertainty was passed
 
 `not_perturbed` names decay branching, fission yields, isomeric branching and
 cross-material covariance, and a half-life or decay-energy source the run
-switched off. The other inputs held at nominal, from resonance-parameter
-covariance to photon line intensities and the material composition, are listed
-under [What is not propagated](method.md#what-is-not-propagated) and are not in
-the report yet, and none of them sets `has_gaps`.
+switched off. `skipped_cross_material` and `skipped_nc` count the cross-material
+and NC MF=33 blocks that were not used. The other inputs held at nominal, from
+resonance-parameter covariance and lumped blocks to photon line intensities and
+the material composition, are listed under
+[What is not propagated](method.md#what-is-not-propagated) and are not in the
+report yet. `has_gaps` looks only at the sources the run perturbs, and is True
+when one of them met a nuclide with no MF=33, a skipped cross-material or NC
+block, a block whose layout is unsupported or malformed, a spectrum with no flux
+sigma, or a reachable unstable nuclide with no stated half-life or decay-energy
+sigma. None of the inputs that are not in the report sets it.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
@@ -901,11 +907,12 @@ take the spread over yourself.
   decay energies, and the flux spectrum when a pulse carries `flux_std_dev` or
   `flux_covariance`. Without one the flux is taken as exact, since nothing is
   transported here. Decay branching ratios, fission yields, isomeric branching,
-  resonance-parameter covariance (MF=32), cross-material, NC and lumped MF=33
-  blocks, the self-shielding correction, photon line intensities, the dose
-  constants and the material composition are held at their evaluated or nominal
-  values; [What is not propagated](method.md#what-is-not-propagated) says how
-  much each can matter.
+  resonance-parameter covariance (MF=32), cross-material, NC, lumped and
+  partial-level MF=33 blocks, the self-shielding correction, photon line
+  intensities, the dose constants and the material composition are held at
+  their evaluated or nominal values;
+  [What is not propagated](method.md#what-is-not-propagated) says how much each
+  can matter.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `would_shield` in `get_self_shielding_info`
   flags which nuclides on the run that skipped it, and how strongly their own
