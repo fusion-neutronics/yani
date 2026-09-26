@@ -228,20 +228,31 @@ spread no longer means what the evaluation said.
 
 The other sources are drawn on their own stated sigma. The flux is drawn once
 per replica, per group, from the pulse's `flux_std_dev` or through the factor of
-its `flux_covariance`, and shared by every nuclide, because every reaction that
-sees a group sees the same flux in it. A rate is linear in the flux, so the
-perturbed rate is the collapse's own per-group terms reweighted, exactly, with
-nothing collapsed again. A half-life is drawn per nuclide from the decay data's
-sigma on it, and a decay energy from the sigma on each of its beta, gamma and
-alpha components, or on the total where the data gives no split. In a transport
-run the tallied rates are drawn jointly from their per-history covariance.
-These draws are normal, and one that would go below zero is floored;
-`flux_bins_floored`, `half_lives_floored` and `statistical_floored` count them.
+its `flux_covariance`, and shared by every rate collapsed against that spectrum,
+because every reaction that sees a group sees the same flux in it. A rate is
+linear in the flux, so the perturbed rate is the collapse's own per-group terms
+reweighted, exactly, with nothing collapsed again. A half-life is drawn per
+nuclide from the decay data's sigma on it, and a decay energy from the sigma on
+each of its beta, gamma and alpha components, or on the total where the data
+gives no split. In a transport run the tallied rates are drawn jointly from
+their per-history covariance.
 
-Seeds are pure functions of their arguments: a rate depends on
-`(seed, replica, nuclide)` and on nothing else. Not on how many replicas were
-run, not on the order they ran in, and not on which other nuclides were in the
-material.
+These draws are normal, with a floor where a draw would leave the physical
+range. A flux bin or a tallied rate below zero is set to zero and counted in
+`flux_bins_floored` or `statistical_floored`. A half-life at or below zero is
+set to a millionth of its nominal value and counted in `half_lives_floored`. A
+decay energy below zero is set to zero and not counted. A floor biases that
+source's mean upward, as it did for the linear cross-section form, so a nonzero
+count says the normal is being used past where it describes the data.
+
+Seeds are pure functions of their arguments. A cross-section, half-life or
+decay-energy draw depends on `(seed, replica, nuclide)` and on nothing else: not
+on how many replicas were run, not on the order they ran in, and not on which
+other nuclides were in the material. The flux draw is keyed on
+`(seed, replica, spectrum)`, the spectrum's place among the schedule's spectra.
+The statistical draw is keyed on `(seed, replica)` and made jointly over the
+material's tallied rates, so adding or removing a tallied rate changes the draws
+of the others. A seed reproduces a given run in every case.
 
 ### Derived quantities
 

@@ -717,9 +717,14 @@ is exact to all orders in the matrix exponential; the solver is untouched and
 only its input changes. Omitting the argument costs nothing at all: no
 covariance is read, nothing is folded, and the inventories are bit-identical.
 
-A given nuclide's perturbation is a pure function of `(seed, sample, nuclide)`,
-so a seed reproduces a run regardless of sample count or iteration order. Leave
-`samples` unset and the driver adds samples until the sigmas settle.
+Every draw is a pure function of the seed, the sample and what is drawn: a
+nuclide for the cross sections, half-lives and decay energies, a spectrum for the
+flux, and a material's tallied rates, jointly, for the statistical error. So a
+seed reproduces a run regardless of sample count or iteration order. Leave
+`samples` unset and the driver adds samples until the nuclide density sigmas
+settle. Convergence is judged on the densities alone, and a decay energy moves
+none of them, so a run whose only active source is `decay_energy` takes 128
+samples, or `samples`, with no convergence check.
 
 Five sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
