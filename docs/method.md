@@ -272,16 +272,21 @@ nothing else.
 Five sources are propagated: the activation cross sections, the flux spectrum
 (on `Material.transmute`), the half-lives, the decay energies, and the tallies'
 statistical error (on a transport run). Everything below is held at its
-evaluated or nominal value in every replica, so it contributes nothing to any
-sigma. Each carries an uncertainty or a model error of its own, and for some
-results it is the largest term.
+evaluated or nominal value in every replica. Most of these carry an uncertainty
+or a model error of their own that is then missing from the sigma, and for some
+results it is the largest term. Self-shielding works the other way: holding it
+removes a feedback that narrows the spread, so the sigma it touches comes out
+too large.
 
 - **Decay branching ratios and fission yields.** Both have published
-  uncertainties, per decay mode and per yield, that are not propagated yet
-  ([#140][core140]).
+  uncertainties, per decay mode and per yield, that are not propagated yet.
 - **Isomeric branching.** The split of a reaction's product between the ground
   state and an isomer. Where an evaluation states its uncertainty it does so in
-  MF=40, which is parsed and not used yet ([#140][core140]).
+  MF=40, which is parsed and not used yet. With the branching overlay
+  configured (`transmutation_branch_ratios`), the `(n,n')` channels it adds to
+  reach a metastable state, In115 to In115m among them, have no group-averaged
+  cross section behind them. They carry no cross-section covariance, and on
+  `Material.transmute` no flux-spectrum uncertainty either.
 - **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
   covariance in the resonance range as an MF=32 part plus the MF=33 part, and
   many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
@@ -305,15 +310,25 @@ results it is the largest term.
   FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, so a larger capture cross
-  section does not deepen its own dip, and the elastic and total covariance
-  never reaches the correction ([#167][core167]).
-- **The tallied flux, in a transport run.** In yamc's
+  section does not deepen its own dip. That feedback narrows the spread, so
+  holding it overstates a shielded absorber's capture sigma, by up to 1.8x on an
+  Au197 0.1 mm foil under $1/E$ (1.70% held against 0.96% with the feedback),
+  on top of the fold defect above. The elastic and total covariance never
+  reaches the correction either, which would add a term where MF=33 states a
+  resonance-range uncertainty for elastic scattering ([#167][core167]).
+- **The flux's response to the cross sections.** In yamc's
   `Model.simulate_transmutation`, a replica's cross sections rescale the tallied
   rates and leave the tallied flux as it was. For a trace activation product
   that is exact to first order in its own cross section; for a material that
-  shapes its own flux, a breeder's Li6(n,t) for one, it is not. The coupled
-  method, where that response would come in, refuses `data_uncertainty` until it
-  can be propagated there ([#162][core162], [#166][core166]).
+  shapes its own flux, a breeder's Li6(n,t) for one, or a product behind many
+  mean free paths of steel, it is not. The covariance is folded per nuclide, so
+  the cross sections of the materials the neutrons passed through (a shield, a
+  multiplier, a breeder) never move the flux on either path, and on
+  `Material.transmute` the spectrum's uncertainty is only what the pulse is
+  given. The coupled method refuses `data_uncertainty` because its
+  step-to-step tally noise is not propagated yet ([#162][core162]); it is also
+  where the flux's response to a perturbed cross section would come in
+  ([#166][core166]).
 - **Decay photon line intensities.** Each line's emission per decay stays the
   evaluated one, so a line's band is the band on the activity of the nuclides
   emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
@@ -339,8 +354,8 @@ results it is the largest term.
 `not_perturbed` in `get_data_uncertainty_info` names decay branching, fission
 yields, isomeric branching and cross-material covariance on every run, and the
 half-life or decay energy when a run switches that source off. The rest of this
-list is not in it yet, so a sigma is the spread from the five sources above and
-nothing more. See
+list is not in it yet, and `has_gaps` looks at none of it. A sigma is the spread
+from the five sources above with everything in this list held. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
@@ -362,7 +377,6 @@ means are bit-identical to a build without any of it.
 
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26
-[core140]: https://github.com/fusion-neutronics/core/issues/140
 [core162]: https://github.com/fusion-neutronics/core/issues/162
 [core163]: https://github.com/fusion-neutronics/core/issues/163
 [core164]: https://github.com/fusion-neutronics/core/issues/164
