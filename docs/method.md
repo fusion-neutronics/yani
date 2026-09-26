@@ -326,8 +326,8 @@ results it is the largest term.
   `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
   ([#165][core165]).
 
-`data_uncertainty_info["not_perturbed"]` names decay branching, fission yields,
-isomeric branching and cross-material covariance on every run, and the
+`not_perturbed` in `get_data_uncertainty_info` names decay branching, fission
+yields, isomeric branching and cross-material covariance on every run, and the
 half-life or decay energy when a run switches that source off. The rest of this
 list is not in it yet, so a sigma is the spread from the five sources above and
 nothing more. See

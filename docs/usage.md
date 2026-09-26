@@ -294,8 +294,8 @@ rather than staying silent:
 
 <!-- doctest: skip -->
 ```python
-shielding = results.self_shielding_info
-if shielding is not None:              # None only for a coupled yamc run
+shielding = results.get_self_shielding_info(material_id=foil.id or 0)
+if shielding is not None:              # None for a transport-coupled solve
     shielding["method"], shielding["chord_cm"]   # how, and the chord used
     shielding["shielded"]              # nuclides the correction reached
     shielding["not_shielded"]          # and why each of the others was left
@@ -768,8 +768,8 @@ pulse = yani.Pulse(
 
 Omitting it is the common case, since a spectrum taken from a published
 reference set carries no stated error. A run then reports the omission in
-`data_uncertainty_info["spectra_without_flux_sigma"]` rather than letting the
-flux read as known exactly.
+`spectra_without_flux_sigma` of `get_data_uncertainty_info` rather than letting
+the flux read as known exactly.
 
 A per-bin sigma treats the bins as independent, and a tally's bins are not: the
 same histories score them, so they move together, and a per-bin sigma
@@ -779,11 +779,11 @@ values as `flux_covariance` instead of `flux_std_dev`. It has to be symmetric
 and positive semi-definite, and is checked.
 
 Because a zero sigma could mean either "well known" or "nothing published", the
-two are separated in `data_uncertainty_info`:
+two are separated in `get_data_uncertainty_info`:
 
 <!-- doctest: skip -->
 ```python
-info = results.data_uncertainty_info
+info = results.get_data_uncertainty_info(material_id=mid)
 if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
     info["no_covariance_data"]     # evaluation carries none
@@ -896,7 +896,7 @@ take the spread over yourself.
   values; [What is not propagated](method.md#what-is-not-propagated) says how
   much each can matter.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
-  of a resonance absorber reads high. `self_shielding_info["would_shield"]`
+  of a resonance absorber reads high. `would_shield` in `get_self_shielding_info`
   flags which nuclides on the run that skipped it, and how strongly their own
   resonances could bite. It is a screen, not a bound: only a shielded run says
   by how much.

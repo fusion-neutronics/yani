@@ -73,7 +73,7 @@ Stated here so it cannot be mistaken for coverage that exists.
   benchmarks exercise is none of it, however the yield settings are configured.
 - **Self-shielding** is compared against measurement on a single case.
 - Coverage of the nuclear-data uncertainty machinery is reported per run by
-  `data_uncertainty_info`, and the site's methodology page states what the
+  `get_data_uncertainty_info`, and the site's methodology page states what the
   benchmark runs there did and did not propagate. See
   [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
