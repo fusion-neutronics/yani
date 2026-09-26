@@ -779,7 +779,8 @@ values as `flux_covariance` instead of `flux_std_dev`. It has to be symmetric
 and positive semi-definite, and is checked.
 
 Because a zero sigma could mean either "well known" or "nothing published", the
-two are separated in `get_data_uncertainty_info`:
+two are separated in `get_data_uncertainty_info` for a nuclide whose evaluation
+carries no MF=33 at all:
 
 <!-- doctest: skip -->
 ```python
@@ -807,14 +808,19 @@ the report yet.
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
 of it lands on the reactions the run drove, weighted by rate and by the parent's
-own density.
+own density. It measures the span of the covariance grid, not its values, so a
+capture whose MF=33 is zero over the resonance range, where the evaluation keeps
+that uncertainty in resonance-parameter covariance (MF=32), reads as covered and
+the nuclide as `perturbed` today
+([#166](https://github.com/fusion-neutronics/core/issues/166)).
 
-Tungsten shows how far the two can diverge. Two major libraries state
-covariance for all five natural tungsten isotopes, so a count reads as complete
-coverage, and what reaches the run is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
-making 98% of a tungsten foil's decay heat is stated only lumped with `(n,2np)`,
-as the uncertainty of their sum, which is not used. The ensemble perturbs about
-6% of the production and reports a spread under 0.1%.
+Tungsten shows how far the two can diverge. ENDF/B-VIII.1, JEFF-4.0 and
+FENDL-3.2d state covariance for all five natural tungsten isotopes, so a count
+reads as complete coverage, and what reaches the run is `(n,3n)` and
+`(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat is stated
+only lumped with `(n,2np)`, as the uncertainty of their sum, which is not used.
+The ensemble perturbs about 6% of the production and reports a spread under
+0.1%.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on

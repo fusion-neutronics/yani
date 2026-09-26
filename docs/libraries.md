@@ -111,10 +111,14 @@ Cross sections are the only covariance family that reaches the data, and only
 its MF=33 part. Resonance-parameter covariance (MF=32), where many evaluations
 keep their whole resonance-range uncertainty, is not read, so a capture rate
 driven by resonance flux can carry a sigma near zero on a library whose MF=33 is
-zero there. The ENDF parser reads angular-distribution and
-radionuclide-production covariance (MF=34 and MF=40), and nothing consumes them
-yet. The decay data's own sigmas on half-lives and decay energies are carried
-as well, and propagated. Everything held at nominal is listed under
+zero there. The coverage report does not flag that case yet: a zero-valued MF=33
+interval counts as covered, so the nuclide is listed under `perturbed` with a
+`rate_fraction_covered` near 1
+([#166](https://github.com/fusion-neutronics/core/issues/166)). The ENDF parser
+reads angular-distribution and radionuclide-production covariance (MF=34 and
+MF=40), and nothing consumes them yet. The decay data's own sigmas on
+half-lives and decay energies are carried as well, and propagated. Everything
+held at nominal is listed under
 [What is not propagated](method.md#what-is-not-propagated).
 
 ### Energy range

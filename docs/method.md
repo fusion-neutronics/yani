@@ -159,6 +159,28 @@ rather than a bug, but it is also invisible, which is why
 `rate_fraction_covered` records the share of each rate the grid actually
 covered.
 
+The implementation departs from this in places, all tracked in
+[#166][core166] and not fixed yet:
+
+- The ENDF parser splits an LB=0 to 4 block's energy table in the wrong place,
+  so the upper part of its grid is dropped: 773 ENDF/B-VIII.1 blocks are
+  affected, and at 14 MeV Ni58 `(n,a)` reads 0.0% where the evaluation gives
+  19.8%, and Cr52 `(n,p)` 0.4% against 17.1%. The LB=4 expansion also swaps its
+  two tables, which affects one block, FENDL-3.2d Ni58 `(n,p)`.
+- `rate_fraction_covered` counts the span of the covariance grid whatever its
+  values are, so an interval stated with zero variance counts as covered. A
+  rate the evaluation gives no MF=33 uncertainty over can read as fully
+  covered.
+- With a shape or a chord, the fold divides dilute partial rates by the
+  shielded rate, which overstates the sigma of a shielded resonance channel:
+  4.61% against 1.70% with shielded partials, for Au197 capture in a 0.1 mm
+  foil under $1/E$. On a yamc transport run the partials are folded dilute
+  against a tallied rate that is shielded within each tally bin, so the same
+  mismatch applies wherever a bin shields strongly.
+- A block whose `MAT1` names the evaluation's own MAT is dropped as if it
+  correlated with another evaluation. That is 585 of the 598 such blocks in
+  FENDL-3.2d, and it loses correlations between channels, not variances.
+
 ### Drawing a replica
 
 For the cross sections, one replica is
@@ -265,15 +287,22 @@ results it is the largest term.
   many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
   MF=33 at zero there. MF=32 is not read, so a capture rate driven by resonance
   flux can come back with a sigma near zero: for capture in a $1/E$ field,
-  TENDL-2025 Co59 carries 4.7% with MF=32 and 0.0% from MF=33 alone
-  ([#166][core166]).
-- **MF=33 blocks that are not used.** Covariance between different
-  evaluations (`MAT1 != 0`, the links to the standards among them), blocks
-  stated through other reactions' covariances (NC), and lumped reactions
-  (MT=851 to 870), which state the uncertainty of a sum of reactions, are not
-  used. `skipped_cross_material` and `skipped_nc` count the first two; the lumps
-  are not counted. Tungsten's `(n,2n)` is one of them: ENDF/B-VIII.1, JEFF-4.0
-  and FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
+  TENDL-2025 Co59 carries 4.7% with MF=32 and 0.0% from MF=33 alone. The
+  coverage report does not flag it yet: the zero-valued MF=33 block counts as
+  covering the rate (the second defect under
+  [Folding the covariance](#folding-the-covariance)), so the nuclide is listed
+  under `perturbed` with a `rate_fraction_covered` near 1. ENDF/B-VIII.1 W186 is
+  one such case: its capture block states zero variance from $10^{-5}$ eV to
+  10 keV, and W187 comes out at 0.0023% with that capture reported as fully
+  covered ([#166][core166]).
+- **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
+  covariance with another evaluation (the links to the standards among them)
+  and today also include blocks naming the evaluation's own MAT; blocks stated
+  through other reactions' covariances (NC); and lumped reactions (MT=851 to
+  870), which state the uncertainty of a sum of reactions.
+  `skipped_cross_material` and `skipped_nc` count the first two; the lumps are
+  not counted. Tungsten's `(n,2n)` is one of them: ENDF/B-VIII.1, JEFF-4.0 and
+  FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, so a larger capture cross
   section does not deepen its own dip, and the elastic and total covariance
