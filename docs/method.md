@@ -324,11 +324,18 @@ where.
 - **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
   covariance with another evaluation (the links to the standards among them)
   and today also include blocks naming the evaluation's own MAT; blocks stated
-  through other reactions' covariances (NC); and lumped reactions (MT=851 to
-  870), which state the uncertainty of a sum of reactions.
-  `skipped_cross_material` and `skipped_nc` count the first two; the lumps are
-  not counted. Tungsten's `(n,2n)` is one of them: ENDF/B-VIII.1, JEFF-4.0 and
-  FENDL-3.2d state it only lumped with `(n,2np)` ([#166][core166]).
+  through other reactions' covariances (NC); lumped reactions (MT=851 to 870),
+  which state the uncertainty of a sum of reactions; and blocks stated on
+  partial levels (MT=600 to 849 and 875 to 891) where the chain drives the
+  total. `skipped_cross_material` and `skipped_nc` count the first two, blocks
+  on reactions the chain does not drive among them, and both set `has_gaps`. The
+  lumps and the partial levels are not counted, and the rates they would cover
+  count as uncovered in `rate_fraction_covered_total`.
+  Tungsten's `(n,2n)` is lumped: ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d state it
+  only together with `(n,2np)`. JEFF-4.0 Be9 states its `(n,2n)` only on the
+  levels MT=875 to 890, and ENDF/B-VIII.1 Ca40 its `(n,p)` and `(n,a)` only on
+  MT=600 and 800, so Ca40 is listed under `perturbed` through its capture alone
+  ([#166][core166]).
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, and holding it drops two
   terms that pull opposite ways. A larger capture cross section would deepen its
@@ -382,8 +389,13 @@ where.
 `not_perturbed` in `get_data_uncertainty_info` names decay branching, fission
 yields, isomeric branching and cross-material covariance on every run, and the
 half-life or decay energy when a run switches that source off. The rest of this
-list is not in it yet, and `has_gaps` looks at none of it. A sigma is the spread
-from the five sources above with everything in this list held. See
+list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
+and is True when one of them met a nuclide with no MF=33 at all, a skipped
+cross-material or NC block, a block whose layout is unsupported or malformed, a
+spectrum with no flux sigma, or a reachable unstable nuclide with no stated
+half-life or decay-energy sigma. Of the inputs in this list, only the skipped
+cross-material and NC blocks set it. A sigma is the spread from the five sources
+above with everything in this list held. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
