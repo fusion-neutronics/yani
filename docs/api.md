@@ -35,6 +35,7 @@ build fails if anything else on the module goes undocumented.
 ::: yani.DoseCoefficients
 ::: yani.DoseResult
 ::: yani.PhotonCoefficients
+::: yani.PhotonContinuum
 
 ## Nuclear-data uncertainty
 

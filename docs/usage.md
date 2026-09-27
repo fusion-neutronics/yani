@@ -245,13 +245,15 @@ iron.interpolate(energy=1.0e6)                               # cm2/g at 1 MeV
 air = yani.data.mass_energy_absorption_coefficient(material="air")
 ```
 
-The default quantity follows the FISPACT-II methodology and agrees with
-OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
+The default quantity follows the FISPACT-II methodology. For photon lines it
+agrees with OpenMC's `Material.get_photon_contact_dose_rate`; a photon
+continuum is integrated under the interpolation law its evaluation states, so
+a continuum emitter differs from OpenMC by design. Bremsstrahlung from decay
 electrons is not modelled, so a strong beta emitter reads low at contact.
 
 The decay photon line spectrum comes back as the `(x, p)` pair the source
-distributions take, in photons per second, so it feeds straight into a photon
-transport run in yamc:
+distributions take, in photons per second, so the lines feed straight into a
+photon transport run in yamc (a continuum, below, is not among them):
 
 <!-- doctest: skip -->
 ```python
