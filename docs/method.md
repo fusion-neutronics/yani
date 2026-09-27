@@ -266,7 +266,10 @@ each of its beta, gamma and alpha components, or on the total where the data
 gives no split. In a transport run the tallied rates are drawn jointly from
 their per-history covariance.
 
-These draws are normal, with a floor where a draw would leave the physical
+The decay data states a sigma on each value and no distribution or
+correlation, so the normal shape, and the independence between a nuclide's
+decay-energy components and between different nuclides' half-lives, are
+choices. These draws are normal, with a floor where a draw would leave the physical
 range. A flux bin or a tallied rate below zero is set to zero and counted in
 `flux_bins_floored` or `statistical_floored`. A half-life at or below zero is
 set to a millionth of its nominal value and counted in `half_lives_floored`. A
