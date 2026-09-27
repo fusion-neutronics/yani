@@ -661,6 +661,27 @@ is what decides whether to publish:
   no single MF=8 subsection for the level resolves. It is empty for the published
   libraries: their fission states are all under MT=18, which is not a
   transmutation reaction, and MF=8 names every zero IZAP they write.
+* `list_facts` is one line per production list (a parent's MT, in MF=9 or
+  MF=10) that gave rows: whether the list includes the ground state or gives
+  the isomers only, whether the file has an MF=3 section for that MT, each
+  state's level number, MF=8 LMF, target, level route and the difference
+  between the level's energy and the isomer's, and the lines of the parent's
+  MF=1 normalisation block that name the MT. TENDL-2025's Nb93 says there that
+  its (n,2n) isomer partial was normalised to IRDFF-II.
+* `list_counts` counts those lists by kind: complete or isomers only per file,
+  lists with no MF=3 section for their MT, and lists a `norm` line names. An
+  evaluation can give a total through component MTs instead of the summed one
+  (ENDF/B-VIII.1's Ag115 has MT=600 to 649 and no MT=103), which counts here as
+  no section, since the components are not summed.
+
+`branching.arrow` stores the same facts per row, one item per production state
+summed into it: `mt`, `lfs`, `lmf`, `list_complete`, `level_route`,
+`level_energy`, `level_energy_difference`, and `mf3_cross_section` (the MT's
+MF=3 sampled on the row's energy nodes: the tape's value where a node is one of
+its points, its own law between them, null where the tape states nothing), with
+the parent's `normalisation` text beside them. They are recorded, not used: no
+rate, fold or result changes with them, and a file written before they existed
+loads the same.
 
 ### Filling placeholder decay energies
 
