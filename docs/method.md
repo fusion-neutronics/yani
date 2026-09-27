@@ -216,7 +216,7 @@ is a choice, and for a channel whose sigma is near 1 or above it is that choice,
 not the data, that sets the tails. Such a channel is heavy-tailed enough that
 its sampled spread converges slowly: at 1024 replicas, the most the driver adds
 on its own, the median sample standard deviation is 0.98 of sigma at
-$\sigma = 1$, 0.91 at 2, 0.84 at 3 and 0.51 at 9. TENDL-2017 has channels at
+$\sigma = 1$, 0.91 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
 $10^4$% and more, and the report does not flag them yet ([#166][core166]).
 
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
@@ -247,16 +247,16 @@ each of its beta, gamma and alpha components, or on the total where the data
 gives no split. In a transport run the tallied rates are drawn jointly from
 their per-history covariance.
 
-The decay data states a sigma on each value and no distribution or
-correlation, so the normal shape, and the independence between a nuclide's
-decay-energy components and between different nuclides' half-lives, are
-choices. These draws are normal, with a floor where a draw would leave the physical
-range. A flux bin or a tallied rate below zero is set to zero and counted in
-`flux_bins_floored` or `statistical_floored`. A half-life at or below zero is
-set to a millionth of its nominal value and counted in `half_lives_floored`. A
-decay energy below zero is set to zero and not counted. A floor biases that
-source's mean upward, as it did for the linear cross-section form, so a nonzero
-count says the normal is being used past where it describes the data.
+The decay data states a sigma on each value and no distribution or correlation,
+so the normal shape, and the independence between a nuclide's decay-energy
+components and between different nuclides' half-lives, are choices. These draws
+are normal, with a floor where a draw would leave the physical range. A flux bin
+or a tallied rate below zero is set to zero and counted in `flux_bins_floored`
+or `statistical_floored`. A half-life at or below zero is set to a millionth of
+its nominal value and counted in `half_lives_floored`. A decay energy below zero
+is set to zero and not counted. A floor biases that source's mean upward, as it
+did for the linear cross-section form, so a nonzero count says the normal is
+being used past where it describes the data.
 
 Seeds are pure functions of their arguments. A cross-section, half-life or
 decay-energy draw depends on `(seed, replica, nuclide)` and on nothing else: not

@@ -800,7 +800,10 @@ if info is not None:               # None unless data_uncertainty was passed
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["half_lives_perturbed"]   # unstable nuclides whose half-life was sampled
     info["no_half_life_uncertainty"]     # ... and those whose data states no sigma
+    info["decay_energies_perturbed"]     # nuclides whose decay energy was sampled
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
+    info["half_lives_floored"]     # draws floored, see the method page; also
+                                   # flux_bins_floored and statistical_floored
     info["not_perturbed"]          # inputs held at nominal that it names, see below
     info["sources"]                # the sources that applied to this run
     info["has_gaps"]               # True if something the report tracks was left out
