@@ -806,8 +806,8 @@ within-group weight is another: there the part of a group a covariance edge cuts
 off is weighted by its share of the group's energy width, so the parts need not
 add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
 three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
-about ten times its rate. The coverage share is measured
-against the dilute rate, so it is not affected.
+about ten times its rate. The coverage share is measured against the dilute
+rate, so it is not affected.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
