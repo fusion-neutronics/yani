@@ -723,9 +723,10 @@ flux, and a material's tallied rates, jointly, for the statistical error. So a
 seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the nuclide density sigmas
 settle. Convergence is judged on the densities alone, and a decay energy moves
-none of them, so a run whose only active source is `decay_energy` takes 128
-samples, or `samples`, with no convergence check, and reports `converged` as
-True.
+none of them. So when decay energies are the only thing any active source can
+draw (`decay_energy` alone, or the other sources found nothing to perturb), the
+run takes 128 samples, or `samples`, with no convergence check, and reports
+`converged` as True.
 
 Five sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
@@ -785,15 +786,16 @@ values as `flux_covariance` instead of `flux_std_dev`. It has to be symmetric
 and positive semi-definite, and is checked.
 
 Because a zero sigma could mean either "well known" or "nothing published", the
-two are separated in `get_data_uncertainty_info` for a nuclide whose evaluation
-carries no MF=33 at all:
+two are separated in `get_data_uncertainty_info` for a nuclide with no usable
+MF=33 block for any channel the chain drives (none on the tape, or only NC,
+cross-material, lumped, partial-level or unsupported ones):
 
 <!-- doctest: skip -->
 ```python
 info = results.get_data_uncertainty_info(material_id=mid)
 if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
-    info["no_covariance_data"]     # evaluation carries none
+    info["no_covariance_data"]     # no usable MF=33 block for a driven channel
     info["rate_fraction_covered"]  # share of each rate the covariance grid spans
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["half_lives_perturbed"]   # unstable nuclides whose half-life was sampled
@@ -807,15 +809,17 @@ if info is not None:               # None unless data_uncertainty was passed
 `not_perturbed` names decay branching, fission yields, isomeric branching and
 cross-material covariance, and a half-life or decay-energy source the run
 switched off. `skipped_cross_material` and `skipped_nc` count the cross-material
-and NC MF=33 blocks that were not used. The other inputs held at nominal, from
-resonance-parameter covariance and lumped blocks to photon line intensities and
-the material composition, are listed under
+and NC MF=33 blocks that were not used, summed over the material's spectra. The
+other inputs held at nominal, from resonance-parameter covariance and lumped
+blocks to photon line intensities and the material composition, are listed under
 [What is not propagated](method.md#what-is-not-propagated) and are not in the
 report yet. `has_gaps` looks only at the sources the run perturbs, and is True
-when one of them met a nuclide with no MF=33, a skipped cross-material or NC
-block, a block whose layout is unsupported or malformed, a spectrum with no flux
-sigma, or a reachable unstable nuclide with no stated half-life or decay-energy
-sigma. None of the inputs that are not in the report sets it.
+when one of them met a nuclide with no usable MF=33 block, a skipped
+cross-material or NC block, a block whose layout is unsupported or malformed, a
+spectrum with no flux sigma, or a reachable unstable nuclide with no stated
+half-life or decay-energy sigma. Of the inputs that are not in the report,
+lumped and partial-level blocks set it only through `no_covariance_data`, when
+they are all a nuclide has.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much

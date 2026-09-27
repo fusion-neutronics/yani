@@ -228,7 +228,9 @@ if the matrices were positive definite, and the point is that they are not:
 MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues are
 clipped to zero. That repair only ever adds variance, and it can give a spread
 to a channel whose evaluated variance is zero. `matrices_clipped` counts the
-matrices that needed it and `worst_relative_clip` reports the largest
+matrices that needed it, summed over the material's spectra and including those
+whose negative eigenvalue is only round-off, and `worst_relative_clip` reports
+the largest
 $|\lambda_\text{min}| / \lambda_\text{max}$, which is not the change in any one
 sigma: a ratio under $10^{-3}$ can sit beside a dominant channel whose sigma
 grew by more than 10%. A matrix that needed a large repair is one whose sampled
@@ -322,11 +324,11 @@ where.
   variance from $10^{-5}$ eV to 10 keV, and that block counts as covering the
   rate (the second defect under
   [Folding the covariance](#folding-the-covariance)), so W186 is listed under
-  `perturbed` with its capture reported as fully covered, and W187 comes out at
-  0.0023% ([#166][core166]). The same check gives 6.32% against 0.01% on the
-  JEFF-4.0 Ag109 tape and 4.71% against 0.00% on the TENDL-2025 Co59 tape.
-  yani's TENDL-2025 covariance is not published yet, so a run on it today lists
-  Co59 under `no_covariance_data` instead.
+  `perturbed` with its capture reported as fully covered ([#166][core166]). The
+  same check gives 6.32% against 0.01% on the JEFF-4.0 Ag109 tape and 4.71%
+  against 0.00% on the TENDL-2025 Co59 tape. yani's TENDL-2025 covariance is
+  not published yet, so a run on it today lists Co59 under `no_covariance_data`
+  instead.
 - **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
   covariance with another evaluation (the links to the standards among them)
   and today also include blocks naming the evaluation's own MAT; blocks stated
@@ -334,9 +336,12 @@ where.
   which state the uncertainty of a sum of reactions; and blocks stated on
   partial levels (MT=600 to 849 and 875 to 891) where the chain drives the
   total. `skipped_cross_material` and `skipped_nc` count the first two, blocks
-  on reactions the chain does not drive among them, and both set `has_gaps`. The
-  lumps and the partial levels are not counted, and the rates they would cover
-  count as uncovered in `rate_fraction_covered_total`.
+  on reactions the chain does not drive among them, summed over the material's
+  spectra, and both set `has_gaps`. The lumps and the partial levels are not
+  counted, and the rates they would cover count as uncovered in
+  `rate_fraction_covered_total`. A nuclide whose blocks are all of these kinds,
+  or all on reactions the chain does not drive, has no usable block and is
+  listed under `no_covariance_data`, which sets `has_gaps`.
   Tungsten's `(n,2n)` is lumped: ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d state it
   only together with `(n,2np)`. JEFF-4.0 Be9 states its `(n,2n)` only on the
   levels MT=875 to 890, and ENDF/B-VIII.1 Ca40 its `(n,p)` and `(n,a)` only on
@@ -374,8 +379,9 @@ where.
   evaluated one, so a line's band is the band on the activity of the nuclides
   emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
   lines. On contact dose it is negligible for Co60 (0.014%) and not for Mn56
-  (0.6 to 1.8%) or W187 (0.8 to 3.7%), the range running from independent lines
-  to fully correlated ones ([#163][core163]).
+  (0.6 to 1.8%) or W187 (0.8 to 3.7%), the range running across ENDF/B-VIII.1,
+  JEFF-4.0 and JENDL-5.0 and from independent lines to fully correlated ones
+  ([#163][core163]).
 - **Dose constants and build-up.** Contact dose uses the same photon attenuation
   coefficients, the same response (air energy absorption, or the ICRP-116
   coefficients for effective dose) and the same constant build-up factor in
@@ -396,12 +402,14 @@ where.
 yields, isomeric branching and cross-material covariance on every run, and the
 half-life or decay energy when a run switches that source off. The rest of this
 list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
-and is True when one of them met a nuclide with no MF=33 at all, a skipped
+and is True when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
 spectrum with no flux sigma, or a reachable unstable nuclide with no stated
-half-life or decay-energy sigma. Of the inputs in this list, only the skipped
-cross-material and NC blocks set it. A sigma is the spread from the five sources
-above with everything in this list held. See
+half-life or decay-energy sigma. Of the inputs in this list, the skipped
+cross-material and NC blocks set it, and the lumped and partial-level blocks set
+it only through `no_covariance_data`, when they are all a nuclide has. A sigma
+is the spread from the five sources above with everything in this list held.
+See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
