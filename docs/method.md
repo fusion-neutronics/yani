@@ -156,8 +156,11 @@ it is rate the evaluation states no uncertainty for, so it enters the
 denominator and not the numerator, and the relative uncertainty comes out
 smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
-`rate_fraction_covered` records the share of each rate the grid actually
-covered.
+`rate_fraction_covered` records the share of each rate that carries a stated
+uncertainty: the dilute rate from energies where the reaction's own diagonal
+variance, summed over its blocks, is nonzero, over the dilute rate across the
+flux range. An interval a grid spans with a variance of zero counts as
+uncovered, since it states no uncertainty either.
 
 ### Drawing a replica
 

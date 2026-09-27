@@ -759,11 +759,12 @@ info = results.data_uncertainty_info
 if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
     info["no_covariance_data"]     # evaluation carries none
-    info["rate_fraction_covered"]  # share of each rate the covariance grid spans
+    info["rate_fraction_covered"]  # share of each rate with a nonzero stated variance
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
+    info["partials_above_rate"]    # channels whose sigma is overstated
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
-    info["has_gaps"]               # True if anything was left out
+    info["has_gaps"]               # True if anything was left out or is inconsistent
 ```
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
@@ -775,7 +776,20 @@ Tungsten shows how far the two can diverge. Two major libraries state
 covariance for all five natural tungsten isotopes, so a count reads as complete
 coverage, and what they state it for is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
 making 98% of a tungsten foil's decay heat has none. The ensemble perturbs about
-6% of the production and reports a spread under 0.1%.
+4% of the production and reports a spread under 0.1%.
+
+Covered means the evaluation states a nonzero variance there, not that a
+covariance grid spans it. A grid can run across the whole range with a variance
+of zero on some intervals, and rate from those counts as uncovered, the same as
+rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
+block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
+is, so on the FNS spectrum it reads 0.07 rather than 1.
+
+`partials_above_rate` lists, with their ratio, the channels whose partial rates
+the covariance was weighted with add up to more than the rate it was divided
+by. The two were then computed different ways, a self-shielded rate against
+dilute partials being one, and the relative sigma is overstated. The coverage
+share is measured against the dilute rate, so it is not affected.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on

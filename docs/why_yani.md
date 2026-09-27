@@ -77,7 +77,7 @@ whose evaluation publishes no covariance and a nuclide whose covariance is
 genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no published covariance, what share of each reaction rate
-the covariance grid spans, which evaluated matrices were not positive
+carries a nonzero stated variance, which evaluated matrices were not positive
 semi-definite and had to be repaired, and which sources are not propagated at
 all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
 carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
@@ -86,7 +86,7 @@ gives two very different sigmas, and the report is what tells you why.
 density instead of counting evaluations. Two major libraries state covariance
 for all five natural tungsten isotopes and none for the `(n,2n)` making 98% of
 a foil's decay heat, so the count reads as full coverage where the weighted
-figure reads 6%.
+figure reads 4%.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its

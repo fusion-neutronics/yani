@@ -102,7 +102,7 @@ The percentage counts evaluations that carry cross-section covariance, which is
 not the same as covariance landing where your run needs it. Read
 `rate_fraction_covered_total` before any sigma; the tungsten case in
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty) has all five
-natural isotopes covered by the count and 6% of the production covered in fact.
+natural isotopes covered by the count and 4% of the production covered in fact.
 
 Depth varies as much as presence. JENDL-5 carries covariance for only 13% of its
 evaluations, and its Fe56 covers 56 channels against ENDF/B-VIII.1's 7.
