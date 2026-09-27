@@ -835,8 +835,10 @@ FENDL-3.2d state covariance for all five natural tungsten isotopes, so a count
 reads as complete coverage, and what reaches the run is `(n,3n)` and
 `(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat is stated
 only lumped with `(n,2np)`, as the uncertainty of their sum, which is not used.
-The ensemble perturbs about 6% of the production and reports a spread under
-0.1%.
+The ensemble perturbs about 6% of the production and reports a cross-section
+spread under 0.1% (with `sources=["cross_sections"]`). With the default
+sources the half-life and decay-energy sigmas of W185 and W185m dominate the
+spread.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
