@@ -142,8 +142,10 @@ decades, so an effective one-group value of tens of millibarns against a
 14 MeV-dominated spectrum is either fast capture or resonance capture, and only
 the breakdown says which -- which is the difference between a disagreement that
 belongs to the resonance processing and one that belongs to the fast cross
-section. It is also the per-group form of `rate_fraction_covered`, and on a
-shielded run it says which groups the depression moved. See
+section. Set against where a covariance states a nonzero variance, it also
+gives, to group resolution and for the rate the run actually used, the share
+that `rate_fraction_covered` reports for the dilute rate, and on a shielded run
+it says which groups the depression moved. See
 [Where in energy a rate came from](usage.md#where-in-energy-a-rate-came-from).
 
 **Verification and validation runs against every open benchmark we have

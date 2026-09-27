@@ -479,10 +479,13 @@ below_100_keV = sum(r for lo, r in zip(edges, per_group) if lo < 1.0e5)
 print(f"{below_100_keV / sum(per_group):.1%} of the capture rate is resonance region")
 ```
 
-It is also the per-group form of what `rate_fraction_covered` reports as one
-number: whether a covariance grid that stops short of the spectrum stops short of
-anywhere the rate actually is. On a shielded run it says which groups the flux
-depression moved, which `strongest_factor` gives only as a worst case.
+It is also what to read beside `rate_fraction_covered`: set against the energies
+where a channel's covariance states a nonzero variance, it shows, to the
+resolution of the groups, how much of the rate the run actually used comes from
+there. `rate_fraction_covered` gives that share for the dilute rate only, so on
+a shielded run the breakdown is what shows it for the shielded rate, and which
+groups the flux depression moved, which `strongest_factor` gives only as a worst
+case.
 
 Nothing is stored for it. One reaction over a 709-group structure is cheap to
 walk when asked, and keeping the breakdown for every channel would be tens of
@@ -785,11 +788,26 @@ rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
 block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
 is, so on the FNS spectrum it reads 0.07 rather than 1.
 
+The share is of the dilute rate: the rate from energies with a nonzero stated
+variance, over the rate across the flux range, both with the unshielded cross
+section. The total weights each channel's share by the production the run
+actually drove, so on a dilute run it is the share of that production coming
+from covered energies. On a self-shielded or tallied run it is not. Shielding
+depresses the resonance range, which is where capture blocks often state zero,
+and the covered share of the shielded production is not computed: the total then
+weights shielded production by dilute shares, and the relative sigma is diluted
+by a different amount than the share says.
+
 `partials_above_rate` lists, with their ratio, the channels whose partial rates
 the covariance was weighted with add up to more than the rate it was divided
 by. The two were then computed different ways, a self-shielded rate against
-dilute partials being one, and the relative sigma is overstated. The coverage
-share is measured against the dilute rate, so it is not affected.
+dilute partials being one, and the relative sigma is overstated. The `1/E`
+within-group weight is another: there the part of a group a covariance edge cuts
+off is weighted by its share of the group's energy width, so the parts need not
+add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
+three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
+about ten times its rate. The coverage share is measured
+against the dilute rate, so it is not affected.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
