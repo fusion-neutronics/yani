@@ -656,6 +656,11 @@ is what decides whether to publish:
   it moves a code that folds the partials as they stand, and it points at the
   evaluation. TENDL-2017's Ir191 (n,2n) partials sum to 95% of MF=3 at 14 MeV
   because the file lists two of Ir190's three states.
+* `skipped_states` is one line per production state that names no single
+  nuclide, so gets no branching row: fission (IZAP = -1), or an IZAP of zero that
+  no single MF=8 subsection for the level resolves. It is empty for the published
+  libraries: their fission states are all under MT=18, which is not a
+  transmutation reaction, and MF=8 names every zero IZAP they write.
 
 ### Filling placeholder decay energies
 
