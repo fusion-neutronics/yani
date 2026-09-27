@@ -679,9 +679,12 @@ summed into it: `mt`, `lfs`, `lmf`, `list_complete`, `level_route`,
 `level_energy`, `level_energy_difference`, and `mf3_cross_section` (the MT's
 MF=3 sampled on the row's energy nodes: the tape's value where a node is one of
 its points, its own law between them, null where the tape states nothing), with
-the parent's `normalisation` text beside them. They are recorded, not used: no
-rate, fold or result changes with them, and a file written before they existed
-loads the same.
+the parent's `normalisation` text beside them. `level_energy` is the tape's
+value as written, so for an excited level a zero means the evaluation did not
+state the energy (JENDL-5's Cd116 MT=107) and a negative value is a sentinel
+(TENDL-2017's Pu237 MT=44); `level_energy_difference` is null for both. They
+are recorded, not used: no rate, fold or result changes with them, and a file
+written before they existed loads the same.
 
 ### Filling placeholder decay energies
 
