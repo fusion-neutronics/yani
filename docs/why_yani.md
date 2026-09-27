@@ -107,7 +107,9 @@ returns discrete energy/intensity pairs, not a spectrum pre-collapsed onto a
 group structure. A binned response answers "how much energy in this
 window"; lines answer "which nuclide is that", which is what you need for
 identifying an isotope from an emitted spectrum or feeding a photon transport
-run without inheriting someone else's binning choice.
+run without inheriting someone else's binning choice. Where the evaluation
+gives part of a spectrum as a continuum instead, `decay_photon_continua()`
+returns it on its own grid and law, never binned or mixed in with the lines.
 
 **Production routes come back with a share on each one.**
 `get_production_routes()` lists the routes into a product and weights each by

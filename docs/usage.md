@@ -258,6 +258,28 @@ transport run in yamc:
 energies, intensities = final.decay_photon_spectrum()
 ```
 
+The spectrum holds lines only. Part of some decay spectra is evaluated as a
+density over energy instead: the spontaneous-fission photons of an actinide
+(nearly all of Cf252's photon emission), or the whole emission of a short-lived
+nuclide whose lines were never measured. Those continua come back separately,
+each on its own energy grid with its interpolation law, because their values
+are photons/s/eV and cannot be added to line rates. `emission_rate` is the
+integral:
+
+<!-- doctest: skip -->
+```python
+for continuum in final.decay_photon_continua():
+    print(continuum.nuclide, continuum.interpolation, continuum.emission_rate)
+```
+
+A photon source built from `decay_photon_spectrum()` alone leaves the continua
+out. `contact_dose()` integrates them. A continuum's integral depends on its
+interpolation law, and decay data written before the law was stored does not
+carry it, so on such data `contact_dose()` and `emission_rate` raise a
+`ValueError` naming the nuclide rather than return a dose short by an unknown
+amount. `decay_photon_spectrum()` and the continuum's `energies` and `rates`
+need no law and still work.
+
 ## Self-shielding
 
 A lump of a resonance absorber shields itself: the flux inside it is depressed
@@ -500,7 +522,7 @@ Five module-level settings, read and written like attributes:
 | --- | --- | --- | --- |
 | `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | nothing at all: every `sigma * phi` is zero |
 | `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
-| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
+| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines and continua | how the inventory decays and what it emits | `endf-b8.1` |
 | `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
 | `transmutation_branch_ratios` | isomeric branching against incident energy | which product is left in a metastable state | no overlay, so every product lands in its ground state |
 

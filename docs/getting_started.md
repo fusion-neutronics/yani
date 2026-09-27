@@ -301,6 +301,7 @@ print(final.contact_dose(by_nuclide=True)) # Gy/h per nuclide
 print(len(final.nuclides))                 # how much the network grew
 
 energies, intensities = final.decay_photon_spectrum()   # photons/s per line
+continua = final.decay_photon_continua()                 # photons/s/eV, apart from the lines
 ```
 
 ## Next steps
