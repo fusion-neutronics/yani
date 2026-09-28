@@ -321,7 +321,10 @@ them understates it, and for some results it is the largest term. Two can go
 either way, because holding them also removes a feedback that narrows the
 spread: self-shielding, and the flux's response to the cross sections of a
 material that shapes its own flux. Their bullets say which way each goes, and
-where.
+where. The covariance blocks that are skipped because they state only a
+correlation (the `MAT1 != 0` blocks, and the same-MAT blocks read as
+cross-material) can also go either way: dropping a covariance term lowers the
+variance of a sum when the term is positive and raises it when it is negative.
 
 - **Decay branching ratios and fission yields.** Both have published
   uncertainties, per decay mode and per yield, that are not propagated yet. The
@@ -427,7 +430,8 @@ list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
 and is True when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
 spectrum with no flux sigma, or a reachable unstable nuclide with no stated
-half-life or decay-energy sigma. Of the inputs in this list, the skipped
+half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
+in this list, the skipped
 cross-material and NC blocks set it, and the lumped and partial-level blocks set
 it only through `no_covariance_data`, when they are all a nuclide has. A sigma
 is the spread from the five sources above with everything in this list held.
