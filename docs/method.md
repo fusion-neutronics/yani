@@ -151,6 +151,22 @@ the integration grid *is* the covariance grid. Each block folds on its own grid
 and the contributions add, because the sum over blocks is outside the
 contraction.
 
+One layout is the exception. An LB=8 block is a short-range variance, stated in
+barns squared rather than relative to the cross section, and ENDF-102 section
+33.2.2.2 says that the average over an interval $\Delta E_j$ inside its
+interval $\Delta E_k$ has variance $F_k\,\Delta E_k/\Delta E_j$, uncorrelated
+with any other such interval. What it contributes to a rate therefore depends
+on how the flux varies inside $\Delta E_k$, which is the one place your flux
+groups enter. The fold cuts $\Delta E_k$ at the group boundaries, where the
+flux density $\psi$ is constant, so the rule applies exactly to every piece and
+the rate's variance is $F_k\,\Delta E_k \sum_j \psi_j^2\,\Delta E_j$. A flux
+flat over the whole interval gives the plain absolute diagonal, and is the
+smallest this term can be for a given flux in the interval. The more the flux
+is concentrated inside an LB=8 interval, the larger the term, as the evaluation
+says it should be: ENDF/B-VIII.1 Cr52 (n,p) is 17.7% for a flux flat over the
+tape's own [14, 16] MeV interval and 22.5% for a flux in a single 0.2 MeV group
+at 14.1 MeV.
+
 A covariance grid need not span the whole flux range. Rate coming from outside
 it is rate the evaluation states no uncertainty for, so it enters the
 denominator and not the numerator, and the relative uncertainty comes out
