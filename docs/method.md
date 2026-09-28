@@ -235,7 +235,7 @@ is a choice, and for a channel whose sigma is near 1 or above it is that choice,
 not the data, that sets the tails. Such a channel is heavy-tailed enough that
 its sampled spread converges slowly: at 1024 replicas, the most the driver adds
 on its own, the median sample standard deviation is 0.98 of sigma at
-$\sigma = 1$, 0.91 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
+$\sigma = 1$, 0.92 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
 $10^4$% and more, and the report does not flag them yet ([#166][core166]).
 
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:

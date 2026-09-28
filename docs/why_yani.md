@@ -89,8 +89,10 @@ semi-definite and had to be repaired, and which sources were held at nominal
 (not yet every one of them;
 [What is not propagated](method.md#what-is-not-propagated) has the full list).
 On ENDF/B-VIII.1 the second point is not academic (42% of evaluations carry
-MF=33, against 100% of TENDL-2025), so the same run on two libraries gives two
-very different sigmas, and the report is what tells you why. What it separates
+MF=33, against 100% of TENDL-2025 as published), so the same run on two
+libraries can give two very different sigmas, and the report is what tells you
+why. yani's TENDL-2025 covariance is not distributed yet, so a TENDL-2025 run
+today lists its nuclides under `no_covariance_data`. What it separates
 is an evaluation with no MF=33 from one whose MF=33 is small: a capture whose
 MF=33 is zero over the resonance range, because the evaluation keeps that
 uncertainty in resonance-parameter covariance (MF=32), still reads as covered
