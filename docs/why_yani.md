@@ -83,10 +83,10 @@ uncertainty is not producing one, it is knowing what it left out. A nuclide
 whose evaluation publishes no covariance and a nuclide whose covariance is
 genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
-perturbed, which have no published covariance, what share of each reaction rate
-the covariance grid spans, which evaluated matrices were not positive
-semi-definite and had to be repaired, and which sources were held at nominal
-(not yet every one of them;
+perturbed, which have no usable published covariance, what share of each
+reaction rate the covariance grid spans, which evaluated matrices were not
+positive semi-definite and had to be repaired, and which sources were held at
+nominal (not yet every one of them;
 [What is not propagated](method.md#what-is-not-propagated) has the full list).
 On ENDF/B-VIII.1 the second point is not academic (42% of evaluations carry
 MF=33, against 100% of TENDL-2025 as published), so the same run on two

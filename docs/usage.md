@@ -295,7 +295,7 @@ rather than staying silent:
 <!-- doctest: skip -->
 ```python
 shielding = results.get_self_shielding_info(material_id=foil.id or 0)
-if shielding is not None:              # None for a transport-coupled solve
+if shielding is not None:              # None for a coupled solve or unknown id
     shielding["method"], shielding["chord_cm"]   # how, and the chord used
     shielding["shielded"]              # nuclides the correction reached
     shielding["not_shielded"]          # and why each of the others was left
@@ -820,7 +820,8 @@ report yet. `has_gaps` looks only at the sources the run perturbs, and is True
 when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
 spectrum with no flux sigma, or a reachable unstable nuclide with no stated
-half-life or decay-energy sigma. Of the inputs that are not in the report,
+half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
+that are not in the report,
 lumped and partial-level blocks set it only through `no_covariance_data`, when
 they are all a nuclide has.
 
