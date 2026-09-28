@@ -217,7 +217,9 @@ not the data, that sets the tails. Such a channel is heavy-tailed enough that
 its sampled spread converges slowly: at 1024 replicas, the most the driver adds
 on its own, the median sample standard deviation is 0.98 of sigma at
 $\sigma = 1$, 0.92 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
-$10^4$% and more, and the report does not flag them yet ([#166][core166]).
+$10^4$% and more, and the report names every sampled channel whose evaluated
+relative sigma is at least 1 or at least 10 in `sigma_at_least_one` and
+`sigma_at_least_ten`.
 
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
 the matrices are one per nuclide over that nuclide's activation channels, single
@@ -227,14 +229,21 @@ eigenvectors the clipping needs anyway. A Cholesky would be the obvious choice
 if the matrices were positive definite, and the point is that they are not:
 MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues are
 clipped to zero. That repair only ever adds variance, and it can give a spread
-to a channel whose evaluated variance is zero. `matrices_clipped` counts the
-matrices that needed it, summed over the material's spectra and including those
-whose negative eigenvalue is only round-off, and `worst_relative_clip` reports
-the largest
-$|\lambda_\text{min}| / \lambda_\text{max}$, which is not the change in any one
-sigma: a ratio under $10^{-3}$ can sit beside a dominant channel whose sigma
-grew by more than 10%. A matrix that needed a large repair is one whose sampled
-spread no longer means what the evaluation said.
+to a channel whose evaluated variance is zero. A matrix counts as repaired only
+when $\lambda_\text{min} < -n \cdot 10^{-12}\,\lambda_\text{max}$, $n$ its
+side, so a PSD matrix whose smallest eigenvalue comes back a few ulps below zero
+is not one. `covariance_repaired` lists the distinct nuclides repaired, and any
+makes `has_gaps` true. `covariance_repairs` records, per repaired nuclide and
+spectrum, $\lambda_\text{min}$, $\lambda_\text{max}$, the variance added over
+the stated trace, and each channel's evaluated variance (kept as stated, even
+when negative) beside the sigma it is sampled at. The ratio
+$|\lambda_\text{min}| / \lambda_\text{max}$ is not the change in any one sigma,
+so the headline is the sigmas themselves: `worst_sigma_inflation` is the largest
+sampled over evaluated sigma, minus one, over the repaired channels a draw can
+move, and `rate_weighted_sigma_inflation` is the same for the mean sigma, each
+channel weighted by its rate at unit flux, its spectrum's fluence in the
+schedule and its parent's initial density. A matrix that needed a large repair
+is one whose sampled spread no longer means what the evaluation said.
 
 The other sources are drawn on their own stated sigma. The flux is drawn once
 per replica, per group, from the pulse's `flux_std_dev` or through the factor of
