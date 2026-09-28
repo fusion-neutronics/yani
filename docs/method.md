@@ -173,8 +173,10 @@ denominator and not the numerator, and the relative uncertainty comes out
 smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
 `rate_fraction_covered` records the share of each rate the grid actually
-covered. Every block counts toward it, relative, absolute and short-range
-alike.
+covered. Only relative blocks count toward it for now. An absolute (LB=0) or
+short-range (LB=8) block still folds into the sigma but does not raise the
+fraction, so a channel whose covariance is stated only in those blocks carries
+a variance yet reads as uncovered.
 
 ### Drawing a replica
 
