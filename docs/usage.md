@@ -765,6 +765,7 @@ if info is not None:               # None unless data_uncertainty was passed
     info["rate_fraction_covered"]  # share of each rate with a nonzero stated variance
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["partials_above_rate"]    # channels whose sigma is overstated
+    info["partials_below_rate"]    # channels whose sigma is understated
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
     info["has_gaps"]               # True if anything was left out or is inconsistent
@@ -792,11 +793,12 @@ The share is of the dilute rate: the rate from energies with a nonzero stated
 variance, over the rate across the flux range, both with the unshielded cross
 section. The total weights each channel's share by the production the run
 actually drove, so on a dilute run it is the share of that production coming
-from covered energies. On a self-shielded or tallied run it is not. Shielding
-depresses the resonance range, which is where capture blocks often state zero,
-and the covered share of the shielded production is not computed: the total then
-weights shielded production by dilute shares, and the relative sigma is diluted
-by a different amount than the share says.
+from covered energies. On a self-shielded or transport run it would not be.
+Shielding depresses the resonance range, which is where capture blocks often
+state zero, and the covered share of the shielded or tallied production is not
+computed, so `rate_fraction_covered_total` is `None` there rather than a figure
+weighting that production by dilute shares. The per-channel shares are still
+given, and the relative sigma is diluted by a different amount than they say.
 
 `partials_above_rate` lists, with their ratio, the channels whose partial rates
 the covariance was weighted with add up to more than the rate it was divided
@@ -806,8 +808,16 @@ within-group weight is another: there the part of a group a covariance edge cuts
 off is weighted by its share of the group's energy width, so the parts need not
 add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
 three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
-about ten times its rate. The coverage share is measured against the dilute
-rate, so it is not affected.
+about ten times its rate. A tallied rate on a transport run is a third. The
+coverage share is measured against the dilute rate, so it is not affected.
+
+`partials_below_rate` is the same check the other way. A covariance grid that
+spans the whole flux range leaves no rate outside it, so its partial rates must
+add up to the rate, and a shortfall understates the sigma. The `1/E` weight
+gives one for a reaction falling with energy when a covariance edge cuts a
+group. A grid that stops short of the flux range cannot be checked this way,
+since rate from outside it rightly leaves its partials short. Both maps count
+towards `has_gaps`.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on

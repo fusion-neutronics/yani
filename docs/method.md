@@ -162,7 +162,8 @@ variance, summed over its blocks, is nonzero, over the dilute rate across the
 flux range. An interval a grid spans with a variance of zero counts as
 uncovered, since it states no uncertainty either. Both integrals use the
 dilute cross section, so on a self-shielded or tallied rate the share is not the
-covered share of that rate, which is not computed.
+covered share of that rate, which is not computed, and the production-weighted
+`rate_fraction_covered_total` is reported as `None` on such a run.
 
 ### Drawing a replica
 
