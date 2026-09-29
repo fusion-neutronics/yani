@@ -229,31 +229,39 @@ eigenvectors the clipping needs anyway. A Cholesky would be the obvious choice
 if the matrices were positive definite, and the point is that they are not:
 MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues are
 clipped to zero. That repair only ever adds variance, and it can give a spread
-to a channel whose evaluated variance is zero. A matrix counts as repaired only
-when clipping adds more than $n \cdot 10^{-12}$ of some channel's own evaluated
-variance, $n$ its side, so a PSD matrix whose smallest eigenvalue comes back a
-few ulps below zero is not one. The test is per channel rather than on
-$\lambda_\text{min}$ against $\lambda_\text{max}$ because TENDL-2017 has
-channels at a relative sigma up to $5.6 \times 10^8$, a variance near
-$3 \times 10^{17}$, and one of those beside ordinary channels would set a
-whole-matrix threshold far above a real repair among them. `covariance_repaired` lists the distinct nuclides repaired, and any makes
-`has_gaps` true. The report covers the nuclides the material can populate: the
-fold takes every chain nuclide with data, which from almost any composition is
-the chain's whole closure, so a nuclide is reported only when an upper bound on
-its density over the schedule reaches the solver's floor of $10^{-30}$
-atoms/b-cm, and one the bound leaves out cannot move any density by as much as
-that floor. `covariance_repairs` records, per repaired nuclide and
-spectrum, $\lambda_\text{min}$, $\lambda_\text{max}$, the variance added over
-the stated trace, and each channel's evaluated variance (kept as stated, even
-when negative) beside the sigma it is sampled at. The ratio
-$|\lambda_\text{min}| / \lambda_\text{max}$ is not the change in any one sigma,
-so the headline is the sigmas themselves: `worst_sigma_inflation` is the largest
-sampled over evaluated sigma, minus one, over the repaired channels a draw can
-move (a populated nuclide with a positive rate on a spectrum the schedule
-irradiates with), and `rate_weighted_sigma_inflation` is the same for the mean
-sigma, each channel weighted by its rate at unit flux, its spectrum's fluence
-in the schedule and its parent's initial density. A matrix that needed a large repair
-is one whose sampled spread no longer means what the evaluation said.
+to a channel whose evaluated variance is zero. A matrix counts as repaired
+when its correlation matrix $R = D^{-1/2} C D^{-1/2}$, over the channels with a
+positive stated variance, has an eigenvalue below $-n \cdot 10^{-12}$, $n$ the
+number of those channels, or when a channel is stated with a negative variance,
+or with a zero one and a covariance to another channel. $R$ is congruent to
+that block of $C$, so one is PSD exactly when the other is, and on $R$ the
+round-off of the decomposition is about $n$ times machine epsilon whatever the
+spread of the channels, so a PSD matrix whose smallest eigenvalue comes back a
+few ulps below zero is not a repair. The test is not on $\lambda_\text{min}$
+of $C$ against its $\lambda_\text{max}$ because TENDL-2017 has channels at a
+relative sigma up to $5.6 \times 10^8$, a variance near $3 \times 10^{17}$,
+and one of those beside ordinary channels would set a whole-matrix threshold
+far above a real repair among them. `covariance_repaired` lists the distinct
+nuclides with a repaired channel a draw can move (a positive rate on a spectrum
+the schedule irradiates with), and any makes `has_gaps` true. The report covers
+the nuclides the material can populate: the fold takes every chain nuclide with
+data, which from almost any composition is the chain's whole closure, so a
+nuclide is reported only when an upper bound on its density over the schedule,
+at nominal rates, reaches the solver's floor of $10^{-30}$ atoms/b-cm. One the
+bound leaves out cannot move any nominal density by as much as that floor, but
+a replica's rates on a wide channel can sit orders above nominal, so repaired
+nuclides outside the bound are named in `covariance_repaired_outside_bound`
+rather than left out without trace; they are not a gap. `covariance_repairs`
+records, per repaired populated nuclide and spectrum, $\lambda_\text{min}$,
+$\lambda_\text{max}$, the variance added over the stated trace, and each
+channel's evaluated variance (kept as stated, even when negative) beside the
+sigma it is sampled at. Clipping can only widen a channel, and a small
+$|\lambda_\text{min}| / \lambda_\text{max}$ does not mean a small widening of
+the channel that matters, so the headline is the sigmas themselves:
+`worst_sigma_inflation` is the largest sampled over evaluated sigma, minus one,
+over the repaired channels a draw can move, and `rate_weighted_sigma_inflation`
+is the same for the mean sigma, each channel weighted by its rate at unit flux,
+its spectrum's fluence in the schedule and its parent's initial density.
 
 The other sources are drawn on their own stated sigma. The flux is drawn once
 per replica, per group, from the pulse's `flux_std_dev` or through the factor of
