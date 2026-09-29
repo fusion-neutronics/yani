@@ -253,8 +253,9 @@ nuclide is reported only when an upper bound on its density over the schedule,
 at nominal rates, reaches the solver's floor of $10^{-30}$ atoms/b-cm. One the
 bound leaves out cannot move any nominal density by as much as that floor, but
 a replica's rates on a wide channel can sit orders above nominal, so repaired
-nuclides outside the bound are named in `covariance_repaired_outside_bound`
-rather than left out without trace; they are not a gap. `covariance_repairs`
+nuclides outside the bound with a channel a draw can move are named in
+`covariance_repaired_outside_bound`, and any of those makes `has_gaps` true as
+well, since the bound says nothing about a replica. `covariance_repairs`
 records, per repaired populated nuclide and spectrum, $\lambda_\text{min}$,
 $\lambda_\text{max}$, the variance added over the stated trace, and each
 channel's evaluated variance (kept as stated, even when negative) beside the
@@ -447,7 +448,9 @@ half-life or decay energy when a run switches that source off. The rest of this
 list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
 and is True when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
-spectrum with no flux sigma, or a reachable unstable nuclide with no stated
+covariance repaired past round-off on a channel a draw can move (inside the
+populated bound or outside it), a spectrum with no flux sigma, or a reachable
+unstable nuclide with no stated
 half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
 in this list, the skipped
 cross-material and NC blocks set it, and the lumped and partial-level blocks set

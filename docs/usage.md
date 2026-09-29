@@ -819,7 +819,9 @@ blocks to photon line intensities and the material composition, are listed under
 report yet. `has_gaps` looks only at the sources the run perturbs, and is True
 when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
-spectrum with no flux sigma, or a reachable unstable nuclide with no stated
+covariance repaired past round-off on a channel a draw can move (inside the
+populated bound or outside it), a spectrum with no flux sigma, or a reachable
+unstable nuclide with no stated
 half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
 that are not in the report,
 lumped and partial-level blocks set it only through `no_covariance_data`, when
