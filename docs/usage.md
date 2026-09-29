@@ -804,25 +804,27 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
     info["half_lives_floored"]     # draws floored, see the method page; also
                                    # flux_bins_floored and statistical_floored
-    info["not_perturbed"]          # inputs held at nominal that it names, see below
+    info["not_perturbed"]          # every input held at nominal, see below
     info["sources"]                # the sources that applied to this run
     info["has_gaps"]               # True if something the report tracks was left out
 ```
 
-`not_perturbed` names decay branching, fission yields, isomeric branching and
-cross-material covariance, and a half-life or decay-energy source the run
-switched off. `skipped_cross_material` and `skipped_nc` count the cross-material
-and NC MF=33 blocks that were not used, summed over the material's spectra. The
-other inputs held at nominal, from resonance-parameter covariance and lumped
-blocks to photon line intensities and the material composition, are listed under
-[What is not propagated](method.md#what-is-not-propagated) and are not in the
-report yet. `has_gaps` looks only at the sources the run perturbs, and is True
+`not_perturbed` names every input held at nominal on every run, from decay
+branching and resonance-parameter covariance (MF=32) to photon line intensities,
+dose coefficients and the material composition, plus the run-dependent entries:
+a source the run switched off, spectra without a flux sigma, tallied-rate
+statistics a transport run did not draw, the self-shielding correction, and the
+flux response to perturbed cross sections on a transport run.
+[What is not propagated](method.md#what-is-not-propagated) explains each one.
+MF=33 blocks on partial levels (MT=600-849, 875-891) are neither listed nor
+counted, because the chain drives no rate for them. `skipped_cross_material` and
+`skipped_nc` count the cross-material and NC MF=33 blocks that were not used,
+summed over the material's spectra. `has_gaps` looks only at the sources the run perturbs, and is True
 when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
 spectrum with no flux sigma, or a reachable unstable nuclide with no stated
-half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
-that are not in the report,
-lumped and partial-level blocks set it only through `no_covariance_data`, when
+half-life sigma, or with a decay energy but no stated sigma on it. Lumped and
+partial-level blocks set it only through `no_covariance_data`, when
 they are all a nuclide has.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of

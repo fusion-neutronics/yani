@@ -331,8 +331,9 @@ variance of a sum when the term is positive and raises it when it is negative.
   weights that mix a nuclide's yield sets by incident energy come from the
   nominal spectrum in every replica, so a flux draw does not move them.
 - **Isomeric branching.** The split of a reaction's product between the ground
-  state and an isomer. Where an evaluation states its uncertainty it does so in
-  MF=40, which is parsed and not used yet. With the branching overlay
+  state and an isomer. The split comes from MF=9 or MF=10 (the name
+  `not_perturbed` gives it), and where an evaluation states its uncertainty it
+  does so in MF=40, which is parsed and not used yet. With the branching overlay
   configured (`transmutation_branch_ratios`), the flux-weighted split is folded
   once against the nominal spectrum, so on `Material.transmute` a flux draw
   moves the rates and never the split. The `(n,n')` channels the overlay adds to
@@ -342,7 +343,8 @@ variance of a sum when the term is positive and raises it when it is negative.
 - **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
   covariance in the resonance range as an MF=32 part plus the MF=33 part, and
   many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
-  MF=33 at zero there. MF=32 is not read, so a capture rate driven by resonance
+  MF=33 at zero there. The ENDF parser reads MF=32, and the fold does not use it
+  yet: it folds MF=33 only, so a capture rate driven by resonance
   flux can come back with a sigma near zero: for capture in a $1/E$ field, NJOY
   ERRORR gives ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone.
   The coverage report does not flag it yet. W186's capture block states zero
@@ -423,10 +425,20 @@ variance of a sum when the term is positive and raises it when it is negative.
   `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
   ([#165][core165]).
 
-`not_perturbed` in `get_data_uncertainty_info` names decay branching, fission
-yields, isomeric branching and cross-material covariance on every run, and the
-half-life or decay energy when a run switches that source off. The rest of this
-list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
+`not_perturbed` in `get_data_uncertainty_info` names every input in this list
+on every run: decay branching, fission yields, isomeric branching (MF=9/MF=10),
+cross-material, NC and lumped MF=33 blocks, resonance-parameter covariance
+(MF=32), decay photon line energies and intensities, the photon attenuation,
+energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
+factor, and the material composition, density, natural abundances and atomic
+masses. It adds an entry for each source a run switches off (half-life, decay
+energy, activation cross section), the flux spectrum on `Material.transmute`
+when some or all spectra have no sigma, the tallied-rate statistics when a
+transport run does not draw them, the self-shielding correction when shielding
+is on, and the flux response to perturbed cross sections on every transport
+run. The one gap it does not name is an MF=33 block on a partial level
+(MT=600-849, 875-891): the chain drives no rate for it, so it is neither listed
+nor counted. `has_gaps` looks only at the sources the run perturbs,
 and is True when one of them met a nuclide with no usable MF=33 block, a skipped
 cross-material or NC block, a block whose layout is unsupported or malformed, a
 spectrum with no flux sigma, or a reachable unstable nuclide with no stated

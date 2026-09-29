@@ -86,8 +86,8 @@ reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no usable published covariance, what share of each
 reaction rate the covariance grid spans, which evaluated matrices were not
 positive semi-definite and had to be repaired, and which sources were held at
-nominal (not yet every one of them;
-[What is not propagated](method.md#what-is-not-propagated) has the full list).
+nominal ([What is not propagated](method.md#what-is-not-propagated) explains
+each one).
 On ENDF/B-VIII.1 the second point is not academic (42% of evaluations carry
 MF=33, against 100% of TENDL-2025 as published), so the same run on two
 libraries can give two very different sigmas, and the report is what tells you
