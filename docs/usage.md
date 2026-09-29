@@ -246,10 +246,10 @@ air = yani.data.mass_energy_absorption_coefficient(material="air")
 ```
 
 The default quantity follows the FISPACT-II methodology. For photon lines it
-agrees with OpenMC's `Material.get_photon_contact_dose_rate`; a photon
-continuum is integrated under the interpolation law its evaluation states, so
-a continuum emitter differs from OpenMC by design. Bremsstrahlung from decay
-electrons is not modelled, so a strong beta emitter reads low at contact.
+agrees with OpenMC's `Material.get_photon_contact_dose_rate`, and a photon
+continuum is integrated exactly under the interpolation law its evaluation
+states. Bremsstrahlung from decay electrons is not modelled, so a strong beta
+emitter reads low at contact.
 
 The decay photon line spectrum comes back as the `(x, p)` pair the source
 distributions take, in photons per second, so the lines feed straight into a
@@ -275,12 +275,14 @@ for continuum in final.decay_photon_continua():
 ```
 
 A photon source built from `decay_photon_spectrum()` alone leaves the continua
-out. `contact_dose()` integrates them. A continuum's integral depends on its
-interpolation law, and decay data written before the law was stored does not
-carry it, so on such data `contact_dose()` and `emission_rate` raise a
-`ValueError` naming the nuclide rather than return a dose short by an unknown
-amount. `decay_photon_spectrum()` and the continuum's `energies` and `rates`
-need no law and still work.
+out, and `sum(intensities)` is the line emission only. No source
+distribution yet holds a linear-linear continuum exactly, so a transport run
+cannot yet carry every continuum. `contact_dose()` integrates them. A
+continuum's integral depends on its interpolation law, and decay data written
+before the law was stored does not carry it, so on such data `contact_dose()`
+and `emission_rate` raise a `ValueError` naming the nuclide rather than return
+a dose short by an unknown amount. `decay_photon_spectrum()` and the
+continuum's `energies` and `rates` need no law and still work.
 
 ## Self-shielding
 
