@@ -759,12 +759,17 @@ info = results.data_uncertainty_info
 if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
     info["no_covariance_data"]     # evaluation carries none
-    info["rate_fraction_covered"]  # share of each rate the covariance grid spans
+    info["rate_fraction_covered"]  # share of each rate the relative covariance grids span
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
     info["has_gaps"]               # True if anything was left out
 ```
+
+Only relative MF=33 blocks count toward coverage for now: an absolute (LB=0) or
+short-range (LB=8) block folds into the sigma without raising it (see
+[the method page](method.md)), so a channel stated only in those reads as
+uncovered while it still carries a variance.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
