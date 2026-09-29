@@ -743,10 +743,10 @@ them:
   solve and in the activity, decay heat and dose evaluated from it, so a
   saturated activity stays as insensitive to its own half-life as it physically
   is.
-- `decay_energy`: each nuclide's mean decay energy, from the sigma on each of
-  its beta, gamma and alpha components, or on the total where the data gives no
-  split. A decay energy never enters the solve, so this moves decay heat and
-  nothing else.
+- `decay_energy`: each nuclide's mean decay energy, from the sigma on each beta,
+  gamma and alpha component that states one, or on the total when no component
+  states a sigma. A decay energy never enters the solve, so this moves decay
+  heat and nothing else.
 - `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
   their per-history covariance, on a yamc `Model.simulate_transmutation` run
   with the independent method. A spectrum run's rates are a deterministic
@@ -820,20 +820,20 @@ dose coefficients and the material composition, plus the run-dependent entries:
 a source the run switched off, spectra without a flux sigma, tallied-rate
 statistics a transport run did not draw, the self-shielding correction, and the
 flux response to perturbed cross sections on a transport run that perturbs the
-cross sections.
-[What is not propagated](method.md#what-is-not-propagated) explains each one.
-MF=33 blocks on partial levels (MT=600-849, 875-891) are neither listed nor
-counted, because the chain drives no rate for them. `skipped_cross_material` and
-`skipped_nc` count the cross-material and NC MF=33 blocks that were not used,
-summed over the material's spectra. `has_gaps` looks only at the sources the run perturbs, and is True
-when one of them met a nuclide with no usable MF=33 block, a skipped
-cross-material or NC block, a block whose layout is unsupported or malformed, a
-channel whose partial rates add up to more, or less, than its rate
-(`partials_above_rate`, `partials_below_rate`, below), a spectrum with no flux
-sigma, or a reachable unstable nuclide with no stated half-life sigma, or with a
-decay energy but no stated sigma on it. Lumped and
-partial-level blocks set it only through `no_covariance_data`, when
-they are all a nuclide has.
+cross sections. [What is not propagated](method.md#what-is-not-propagated)
+explains each one, and names the few held inputs with no entry of their own,
+among them MF=33 blocks on partial levels (MT=600-849, 875-891), which are
+neither listed nor counted because the chain drives no rate for them.
+`skipped_cross_material` and `skipped_nc` count the cross-material and NC MF=33
+blocks that were not used, summed over the material's spectra. `has_gaps` looks
+only at the sources the run perturbs, and is True when one of them met a nuclide
+with no usable MF=33 block, a skipped cross-material or NC block, a block whose
+layout is unsupported or malformed, a channel whose partial rates add up to
+more, or less, than its rate (`partials_above_rate`, `partials_below_rate`,
+below), a spectrum with no flux sigma, or a reachable unstable nuclide with no
+stated half-life sigma, or with a decay energy but no stated sigma on it. Lumped
+and partial-level blocks set it only through `no_covariance_data`, when they are
+all a nuclide has.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
