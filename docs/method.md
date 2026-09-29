@@ -219,7 +219,10 @@ on its own, the median sample standard deviation is 0.98 of sigma at
 $\sigma = 1$, 0.92 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
 $10^4$% and more, and the report names every sampled channel of a populated
 nuclide whose evaluated relative sigma is at least 1 or at least 10 in
-`sigma_at_least_one` and `sigma_at_least_ten`.
+`sigma_at_least_one` and `sigma_at_least_ten`. The channels at 1 or more of
+nuclides outside the populated bound described below are named in
+`sigma_at_least_one_outside_bound`, since a draw on exactly such a channel can
+sit orders above nominal and populate the nuclide.
 
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
 the matrices are one per nuclide over that nuclide's activation channels, single
@@ -260,8 +263,15 @@ $|\lambda_\text{min}| / \lambda_\text{max}$ does not mean a small widening of
 the channel that matters, so the headline is the sigmas themselves:
 `worst_sigma_inflation` is the largest sampled over evaluated sigma, minus one,
 over the repaired channels a draw can move, and `rate_weighted_sigma_inflation`
-is the same for the mean sigma, each channel weighted by its rate at unit flux,
-its spectrum's fluence in the schedule and its parent's initial density.
+is the weighted mean of each channel's own sampled over evaluated sigma, minus
+one, each channel weighted by its rate at unit flux, its spectrum's fluence in
+the schedule and its parent's initial density. Weighting the inflation rather
+than the sigma keeps a wide channel with a small rate from drowning out a
+repair on the channels that carry the reactions, and the initial density makes
+it a first-generation measure: a produced nuclide carries no weight, and its
+repairs show in the other two. The sampled sigma is read off the
+factorization for every matrix, so a matrix below the repair threshold shows
+its round-off there as it is.
 
 The other sources are drawn on their own stated sigma. The flux is drawn once
 per replica, per group, from the pulse's `flux_std_dev` or through the factor of
