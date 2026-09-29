@@ -102,7 +102,7 @@ The percentage counts evaluations that carry cross-section covariance, which is
 not the same as covariance landing where your run needs it. Read
 `rate_fraction_covered_total` before any sigma; the tungsten case in
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty) has all five
-natural isotopes covered by the count and 6% of the production covered in fact.
+natural isotopes covered by the count and 4% of the production covered in fact.
 
 Depth varies as much as presence. JENDL-5 carries covariance for only 13% of its
 evaluations, and its Fe56 covers 56 channels against ENDF/B-VIII.1's 7.
@@ -111,10 +111,10 @@ Cross sections are the only covariance family that reaches the data, and only
 its MF=33 part. Resonance-parameter covariance (MF=32), where many evaluations
 keep their whole resonance-range uncertainty, is parsed and not used yet, so a capture rate
 driven by resonance flux can carry a sigma near zero on a library whose MF=33 is
-zero there. The coverage report does not flag that case yet: a zero-valued MF=33
-interval counts as covered, so the nuclide is listed under `perturbed` with a
-`rate_fraction_covered` near 1
-([#166](https://github.com/fusion-neutronics/core/issues/166)). The ENDF parser
+zero there ([#166](https://github.com/fusion-neutronics/core/issues/166)). The
+coverage report shows that case: a zero-valued MF=33 interval counts as
+uncovered, so such a capture reads a `rate_fraction_covered` well below 1 (about
+0.07 for ENDF/B-VIII.1 W186 on the FNS spectrum). The ENDF parser
 reads resonance-parameter, angular-distribution and radionuclide-production
 covariance (MF=32, MF=34 and MF=40), and nothing consumes them yet. The decay data's own sigmas on
 half-lives and decay energies are carried as well, and propagated. Everything
