@@ -151,13 +151,36 @@ the integration grid *is* the covariance grid. Each block folds on its own grid
 and the contributions add, because the sum over blocks is outside the
 contraction.
 
+One layout is the exception. An LB=8 block is a short-range variance, stated in
+barns squared rather than relative to the cross section, and ENDF-102 section
+33.2.2.2 says that the average over an interval $\Delta E_j$ inside its
+interval $\Delta E_k$ has variance $F_k\,\Delta E_k/\Delta E_j$, uncorrelated
+with any other such interval. What it contributes to a rate therefore depends
+on how the flux varies inside $\Delta E_k$, which is the one place your flux
+groups enter. The fold cuts $\Delta E_k$ at the group boundaries, where the
+flux density $\psi$ is constant, so the rule applies exactly to every piece and
+the rate's variance is $F_k\,\Delta E_k \sum_j \psi_j^2\,\Delta E_j$. A flux
+flat over the whole interval gives the plain absolute diagonal, and is the
+smallest this term can be for a given flux in the interval. The more the flux
+is concentrated inside an LB=8 interval, the larger the term, as the evaluation
+says it should be: ENDF/B-VIII.1 Cr52 (n,p) is 17.7% for a flux flat over the
+tape's own [14, 16] MeV interval and 22.5% for a flux in a single 0.2 MeV group
+at 14.1 MeV.
+
 A covariance grid need not span the whole flux range. Rate coming from outside
 it is rate the evaluation states no uncertainty for, so it enters the
 denominator and not the numerator, and the relative uncertainty comes out
 smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
-`rate_fraction_covered` records the share of each rate the grid actually
-covered.
+`rate_fraction_covered` records the share of each rate that carries a stated
+uncertainty: the dilute rate from energies where the reaction's own diagonal
+variance is nonzero, over the dilute rate across the flux range. Relative and
+absolute blocks both count, each summed over the reaction's own blocks of that
+scale. An interval a grid spans with a variance of zero counts as uncovered,
+since it states no uncertainty either. Both integrals use the dilute cross
+section, so on a self-shielded or tallied rate the share is not the covered
+share of that rate, which is not computed, and the production-weighted
+`rate_fraction_covered_total` is reported as `None` on such a run.
 
 The implementation departs from this in places, all tracked in
 [#166][core166] and not fixed yet:
@@ -167,10 +190,8 @@ The implementation departs from this in places, all tracked in
   affected, and at 14 MeV Ni58 `(n,a)` reads 0.0% where the evaluation gives
   19.8%, and Cr52 `(n,p)` 0.4% against 17.1%. The LB=4 expansion also swaps its
   two tables, which affects one block, FENDL-3.2d Ni58 `(n,p)`.
-- `rate_fraction_covered` counts the span of the covariance grid whatever its
-  values are, so an interval stated with zero variance counts as covered. A
-  rate the evaluation gives no MF=33 uncertainty over can read as fully
-  covered.
+- The LB=8 short-range fold described above is not in the code yet. An LB=8
+  block is read as a relative variance on its own grid, like an LB=1 block.
 - With a shape or a chord, the fold divides dilute partial rates by the
   shielded rate, which overstates the sigma of a shielded resonance channel:
   4.61% against 1.70% with shielded partials, for Au197 capture in a 0.1 mm
@@ -281,9 +302,9 @@ because every reaction that sees a group sees the same flux in it. A rate is
 linear in the flux, so the perturbed rate is the collapse's own per-group terms
 reweighted, exactly, with nothing collapsed again. A half-life is drawn per
 nuclide from the decay data's sigma on it, and a decay energy from the sigma on
-each of its beta, gamma and alpha components, or on the total where the data
-gives no split. In a transport run the tallied rates are drawn jointly from
-their per-history covariance.
+each beta, gamma and alpha component that states one, or on the total when no
+component states a sigma. In a transport run the tallied rates are drawn jointly
+from their per-history covariance.
 
 The decay data states a sigma on each value and no distribution or correlation,
 so the normal shape, and the independence between a nuclide's decay-energy
@@ -350,8 +371,9 @@ variance of a sum when the term is positive and raises it when it is negative.
   weights that mix a nuclide's yield sets by incident energy come from the
   nominal spectrum in every replica, so a flux draw does not move them.
 - **Isomeric branching.** The split of a reaction's product between the ground
-  state and an isomer. Where an evaluation states its uncertainty it does so in
-  MF=40, which is parsed and not used yet. With the branching overlay
+  state and an isomer. The split comes from MF=9 or MF=10 (the name
+  `not_perturbed` gives it), and where an evaluation states its uncertainty it
+  does so in MF=40, which is parsed and not used yet. With the branching overlay
   configured (`transmutation_branch_ratios`), the flux-weighted split is folded
   once against the nominal spectrum, so on `Material.transmute` a flux draw
   moves the rates and never the split. The `(n,n')` channels the overlay adds to
@@ -361,17 +383,17 @@ variance of a sum when the term is positive and raises it when it is negative.
 - **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
   covariance in the resonance range as an MF=32 part plus the MF=33 part, and
   many evaluations keep the whole resonance-range uncertainty in MF=32 and leave
-  MF=33 at zero there. MF=32 is not read, so a capture rate driven by resonance
-  flux can come back with a sigma near zero: for capture in a $1/E$ field, NJOY
-  ERRORR gives ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone.
-  The coverage report does not flag it yet. W186's capture block states zero
-  variance from $10^{-5}$ eV to 10 keV, and that block counts as covering the
-  rate (the second defect under
-  [Folding the covariance](#folding-the-covariance)), so W186 is listed under
-  `perturbed` with its capture reported as fully covered ([#166][core166]). The
+  MF=33 at zero there. The ENDF parser reads MF=32, and the fold does not use it
+  yet: it folds MF=33 only, so a capture rate driven by resonance flux can come
+  back with a sigma near zero: for capture in a $1/E$ field, NJOY ERRORR gives
+  ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone. The coverage
+  report shows it: W186's capture block states zero variance from $10^{-5}$ eV
+  to 10 keV, where nearly all of a capture rate is, so on the FNS spectrum its
+  `rate_fraction_covered` reads about 0.07. W186 is still listed under
+  `perturbed`, since the block's other intervals are used ([#166][core166]). The
   same check gives 6.32% against 0.01% on the JEFF-4.0 Ag109 tape and 4.71%
-  against 0.00% on the TENDL-2025 Co59 tape. yani's TENDL-2025 covariance is
-  not published yet, so a run on it today lists Co59 under `no_covariance_data`
+  against 0.00% on the TENDL-2025 Co59 tape. yani's TENDL-2025 covariance is not
+  published yet, so a run on it today lists Co59 under `no_covariance_data`
   instead.
 - **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
   covariance with another evaluation (the links to the standards among them)
@@ -442,21 +464,41 @@ variance of a sum when the term is positive and raises it when it is negative.
   `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
   ([#165][core165]).
 
-`not_perturbed` in `get_data_uncertainty_info` names decay branching, fission
-yields, isomeric branching and cross-material covariance on every run, and the
-half-life or decay energy when a run switches that source off. The rest of this
-list is not in it yet. `has_gaps` looks only at the sources the run perturbs,
-and is True when one of them met a nuclide with no usable MF=33 block, a skipped
-cross-material or NC block, a block whose layout is unsupported or malformed, a
-covariance repaired past round-off on a channel a draw can move (inside the
-populated bound or outside it), a spectrum with no flux sigma, or a reachable
-unstable nuclide with no stated
-half-life sigma, or with a decay energy but no stated sigma on it. Of the inputs
-in this list, the skipped
-cross-material and NC blocks set it, and the lumped and partial-level blocks set
-it only through `no_covariance_data`, when they are all a nuclide has. A sigma
-is the spread from the five sources above with everything in this list held.
-See
+`not_perturbed` in `get_data_uncertainty_info` names every input in this list
+on every run: decay branching, fission yields, isomeric branching (MF=9/MF=10),
+cross-material, NC and lumped MF=33 blocks, resonance-parameter covariance
+(MF=32), decay photon line energies and intensities, the photon attenuation,
+energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
+factor, and the material composition, density, natural abundances and atomic
+masses. It adds an entry for each source a run switches off (half-life, decay
+energy, activation cross section), the flux spectrum on `Material.transmute`
+when that source is off or some or all spectra have no sigma, the tallied-rate
+statistics when a transport run does not draw them, the self-shielding
+correction when shielding is on, and the flux response to perturbed cross
+sections on a transport run that perturbs the cross sections.
+
+Some held inputs on this page have no entry of their own: MF=33 blocks on
+partial levels (MT=600-849, 875-891), which the chain drives no rate for, so
+they are neither listed nor counted; the overlay's `(n,n')` channels; the
+isomeric split and fission-yield weights held at the nominal spectrum under a
+flux draw; and, on `Material.transmute`, the flux's response to the cross
+sections of the materials the neutrons passed through.
+
+`has_gaps` looks only at the sources the run perturbs, and is True when one of
+them met a nuclide with no usable MF=33 block, a skipped cross-material or NC
+block, a block whose layout is unsupported or malformed, a channel whose
+partial rates add up to more, or less, than its rate (`partials_above_rate`,
+`partials_below_rate`), a covariance repaired past round-off on a channel a
+draw can move (inside the populated bound or outside it), a spectrum with no
+flux sigma, or a reachable unstable nuclide with no stated half-life sigma, or
+with a decay energy but no stated sigma on it. Until the fold weights a
+shielded rate with shielded partials ([#166][core166] item 4), a self-shielded
+run lists most channels a relative block names under `partials_above_rate`, so
+`has_gaps` is True on it. Of the inputs in this list, the skipped
+cross-material and NC blocks set it, and the lumped and partial-level blocks
+set it only through `no_covariance_data`, when they are all a nuclide has. A
+sigma is the spread from the five sources above with everything in this list
+held. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
