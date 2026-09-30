@@ -172,11 +172,14 @@ it is rate the evaluation states no uncertainty for, so it enters the
 denominator and not the numerator, and the relative uncertainty comes out
 smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
-`rate_fraction_covered` records the share of each rate the grid actually
-covered. Only relative blocks count toward it for now. An absolute (LB=0) or
-short-range (LB=8) block still folds into the sigma but does not raise the
-fraction, so a channel whose covariance is stated only in those blocks carries
-a variance yet reads as uncovered.
+`rate_fraction_covered` records the share of each rate that carries a stated
+uncertainty: the dilute rate from energies where the reaction's own diagonal
+variance, summed over its blocks, is nonzero, over the dilute rate across the
+flux range. An interval a grid spans with a variance of zero counts as
+uncovered, since it states no uncertainty either. Both integrals use the
+dilute cross section, so on a self-shielded or tallied rate the share is not the
+covered share of that rate, which is not computed, and the production-weighted
+`rate_fraction_covered_total` is reported as `None` on such a run.
 
 ### Drawing a replica
 

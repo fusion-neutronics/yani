@@ -479,10 +479,13 @@ below_100_keV = sum(r for lo, r in zip(edges, per_group) if lo < 1.0e5)
 print(f"{below_100_keV / sum(per_group):.1%} of the capture rate is resonance region")
 ```
 
-It is also the per-group form of what `rate_fraction_covered` reports as one
-number: whether a covariance grid that stops short of the spectrum stops short of
-anywhere the rate actually is. On a shielded run it says which groups the flux
-depression moved, which `strongest_factor` gives only as a worst case.
+It is also what to read beside `rate_fraction_covered`: set against the energies
+where a channel's covariance states a nonzero variance, it shows, to the
+resolution of the groups, how much of the rate the run actually used comes from
+there. `rate_fraction_covered` gives that share for the dilute rate only, so on
+a shielded run the breakdown is what shows it for the shielded rate, and which
+groups the flux depression moved, which `strongest_factor` gives only as a worst
+case.
 
 Nothing is stored for it. One reaction over a 709-group structure is cheap to
 walk when asked, and keeping the breakdown for every channel would be tens of
@@ -759,11 +762,16 @@ info = results.data_uncertainty_info
 if info is not None:               # None unless data_uncertainty was passed
     info["perturbed"]              # had usable MF=33 covariance
     info["no_covariance_data"]     # evaluation carries none
-    info["rate_fraction_covered"]  # share of each rate the covariance grid spans
+    info["rate_fraction_covered"]  # share of each rate with a nonzero stated variance
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
+    info["partials_above_rate"]    # channels whose sigma is overstated
+    info["partials_below_rate"]    # channels whose sigma is understated
+    info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
+    info["skipped_other_file"]     # {nuclide: blocks whose partner is not a cross section}
+    info["mirrored_disagree"]      # pairs stored both ways whose copies differ
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
-    info["has_gaps"]               # True if anything was left out
+    info["has_gaps"]               # True if anything was left out or is inconsistent
 ```
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
@@ -775,7 +783,59 @@ Tungsten shows how far the two can diverge. Two major libraries state
 covariance for all five natural tungsten isotopes, so a count reads as complete
 coverage, and what they state it for is `(n,3n)` and `(n,gamma)`: the `(n,2n)`
 making 98% of a tungsten foil's decay heat has none. The ensemble perturbs about
-6% of the production and reports a spread under 0.1%.
+4% of the production and reports a spread under 0.1%.
+
+Covered means the evaluation states a nonzero variance there, not that a
+covariance grid spans it. A grid can run across the whole range with a variance
+of zero on some intervals, and rate from those counts as uncovered, the same as
+rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
+block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
+is, so on the FNS spectrum it reads 0.07 rather than 1.
+
+The share is of the dilute rate: the rate from energies with a nonzero stated
+variance, over the rate across the flux range, both with the unshielded cross
+section. The total weights each channel's share by the production the run
+actually drove, so on a dilute run it is the share of that production coming
+from covered energies. On a self-shielded or transport run it would not be.
+Shielding depresses the resonance range, which is where capture blocks often
+state zero, and the covered share of the shielded or tallied production is not
+computed, so `rate_fraction_covered_total` is `None` there rather than a figure
+weighting that production by dilute shares. The per-channel shares are still
+given, and the relative sigma is diluted by a different amount than they say.
+
+`partials_above_rate` lists, with their ratio, the channels whose partial rates
+the covariance was weighted with add up to more than the rate it was divided
+by. The two were then computed different ways, a self-shielded rate against
+dilute partials being one, and the relative sigma is overstated. The `1/E`
+within-group weight is another: there the part of a group a covariance edge cuts
+off is weighted by its share of the group's energy width, so the parts need not
+add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
+three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
+about ten times its rate. A tallied rate on a transport run is a third. The
+coverage share is measured against the dilute rate, so it is not affected.
+
+`partials_below_rate` is the same check the other way. A covariance grid that
+spans the whole flux range leaves no rate outside it, so its partial rates must
+add up to the rate, and a shortfall understates the sigma. The `1/E` weight
+gives one for a reaction falling with energy when a covariance edge cuts a
+group. A grid that stops short of the flux range cannot be checked this way,
+since rate from outside it rightly leaves its partials short. Both maps count
+towards `has_gaps`.
+
+Three maps say which blocks were read but not folded. `skipped_cross_material`
+counts, per nuclide, the blocks correlating one of its reactions with a
+reaction of another evaluation: using them would mean sampling two nuclides'
+cross sections jointly, and the fold is per nuclide. A block naming its partner
+by the evaluation's own MAT is not one of them; ENDF-102 allows that spelling
+alongside `MAT1 = 0`, and both are folded. `skipped_other_file` counts the
+blocks whose partner is not a cross section (`XMF1` other than 0 or 3, or a
+final state). Both count only blocks on a reaction the run drives, once per
+nuclide however many spectra the run has. `mirrored_disagree` is keyed
+`"Nuclide (n,a) (n,b)"`: a pair stored in both orientations is folded once,
+from the lower MT's section, and the other copy is checked against its
+transpose. A difference above 1e-5 of the pair's largest entry is listed with
+its size. JEFF-4.0 Be9 stores 130 pairs both ways, and they agree exactly. All
+three count towards `has_gaps`.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
@@ -843,9 +903,12 @@ take the spread over yourself.
 - `data_uncertainty` covers the activation cross sections, and the flux spectrum
   when a pulse carries `flux_std_dev`. Without one the flux is taken as exact,
   since nothing is transported here. Half-lives, decay branching ratios and
-  fission yields are held at their evaluated values throughout. Cross-material
-  covariance (`MAT1 != 0`) and covariances derived from a standards evaluation
-  are not consumed; both are counted in `data_uncertainty_info`.
+  fission yields are held at their evaluated values throughout. A block
+  correlating a reaction with one in another evaluation (`MAT1` naming a
+  different MAT) is not consumed, and neither is a covariance derived from a
+  standards evaluation; both are counted in `data_uncertainty_info`. A block
+  naming its partner with `MAT1 = 0` or with the evaluation's own MAT, and
+  `XMF1 = 0` or `3`, is the same evaluation and is folded.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
   flags which nuclides on the run that skipped it, and how strongly their own
