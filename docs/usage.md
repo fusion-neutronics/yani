@@ -766,6 +766,9 @@ if info is not None:               # None unless data_uncertainty was passed
     info["rate_fraction_covered_total"]  # ... and over the run, weighted by production
     info["partials_above_rate"]    # channels whose sigma is overstated
     info["partials_below_rate"]    # channels whose sigma is understated
+    info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
+    info["skipped_other_file"]     # {nuclide: blocks whose partner is not a cross section}
+    info["mirrored_disagree"]      # pairs stored both ways whose copies differ
     info["not_perturbed"]          # sources this does not propagate
     info["sources"]                # the ones it did
     info["has_gaps"]               # True if anything was left out or is inconsistent
@@ -818,6 +821,21 @@ gives one for a reaction falling with energy when a covariance edge cuts a
 group. A grid that stops short of the flux range cannot be checked this way,
 since rate from outside it rightly leaves its partials short. Both maps count
 towards `has_gaps`.
+
+Three maps say which blocks were read but not folded. `skipped_cross_material`
+counts, per nuclide, the blocks correlating one of its reactions with a
+reaction of another evaluation: using them would mean sampling two nuclides'
+cross sections jointly, and the fold is per nuclide. A block naming its partner
+by the evaluation's own MAT is not one of them; ENDF-102 allows that spelling
+alongside `MAT1 = 0`, and both are folded. `skipped_other_file` counts the
+blocks whose partner is not a cross section (`XMF1` other than 0 or 3, or a
+final state). Both count only blocks on a reaction the run drives, once per
+nuclide however many spectra the run has. `mirrored_disagree` is keyed
+`"Nuclide (n,a) (n,b)"`: a pair stored in both orientations is folded once,
+from the lower MT's section, and the other copy is checked against its
+transpose. A difference above 1e-5 of the pair's largest entry is listed with
+its size. JEFF-4.0 Be9 stores 130 pairs both ways, and they agree exactly. All
+three count towards `has_gaps`.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
@@ -885,9 +903,12 @@ take the spread over yourself.
 - `data_uncertainty` covers the activation cross sections, and the flux spectrum
   when a pulse carries `flux_std_dev`. Without one the flux is taken as exact,
   since nothing is transported here. Half-lives, decay branching ratios and
-  fission yields are held at their evaluated values throughout. Cross-material
-  covariance (`MAT1 != 0`) and covariances derived from a standards evaluation
-  are not consumed; both are counted in `data_uncertainty_info`.
+  fission yields are held at their evaluated values throughout. A block
+  correlating a reaction with one in another evaluation (`MAT1` naming a
+  different MAT) is not consumed, and neither is a covariance derived from a
+  standards evaluation; both are counted in `data_uncertainty_info`. A block
+  naming its partner with `MAT1 = 0` or with the evaluation's own MAT, and
+  `XMF1 = 0` or `3`, is the same evaluation and is folded.
 - Nothing is self-shielded unless you give a shape or a chord, so a dilute run
   of a resonance absorber reads high. `self_shielding_info["would_shield"]`
   flags which nuclides on the run that skipped it, and how strongly their own
