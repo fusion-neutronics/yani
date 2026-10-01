@@ -54,7 +54,8 @@ group structure smears across a bin.
 `data_uncertainty=` and every nuclide density comes back with a standard
 deviation beside it. The activation cross sections are resampled from the
 evaluation's own ENDF MF=33 covariance, folded against your spectrum, the
-half-lives and decay energies from the decay data's own sigmas, and the
+half-lives, decay energies and two-mode decay branching ratios from the decay
+data's own sigmas, and the
 schedule is re-solved for each sample. That is exact to all orders in the
 matrix exponential: nothing is linearized, and the sandwich rule is not used,
 so correlations between nuclides survive. When a replica moves a channel, the
@@ -102,7 +103,7 @@ uncertainty in resonance-parameter covariance (MF=32), reads as uncovered there
 density instead of counting evaluations. ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d
 state covariance for all five natural tungsten isotopes, and state it for the
 `(n,2n)` making 98% of a foil's decay heat only lumped with `(n,2np)`, which is
-not used, so the count reads as full coverage where the weighted figure reads 4%
+not used and is listed as such, so the count reads as full coverage where the weighted figure reads 4%
 on ENDF/B-VIII.1 and JEFF-4.0.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
@@ -157,11 +158,11 @@ spectrum that drove it, and the entries sum to the collapsed rate because both
 come from the same walk of the same cross sections. A capture cross section spans
 decades, so an effective one-group value of tens of millibarns against a
 14 MeV-dominated spectrum is either fast capture or resonance capture, and only
-the breakdown says which -- which is the difference between a disagreement that
+the breakdown says which. That is the difference between a disagreement that
 belongs to the resonance processing and one that belongs to the fast cross
 section. Set against where a covariance states a nonzero variance, it also
-gives, to group resolution and for the rate the run actually used, the share
-that `rate_fraction_covered` reports for the dilute rate, and on a shielded run
+shows, to group resolution, where in energy the share that
+`rate_fraction_covered` reports as one number comes from, and on a shielded run
 it says which groups the depression moved. See
 [Where in energy a rate came from](usage.md#where-in-energy-a-rate-came-from).
 

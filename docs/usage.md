@@ -514,11 +514,10 @@ print(f"{below_100_keV / sum(per_group):.1%} of the capture rate is resonance re
 
 It is also what to read beside `rate_fraction_covered`: set against the energies
 where a channel's covariance states a nonzero variance, it shows, to the
-resolution of the groups, how much of the rate the run actually used comes from
-there. `rate_fraction_covered` gives that share for the dilute rate only, so on
-a shielded run the breakdown is what shows it for the shielded rate, and which
-groups the flux depression moved, which `strongest_factor` gives only as a worst
-case.
+resolution of the groups, where in energy the covered and uncovered parts of
+the rate the run actually used sit, which the share gives only as one number.
+On a shielded run it also shows which groups the flux depression moved, which
+`strongest_factor` gives only as a worst case.
 
 Nothing is stored for it. One reaction over a 709-group structure is cheap to
 walk when asked, and keeping the breakdown for every channel would be tens of
@@ -754,7 +753,7 @@ only its input changes. Omitting the argument costs nothing at all: no
 covariance is read, nothing is folded, and the inventories are bit-identical.
 
 Every draw is a pure function of the seed, the sample and what is drawn: a
-nuclide for the cross sections, half-lives and decay energies, a spectrum for the
+nuclide for the cross sections, half-lives, decay branching and decay energies, a spectrum for the
 flux, and a material's tallied rates, jointly, for the statistical error. So a
 seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the nuclide density sigmas
@@ -764,7 +763,7 @@ draw (`decay_energy` alone, or the other sources found nothing to perturb), the
 run takes 128 samples, or `samples`, with no convergence check, and reports
 `converged` as True.
 
-Five sources can be perturbed, and `DataUncertainty.available_sources()` names
+Six sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
 
 - `cross_sections`: the activation cross sections, from their ENDF MF=33
@@ -776,6 +775,11 @@ them:
   solve and in the activity, decay heat and dose evaluated from it, so a
   saturated activity stays as insensitive to its own half-life as it physically
   is.
+- `decay_branching`: the decay branching ratios of every reachable parent with
+  exactly two modes and one stated sigma between them, whose smaller ratio is
+  at least five sigmas from zero. One draw moves one mode up and the other down
+  by the same amount, so the pair's total is kept. Other multi-mode parents stay
+  at their evaluated ratios, and the report names them by why.
 - `decay_energy`: each nuclide's mean decay energy, from the sigma on each beta,
   gamma and alpha component that states one, or on the total when no component
   states a sigma. A decay energy never enters the solve, so this moves decay
@@ -787,8 +791,8 @@ them:
   of the report's `sources`, as `flux_spectrum` is on a transport run.
 
 `sources=` restricts a run to some of them, which is how a contribution is
-measured. Naming a source this build cannot perturb raises. Decay branching
-ratios, fission yields, isomeric branching, the material composition and the
+measured. Naming a source this build cannot perturb raises. The decay branching
+ratios that source does not sample, fission yields, isomeric branching, the material composition and the
 other inputs listed under
 [What is not propagated](method.md#what-is-not-propagated) stay at their
 evaluated or nominal values.
@@ -823,8 +827,9 @@ and positive semi-definite, and is checked.
 
 Because a zero sigma could mean either "well known" or "nothing published", the
 two are separated in `get_data_uncertainty_info` for a nuclide with no usable
-MF=33 block for any channel the chain drives (none on the tape, or only NC,
-cross-material, lumped, partial-level or unsupported ones):
+MF=33 block for any channel the chain drives (none on the tape, or only
+underivable NC, cross-material, unassignable lumped, partial-level or
+unsupported ones):
 
 <!-- doctest: skip -->
 ```python
@@ -840,6 +845,7 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_half_life_uncertainty"]     # ... and those whose data states no sigma
     info["decay_energies_perturbed"]     # nuclides whose decay energy was sampled
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
+    info["decay_branchings_perturbed"]   # two-mode parents whose split was drawn
     info["half_life_uncertainty_not_carried"]     # a stated sigma no draw can
     info["decay_energy_uncertainty_not_carried"]  # carry, held; see the method page
     info["flux_bins_floored"]      # flux draws floored at zero, see the method page;
@@ -852,8 +858,8 @@ if info is not None:               # None unless data_uncertainty was passed
     info["has_gaps"]               # True if something was left out or is inconsistent
 ```
 
-`not_perturbed` names every input held at nominal on every run, from decay
-branching and resonance-parameter covariance (MF=32) to photon line intensities,
+`not_perturbed` names every input held at nominal on every run, from fission
+yields and resonance-parameter covariance (MF=32) to photon line intensities,
 dose coefficients and the material composition, plus the run-dependent entries:
 a source the run switched off, spectra without a flux sigma, tallied-rate
 statistics a transport run did not draw, the self-shielding correction, and the
@@ -861,19 +867,24 @@ flux response to perturbed cross sections on a transport run that perturbs the
 cross sections. [What is not propagated](method.md#what-is-not-propagated)
 explains each one, and names the few held inputs with no entry of their own,
 among them MF=33 blocks on partial levels (MT=600-849, 875-891), which are
-neither listed nor counted because the chain drives no rate for them.
-`skipped_cross_material` and `skipped_nc` count the cross-material and NC MF=33
-blocks that were not used, summed over the material's spectra. `has_gaps` looks
+neither listed nor counted unless an LTY=0 NC block names them, because the
+chain drives no rate for them. `skipped_cross_material`, `skipped_nc` and
+`lumped_covariance_not_assignable` count the cross-material, underivable NC and
+multi-component lumped MF=33 blocks that were not used. A multi-mode parent
+whose branching was held is named in `no_decay_branching_uncertainty`,
+`decay_branchings_three_or_more_modes`, `decay_branchings_unequal_sigmas` or
+`decay_branchings_too_wide`. `has_gaps` looks
 only at the sources the run perturbs, and is True when one of them met a nuclide
-with no usable MF=33 block, a skipped cross-material or NC block, a block whose
+with no usable MF=33 block, a skipped or unassignable MF=33 block, a block whose
 layout is unsupported or malformed, a channel whose partial rates add up to
 more, or less, than its rate (`partials_above_rate`, `partials_below_rate`,
 below), a covariance repaired past round-off on a channel a draw can move
 (inside the populated bound or outside it), a spectrum with no flux sigma, or a
 reachable unstable nuclide with no stated half-life sigma, or with a decay
 energy but no stated sigma on it, or with a half-life or decay-energy sigma no
-draw can carry. Lumped and partial-level blocks set it only through
-`no_covariance_data`, when they are all a nuclide has.
+draw can carry, or a multi-mode parent whose branching was held. Partial-level
+blocks set it only through `no_covariance_data`, when they are all a nuclide
+has.
 
 Read `rate_fraction_covered_total` before any sigma above it. A count of
 nuclides with MF=33 measures how much covariance exists. This measures how much
@@ -884,7 +895,8 @@ Tungsten shows how far the two can diverge. ENDF/B-VIII.1, JEFF-4.0 and
 FENDL-3.2d state covariance for all five natural tungsten isotopes, so a count
 reads as complete coverage, and what reaches the run is `(n,3n)` and
 `(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat is stated
-only lumped with `(n,2np)`, as the uncertainty of their sum, which is not used.
+only lumped with `(n,2np)`, as the uncertainty of their sum, which is not used
+and is listed in `lumped_covariance_not_assignable`.
 On ENDF/B-VIII.1 and JEFF-4.0 the ensemble perturbs about 4% of the production
 and reports a cross-section spread under 0.1% (with
 `sources=["cross_sections"]`). With the default sources the half-life and
@@ -899,27 +911,32 @@ is, because the evaluation keeps that uncertainty in resonance-parameter
 covariance (MF=32), which is not folded yet. On the FNS spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
 intervals above 10 keV.
 
-The share is of the dilute rate: the rate from energies with a nonzero stated
-variance, over the rate across the flux range, both with the unshielded cross
-section. The total weights each channel's share by the production the run
-actually drove, so on a dilute run it is the share of that production coming
-from covered energies. On a self-shielded or transport run it would not be.
-Shielding depresses the resonance range, which is where capture blocks often
-state zero, and the covered share of the shielded or tallied production is not
-computed, so `rate_fraction_covered_total` is `None` there rather than a figure
-weighting that production by dilute shares. The per-channel shares are still
-given, and the relative sigma is diluted by a different amount than they say.
+The share is of the rate the fold divides by: the rate from energies with a
+nonzero stated variance, over the rate across the flux range, both with the
+dilute cross section on a dilute run and the shielded one on a self-shielded
+run. Shielding depresses the resonance range, which is where capture blocks
+often state zero, so a shielded run's shares can sit well away from the dilute
+ones. The total weights each channel's share by the production the run
+actually drove, so it is the share of that production coming from covered
+energies. A transport run is the exception: its shares are of the dilute rate
+over the tally spectrum, the covered share of the tallied production is not
+computed, and `rate_fraction_covered_total` is `None` there rather than a
+figure weighting that production by dilute shares. The per-channel shares are
+still given, and the relative sigma is diluted by a different amount than they
+say.
 
 `partials_above_rate` lists, with their ratio, the channels whose partial rates
 the covariance was weighted with add up to more than the rate it was divided
-by. The two were then computed different ways, a self-shielded rate against
-dilute partials being one, and the relative sigma is overstated. The `1/E`
-within-group weight is another: there the part of a group a covariance edge cuts
+by. The two were then computed different ways, and the relative sigma is
+overstated. A grafted `(n,n')`, whose rate is the metastables' MF=10
+production while its partials are MT 4's, is one cause. The `1/E` within-group
+weight is another: there the part of a group a covariance edge cuts
 off is weighted by its share of the group's energy width, so the parts need not
 add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
 three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
 about ten times its rate. A tallied rate on a transport run is a third. The
-coverage share is measured against the dilute rate, so it is not affected.
+coverage share is of the fold's own rate, not of the listed rate, and a channel
+in either map makes `rate_fraction_covered_total` `None`.
 
 `partials_below_rate` is the same check the other way. A covariance grid that
 spans the whole flux range leaves no rate outside it, so its partial rates must
@@ -949,8 +966,8 @@ belongs to, counts a channel on a trace isotope the same as one on the bulk: on
 an iron foil that is 32% against 96%.
 
 For a decay-only schedule there is no production to weight by, so the value is
-`None`, not zero. It is `None` on a self-shielded or transport run too, as
-above.
+`None`, not zero. It is `None` on a transport run too, as above, and when
+either partials map lists a channel.
 
 Activity, decay heat and contact dose come back with a band from the same
 ensemble, each as an `Estimate` holding the unperturbed value and the ensemble's
@@ -1016,10 +1033,11 @@ take the spread over yourself.
   the campaign, split the schedule and give each pulse its own spectrum. That is
   a statement about the physics you are feeding it, not about the solver.
 - `data_uncertainty` covers the activation cross sections, the half-lives, the
-  decay energies, and the flux spectrum when a pulse carries `flux_std_dev` or
-  `flux_covariance`. Without one the flux is taken as exact, since nothing is
-  transported here. Decay branching ratios, fission yields, isomeric branching,
-  resonance-parameter covariance (MF=32), cross-material, NC, lumped and
+  two-mode decay branching ratios, the decay energies, and the flux spectrum
+  when a pulse carries `flux_std_dev` or `flux_covariance`. Without one the
+  flux is taken as exact, since nothing is transported here. The other decay
+  branching ratios, fission yields, isomeric branching, resonance-parameter
+  covariance (MF=32), cross-material, underivable NC, unassignable lumped and
   partial-level MF=33 blocks, the self-shielding correction, photon line
   intensities, the dose constants and the material composition are held at
   their evaluated or nominal values;

@@ -116,7 +116,8 @@ such a capture reads a `rate_fraction_covered` well below 1 (about 0.07 for
 ENDF/B-VIII.1 W186 on the FNS spectrum). The ENDF parser reads
 resonance-parameter, angular-distribution and radionuclide-production covariance
 (MF=32, MF=34 and MF=40), and nothing consumes them yet. The decay data's own
-sigmas on half-lives and decay energies are carried as well, and propagated.
+sigmas on half-lives, decay energies and two-mode decay branching ratios are
+carried as well, and propagated.
 Everything held at nominal is listed under [What is not
 propagated](method.md#what-is-not-propagated).
 
