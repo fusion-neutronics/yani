@@ -8,7 +8,7 @@ name = "yani"
 # this and the pin below against the release tag and fails the release if either
 # disagrees, so bump them here first and tag what was merged. It also refuses to
 # publish if the pinned yani-core is not on PyPI yet.
-version = "0.18.0"
+version = "0.19.0"
 description = "Yet Another Nuclide Inventory: transmutation and activation calculations"
 readme = "README.md"
 requires-python = ">=3.10"
