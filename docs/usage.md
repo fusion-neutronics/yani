@@ -840,8 +840,10 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_half_life_uncertainty"]     # ... and those whose data states no sigma
     info["decay_energies_perturbed"]     # nuclides whose decay energy was sampled
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
-    info["half_lives_floored"]     # draws floored, see the method page; also
-                                   # flux_bins_floored and statistical_floored
+    info["half_life_uncertainty_not_carried"]     # a stated sigma no draw can
+    info["decay_energy_uncertainty_not_carried"]  # carry, held; see the method page
+    info["flux_bins_floored"]      # flux draws floored at zero, see the method page;
+                                   # also statistical_floored
     info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
     info["skipped_other_file"]     # {nuclide: blocks whose partner is not a cross section}
     info["mirrored_disagree"]      # pairs stored both ways whose copies differ
@@ -867,7 +869,8 @@ with no usable MF=33 block, a skipped cross-material or NC block, a block whose
 layout is unsupported or malformed, a channel whose partial rates add up to
 more, or less, than its rate (`partials_above_rate`, `partials_below_rate`,
 below), a spectrum with no flux sigma, or a reachable unstable nuclide with no
-stated half-life sigma, or with a decay energy but no stated sigma on it. Lumped
+stated half-life sigma, or with a decay energy but no stated sigma on it, or
+with a half-life or decay-energy sigma no draw can carry. Lumped
 and partial-level blocks set it only through `no_covariance_data`, when they are
 all a nuclide has.
 
