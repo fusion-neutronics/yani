@@ -174,33 +174,12 @@ smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
 `rate_fraction_covered` records the share of each rate that carries a stated
 uncertainty: the dilute rate from energies where the reaction's own diagonal
-variance is nonzero, over the dilute rate across the flux range. Relative and
-absolute blocks both count, each summed over the reaction's own blocks of that
-scale. An interval a grid spans with a variance of zero counts as uncovered,
-since it states no uncertainty either. Both integrals use the dilute cross
-section, so on a self-shielded or tallied rate the share is not the covered
-share of that rate, which is not computed, and the production-weighted
+variance, summed over its blocks, is nonzero, over the dilute rate across the
+flux range. An interval a grid spans with a variance of zero counts as
+uncovered, since it states no uncertainty either. Both integrals use the
+dilute cross section, so on a self-shielded or tallied rate the share is not the
+covered share of that rate, which is not computed, and the production-weighted
 `rate_fraction_covered_total` is reported as `None` on such a run.
-
-The implementation departs from this in places, all tracked in
-[#166][core166] and not fixed yet:
-
-- The ENDF parser splits an LB=0 to 4 block's energy table in the wrong place,
-  so the upper part of its grid is dropped: 773 ENDF/B-VIII.1 blocks are
-  affected, and at 14 MeV Ni58 `(n,a)` reads 0.0% where the evaluation gives
-  19.8%, and Cr52 `(n,p)` 0.4% against 17.1%. The LB=4 expansion also swaps its
-  two tables, which affects one block, FENDL-3.2d Ni58 `(n,p)`.
-- The LB=8 short-range fold described above is not in the code yet. An LB=8
-  block is read as a relative variance on its own grid, like an LB=1 block.
-- With a shape or a chord, the fold divides dilute partial rates by the
-  shielded rate, which overstates the sigma of a shielded resonance channel:
-  4.61% against 1.70% with shielded partials, for Au197 capture in a 0.1 mm
-  foil under $1/E$. On a yamc transport run the partials are folded dilute
-  against a tallied rate that is shielded within each tally bin, so the same
-  mismatch applies wherever a bin shields strongly.
-- A block whose `MAT1` names the evaluation's own MAT is dropped as if it
-  correlated with another evaluation. That is 585 of the 598 such blocks in
-  FENDL-3.2d, and it loses correlations between channels, not variances.
 
 ### Drawing a replica
 
