@@ -809,6 +809,9 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_decay_energy_uncertainty"]  # decay energies held for want of a sigma
     info["half_lives_floored"]     # draws floored, see the method page; also
                                    # flux_bins_floored and statistical_floored
+    info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
+    info["skipped_other_file"]     # {nuclide: blocks whose partner is not a cross section}
+    info["mirrored_disagree"]      # pairs stored both ways whose copies differ
     info["not_perturbed"]          # every input held at nominal, see below
     info["sources"]                # the sources that applied to this run
     info["has_gaps"]               # True if something was left out or is inconsistent
@@ -875,14 +878,10 @@ given, and the relative sigma is diluted by a different amount than they say.
 `partials_above_rate` lists, with their ratio, the channels whose partial rates
 the covariance was weighted with add up to more than the rate it was divided
 by. The two were then computed different ways, a self-shielded rate against
-dilute partials being one, and the relative sigma is overstated. Until the fold
-weights a shielded rate with shielded partials
-([#166](https://github.com/fusion-neutronics/core/issues/166) item 4), a
-self-shielded run lists most channels a relative block names, many only a few
-parts in 1e7 over, so `has_gaps` is True on it. The `1/E` within-group weight
-is another cause: there the part of a group a covariance edge cuts off is
-weighted by its share of the group's energy width, so the parts need not add up
-to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
+dilute partials being one, and the relative sigma is overstated. The `1/E`
+within-group weight is another: there the part of a group a covariance edge cuts
+off is weighted by its share of the group's energy width, so the parts need not
+add up to the group's rate even on a dilute run, and by a lot: Fe56 `(n,p)` on a
 three-group spectrum whose fast group holds its 4.3 MeV covariance edge sums to
 about ten times its rate. A tallied rate on a transport run is a third. The
 coverage share is measured against the dilute rate, so it is not affected.
@@ -894,6 +893,21 @@ gives one for a reaction falling with energy when a covariance edge cuts a
 group. A grid that stops short of the flux range cannot be checked this way,
 since rate from outside it rightly leaves its partials short. Both maps count
 towards `has_gaps`.
+
+Three maps say which blocks were read but not folded. `skipped_cross_material`
+counts, per nuclide, the blocks correlating one of its reactions with a
+reaction of another evaluation: using them would mean sampling two nuclides'
+cross sections jointly, and the fold is per nuclide. A block naming its partner
+by the evaluation's own MAT is not one of them; ENDF-102 allows that spelling
+alongside `MAT1 = 0`, and both are folded. `skipped_other_file` counts the
+blocks whose partner is not a cross section (`XMF1` other than 0 or 3, or a
+final state). Both count only blocks on a reaction the run drives, once per
+nuclide however many spectra the run has. `mirrored_disagree` is keyed
+`"Nuclide (n,a) (n,b)"`: a pair stored in both orientations is folded once,
+from the lower MT's section, and the other copy is checked against its
+transpose. A difference above 1e-5 of the pair's largest entry is listed with
+its size. JEFF-4.0 Be9 stores 130 pairs both ways, and they agree exactly. All
+three count towards `has_gaps`.
 
 Both weights are needed. Rate alone, without the density of the parent each rate
 belongs to, counts a channel on a trace isotope the same as one on the bulk: on
