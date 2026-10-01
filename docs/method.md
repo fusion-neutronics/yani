@@ -173,13 +173,15 @@ denominator and not the numerator, and the relative uncertainty comes out
 smaller than the covariance grid alone would suggest. That is the honest answer
 rather than a bug, but it is also invisible, which is why
 `rate_fraction_covered` records the share of each rate that carries a stated
-uncertainty: the dilute rate from energies where the reaction's own diagonal
-variance, summed over its blocks, is nonzero, over the dilute rate across the
-flux range. An interval a grid spans with a variance of zero counts as
-uncovered, since it states no uncertainty either. Both integrals use the
-dilute cross section, so on a self-shielded or tallied rate the share is not the
-covered share of that rate, which is not computed, and the production-weighted
-`rate_fraction_covered_total` is reported as `None` on such a run.
+uncertainty: the rate from energies where the reaction's own diagonal
+variance, summed over its blocks, is nonzero, over the rate across the flux
+range. An interval a grid spans with a variance of zero counts as uncovered,
+since it states no uncertainty either. The rate is the one the fold divides by,
+dilute on a dilute run and shielded on a self-shielded one. A tallied rate on a
+transport run is not that rate: the share there is of the dilute rate over the
+tally spectrum, the covered share of the tallied rate is not computed, and the
+production-weighted `rate_fraction_covered_total` is reported as `None` on such
+a run.
 
 ### Drawing a replica
 
@@ -297,6 +299,22 @@ stated on a decay energy of zero or one that is not finite, is held at nominal
 and named in `half_life_uncertainty_not_carried` or
 `decay_energy_uncertainty_not_carried`, both counted as gaps.
 
+A decay branching ratio is drawn only where the data fixes the joint
+distribution of a parent's modes. MT=457 gives each mode a ratio and a sigma
+and no covariance between modes, and the ratios sum to a fixed total, so the
+split of the error is determined only for a parent with exactly two modes and
+one sigma between them: both modes state the same sigma, or one states it and
+the other is its complement. There one normal draw moves one mode up and the
+other down by the same amount, so the pair's total is kept, and the parent is
+sampled only when its smaller ratio is at least five sigmas from zero, so the
+normal stays inside the physical range. A draw clamped to the pair's total is
+counted in `decay_branchings_floored`. Every other parent is held at its
+evaluated ratios and named by why: `no_decay_branching_uncertainty`,
+`decay_branchings_three_or_more_modes`, `decay_branchings_unequal_sigmas` and
+`decay_branchings_too_wide`, each counted as a gap. Only the inventory moves:
+a drawn parent's lines and decay energy per decay follow its nominal
+branching.
+
 The flux and tallied-rate draws are normal, with a floor where a draw would
 leave the physical range: a flux bin or a tallied rate below zero is set to zero
 and counted in `flux_bins_floored` or `statistical_floored`. A floor biases that
@@ -304,8 +322,9 @@ source's mean upward, as it did for the linear cross-section form, so a nonzero
 count says the normal is being used past where it describes the data. These two
 stay normal because they carry correlations, which a lognormal would not keep.
 
-Seeds are pure functions of their arguments. A cross-section, half-life or
-decay-energy draw depends on `(seed, replica, nuclide)` and on nothing else: not
+Seeds are pure functions of their arguments. A cross-section, half-life,
+decay-branching or decay-energy draw depends on `(seed, replica, nuclide)` and
+on nothing else: not
 on how many replicas were run, not on the order they ran in, and not on which
 other nuclides were in the material. The flux draw is keyed on
 `(seed, replica, spectrum)`, the spectrum's place among the schedule's spectra.
@@ -339,9 +358,10 @@ nothing else.
 
 ### What is not propagated
 
-Five sources are propagated: the activation cross sections, the flux spectrum
-(on `Material.transmute`), the half-lives, the decay energies, and the tallies'
-statistical error (on a transport run). Everything below is held at its
+Six sources are propagated: the activation cross sections, the flux spectrum
+(on `Material.transmute`), the half-lives, the two-mode decay branching ratios
+described above, the decay energies, and the tallies' statistical error (on a
+transport run). Everything below is held at its
 evaluated or nominal value in every replica. Most of these carry an uncertainty
 or a model error of their own that is then missing from the sigma, so holding
 them understates it, and for some results it is the largest term. Two can go
@@ -349,13 +369,15 @@ either way, because holding them also removes a feedback that narrows the
 spread: self-shielding, and the flux's response to the cross sections of a
 material that shapes its own flux. Their bullets say which way each goes, and
 where. The covariance blocks that are skipped because they state only a
-correlation (the `MAT1 != 0` blocks, and the same-MAT blocks read as
-cross-material) can also go either way: dropping a covariance term lowers the
+correlation (the blocks whose `MAT1` names another evaluation) can also go
+either way: dropping a covariance term lowers the
 variance of a sum when the term is positive and raises it when it is negative.
 
-- **Decay branching ratios and fission yields.** Both have published
-  uncertainties, per decay mode and per yield, that are not propagated yet. The
-  weights that mix a nuclide's yield sets by incident energy come from the
+- **Decay branching ratios the two-mode draw does not cover, and fission
+  yields.** Both have published uncertainties, per decay mode and per yield.
+  A parent with three or more modes, two unequal sigmas, a pair too wide to
+  sample untruncated, or no sigma is held at its evaluated ratios, and fission
+  yields are not propagated yet. The weights that mix a nuclide's yield sets by incident energy come from the
   nominal spectrum in every replica, so a flux draw does not move them.
 - **Isomeric branching.** The split of a reaction's product between the ground
   state and an isomer. The split comes from MF=9 or MF=10 (the name
@@ -377,29 +399,32 @@ variance of a sum when the term is positive and raises it when it is negative.
   report shows it: W186's capture block states zero variance from $10^{-5}$ eV
   to 10 keV, where nearly all of a capture rate is, so on the FNS spectrum its
   `rate_fraction_covered` reads about 0.07. W186 is still listed under
-  `perturbed`, since the block's other intervals are used ([#166][core166]). The
+  `perturbed`, since the block's other intervals are used. The
   same check gives 6.32% against 0.01% on the JEFF-4.0 Ag109 tape and 4.71%
   against 0.00% on the TENDL-2025 Co59 tape. yani's TENDL-2025 covariance is not
   published yet, so a run on it today lists Co59 under `no_covariance_data`
   instead.
-- **MF=33 blocks that are not used.** Blocks with `MAT1 != 0`, which state
-  covariance with another evaluation (the links to the standards among them)
-  and today also include blocks naming the evaluation's own MAT; blocks stated
-  through other reactions' covariances (NC); lumped reactions (MT=851 to 870),
-  which state the uncertainty of a sum of reactions; and blocks stated on
-  partial levels (MT=600 to 849 and 875 to 891) where the chain drives the
-  total. `skipped_cross_material` and `skipped_nc` count the first two, blocks
-  on reactions the chain does not drive among them, summed over the material's
-  spectra, and both set `has_gaps`. The lumps and the partial levels are not
-  counted, and the rates they would cover count as uncovered in
+- **MF=33 blocks that are not used.** Blocks whose `MAT1` names another
+  evaluation, which state covariance with it (the links to the standards among
+  them); blocks whose partner is not a cross section (`XMF1` other than 0 or
+  3); NC blocks that cannot be derived (LTY 1 to 4, and the LTY=0 blocks
+  counted in `skipped_nc`); lumped reactions (MT=851 to 870) with several
+  components that no derivation names, which state the uncertainty of a sum of
+  reactions; and blocks stated on partial levels (MT=600 to 849 and 875 to
+  891) where the chain drives the total and no LTY=0 NC block names them. A
+  block naming the evaluation's own MAT is folded, as are an LTY=0 NC block's
+  derivation from the reactions it names and a lump with a single component.
+  `skipped_cross_material`, `skipped_other_file`, `skipped_nc` and
+  `lumped_covariance_not_assignable` count the first four, on reactions the
+  fold reaches, and all set `has_gaps`. The partial levels are not counted,
+  and the rates they and the lumps would cover count as uncovered in
   `rate_fraction_covered_total`. A nuclide whose blocks are all of these kinds,
   or all on reactions the chain does not drive, has no usable block and is
   listed under `no_covariance_data`, which sets `has_gaps`.
   Tungsten's `(n,2n)` is lumped: ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d state it
   only together with `(n,2np)`. JEFF-4.0 Be9 states its `(n,2n)` only on the
   levels MT=875 to 890, and ENDF/B-VIII.1 Ca40 its `(n,p)` and `(n,a)` only on
-  MT=600 and 800, so Ca40 is listed under `perturbed` through its capture alone
-  ([#166][core166]).
+  MT=600 and 800, so Ca40 is listed under `perturbed` through its capture alone.
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, and holding it drops two
   terms that pull opposite ways. A larger capture cross section would deepen its
@@ -412,8 +437,7 @@ variance of a sum when the term is positive and raises it when it is negative.
   with the feedback). TENDL-2017 states one, and there the held sigma is too
   small: 5.34% held against 6.07% with the feedback and the elastic term
   together (2.23% with the feedback alone). These figures fold the shielded
-  partials correctly, and the fold defect above overstates on top of them
-  ([#167][core167]).
+  partials, as the fold does.
 - **The flux's response to the cross sections.** In yamc's
   `Model.simulate_transmutation`, a replica's cross sections rescale the tallied
   rates and leave the tallied flux as it was. For a trace activation product
@@ -426,39 +450,40 @@ variance of a sum when the term is positive and raises it when it is negative.
   term understates the sigma of a product behind many mean free paths of steel.
   On `Material.transmute` the spectrum's uncertainty is only what the pulse is
   given. The coupled method refuses `data_uncertainty` because its step-to-step
-  tally noise is not propagated yet ([#162][core162]); it is also where the
-  flux's response to a perturbed cross section would come in ([#166][core166]).
+  tally noise is not propagated yet; it is also where the flux's response to a
+  perturbed cross section would come in.
 - **Decay photon line intensities.** Each line's emission per decay stays the
   evaluated one, so a line's band is the band on the activity of the nuclides
   emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
   lines. On contact dose it is negligible for Co60 (0.014%) and not for Mn56
   (0.6 to 1.8%) or W187 (0.8 to 3.7%), the range running across ENDF/B-VIII.1,
-  JEFF-4.0 and JENDL-5.0 and from independent lines to fully correlated ones
-  ([#163][core163]).
+  JEFF-4.0 and JENDL-5.0 and from independent lines to fully correlated ones.
 - **Dose constants and build-up.** Contact dose uses the same photon attenuation
   coefficients, the same response (air energy absorption, or the ICRP-116
   coefficients for effective dose) and the same constant build-up factor in
   every replica. None of those tables publishes a per-value uncertainty, and the
   build-up factor is a model choice whose error is the larger term: the default
   of 2 reads 16 to 17% high for Co60 in steel against a photon transport
-  calculation of the same half-space ([#164][core164]).
+  calculation of the same half-space.
 - **Material composition and natural abundances.** Element and impurity
   fractions, density and natural isotopic abundances are the same in every
   replica. For activation driven by a trace impurity this is often the largest
   omission: in a 316L-like steel with 0.1 wt% cobalt, the contact dose at 10
   years is 99.6% Co60 and moves 0.69% per 1% on the cobalt fraction. A material
   carries only the elements it is given, and the bundled PNNL compendium's
-  `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
-  ([#165][core165]).
+  `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver.
 
 `not_perturbed` in `get_data_uncertainty_info` names every input in this list
-on every run: decay branching, fission yields, isomeric branching (MF=9/MF=10),
-cross-material, NC and lumped MF=33 blocks, resonance-parameter covariance
-(MF=32), decay photon line energies and intensities, the photon attenuation,
+on every run: fission yields, isomeric branching (MF=9/MF=10), cross-material,
+non-cross-section, underivable NC and unassignable lumped MF=33 blocks,
+resonance-parameter covariance (MF=32), decay photon line energies and
+intensities and the decay photon continuum, the photon attenuation,
 energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
 factor, and the material composition, density, natural abundances and atomic
 masses. It adds an entry for each source a run switches off (half-life, decay
-energy, activation cross section), the flux spectrum on `Material.transmute`
+energy, decay branching, activation cross section), the per-branch decay
+emission of a parent whose branching was drawn, the flux spectrum on
+`Material.transmute`
 when that source is off or some or all spectra have no sigma, the tallied-rate
 statistics when a transport run does not draw them, the self-shielding
 correction when shielding is on, and the flux response to perturbed cross
@@ -472,19 +497,20 @@ flux draw; and, on `Material.transmute`, the flux's response to the cross
 sections of the materials the neutrons passed through.
 
 `has_gaps` looks only at the sources the run perturbs, and is True when one of
-them met a nuclide with no usable MF=33 block, a skipped cross-material or NC
-block, a block whose layout is unsupported or malformed, a channel whose
-partial rates add up to more, or less, than its rate (`partials_above_rate`,
-`partials_below_rate`), a covariance repaired past round-off on a channel a
-draw can move (inside the populated bound or outside it), a spectrum with no
-flux sigma, or a reachable unstable nuclide with no stated half-life sigma, or
-with a decay energy but no stated sigma on it. Until the fold weights a
-shielded rate with shielded partials ([#166][core166] item 4), a self-shielded
-run lists most channels a relative block names under `partials_above_rate`, so
-`has_gaps` is True on it. Of the inputs in this list, the skipped
-cross-material and NC blocks set it, and the lumped and partial-level blocks
+them met a nuclide with no usable MF=33 block, a skipped cross-material,
+non-cross-section or NC block, a mirrored pair whose copies disagree, an
+unassignable lump, a block whose layout is unsupported or malformed, a channel
+whose partial rates add up to more, or less, than its rate
+(`partials_above_rate`, `partials_below_rate`), a derived channel whose
+opposing terms have no stated covariance (`derived_opposing_uncorrelated`), a
+covariance repaired past round-off on a channel a draw can move (inside the
+populated bound or outside it), a spectrum with no flux sigma, a reachable
+unstable nuclide with no stated half-life sigma, or with a decay energy but no
+stated sigma on it, a stated half-life or decay-energy sigma no draw can carry,
+or a multi-mode parent whose branching was held. Of the inputs in this list,
+the skipped and unassignable MF=33 blocks set it, and the partial-level blocks
 set it only through `no_covariance_data`, when they are all a nuclide has. A
-sigma is the spread from the five sources above with everything in this list
+sigma is the spread from the six sources above with everything in this list
 held. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
@@ -507,9 +533,3 @@ means are bit-identical to a build without any of it.
 
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26
-[core162]: https://github.com/fusion-neutronics/core/issues/162
-[core163]: https://github.com/fusion-neutronics/core/issues/163
-[core164]: https://github.com/fusion-neutronics/core/issues/164
-[core165]: https://github.com/fusion-neutronics/core/issues/165
-[core166]: https://github.com/fusion-neutronics/core/issues/166
-[core167]: https://github.com/fusion-neutronics/core/issues/167
