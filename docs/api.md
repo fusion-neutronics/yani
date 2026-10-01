@@ -20,6 +20,7 @@ build fails if anything else on the module goes undocumented.
 ::: yani.Material
 ::: yani.Enriched
 ::: yani.enriched
+::: yani.transmute
 
 ## Irradiation schedules
 
@@ -36,6 +37,7 @@ build fails if anything else on the module goes undocumented.
 ::: yani.DoseResult
 ::: yani.ClearanceResult
 ::: yani.PhotonCoefficients
+::: yani.PhotonContinuum
 
 ## Nuclear-data uncertainty
 

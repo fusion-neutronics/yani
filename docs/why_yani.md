@@ -53,40 +53,55 @@ group structure smears across a bin.
 **An uncertainty on the answer, not just the answer.** Pass
 `data_uncertainty=` and every nuclide density comes back with a standard
 deviation beside it. The activation cross sections are resampled from the
-evaluation's own ENDF MF=33 covariance, folded against your spectrum, and the
+evaluation's own ENDF MF=33 covariance, folded against your spectrum, the
+half-lives and decay energies from the decay data's own sigmas, and the
 schedule is re-solved for each sample. That is exact to all orders in the
 matrix exponential: nothing is linearized, and the sandwich rule is not used,
-so correlations between nuclides survive. A parent and its daughter come back
-with the same absolute uncertainty, because every daughter atom came out of a
-parent atom. If your spectrum arrives from a Monte Carlo run with a per-bin
-error, hand it to the pulse as `flux_std_dev` and that propagates too, as its
-own source, so you can see which of the two dominates.
+so correlations between nuclides survive. When a replica moves a channel, the
+channel's product moves against its target and together with the nuclides the
+product decays to, and a quantity summed over them keeps both: the spreads of
+the first pair partly cancel and those of the second add. If your spectrum
+arrives from a Monte Carlo run with an error on it, hand it to the pulse as
+`flux_std_dev`, or as a full `flux_covariance`, and that propagates too, as its
+own source, so you can see which source dominates.
 
-**Every quantity you would put in a report carries the same band.**
-Activity, decay heat, contact dose and every decay photon line come back as an
-`Estimate`, a nominal value with the ensemble's spread beside it. Each is
-evaluated once per replica and summed inside that replica: adding the
-per-nuclide sigmas in quadrature double-counts a variance that partly cancels,
-and contact dose is not even linear in the densities, since a replica that
-makes more of an emitter also absorbs more of it. A calculated band beside a
-measured one says whether the disagreement is larger than the data allows.
+**Every quantity you would put in a report carries a band from the same
+ensemble.** Activity, decay heat, contact dose and every decay photon line come
+back as an `Estimate`, a nominal value with the ensemble's spread beside it.
+Each is evaluated once per replica, with that replica's own half-lives, and
+summed inside that replica: adding the per-nuclide sigmas in quadrature
+double-counts a variance that partly cancels, and contact dose is not even
+linear in the densities, since a replica that makes more of an emitter also
+absorbs more of it. The band is the inventory's: a line's emission per decay,
+and the attenuation, response and build-up behind contact dose, are the same in
+every replica, so a photon line's band is the band on the activity of the
+nuclides emitting it. A calculated band beside a measured one says whether the
+disagreement is larger than the propagated data allows.
 
 **A sigma of zero says which kind of zero it is.** The hard part of an
 uncertainty is not producing one, it is knowing what it left out. A nuclide
 whose evaluation publishes no covariance and a nuclide whose covariance is
 genuinely small would otherwise both report `0.0`, and only one of those is
-reassuring. `data_uncertainty_info` keeps them apart: which nuclides were
-perturbed, which have no published covariance, what share of each reaction rate
-the covariance grid spans, which evaluated matrices were not positive
-semi-definite and had to be repaired, and which sources are not propagated at
-all. On ENDF/B-VIII.1 that last point is not academic -- 42% of evaluations
-carry MF=33, against 100% of TENDL-2025 -- so the same run on two libraries
-gives two very different sigmas, and the report is what tells you why.
+reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
+perturbed, which have no usable published covariance, what share of each
+reaction rate carries a nonzero stated variance, which evaluated matrices were
+not positive semi-definite and had to be repaired, and which sources were held
+at nominal ([What is not propagated](method.md#what-is-not-propagated) explains
+each one). On ENDF/B-VIII.1 the second point is not academic (42% of evaluations
+carry MF=33, against 100% of TENDL-2025 as published), so the same run on two
+libraries can give two very different sigmas, and the report is what tells you
+why. yani's TENDL-2025 covariance is not distributed yet, so a TENDL-2025 run
+today lists its nuclides under `no_covariance_data`. What it separates is an
+evaluation with no MF=33 from one whose MF=33 is small, and a capture whose
+MF=33 is zero over the resonance range, because the evaluation keeps that
+uncertainty in resonance-parameter covariance (MF=32), reads as uncovered there
+(ENDF/B-VIII.1 W186 about 0.07 on the FNS spectrum).
 `rate_fraction_covered_total` weights coverage by reaction rate and by parent
-density instead of counting evaluations. Two major libraries state covariance
-for all five natural tungsten isotopes and none for the `(n,2n)` making 98% of
-a foil's decay heat, so the count reads as full coverage where the weighted
-figure reads 6%.
+density instead of counting evaluations. ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d
+state covariance for all five natural tungsten isotopes, and state it for the
+`(n,2n)` making 98% of a foil's decay heat only lumped with `(n,2np)`, which is
+not used, so the count reads as full coverage where the weighted figure reads 4%
+on ENDF/B-VIII.1 and JEFF-4.0.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its
@@ -96,7 +111,7 @@ narrow-resonance approximation is not offered, because it over-shields strong
 elastic scatterers badly enough to be worse than applying no correction at all.
 Leave the correction out, which is the default since a material carries no
 geometry, and the run still reports what it skipped:
-`self_shielding_info["would_shield"]` names the resonance absorbers it left
+`would_shield` in `get_self_shielding_info` names the resonance absorbers it left
 uncorrected and how strongly their own resonances could bite. That is a screen
 rather than a bound, since it carries no geometry, so it says which answers to
 distrust rather than by how much. See
@@ -142,8 +157,10 @@ decades, so an effective one-group value of tens of millibarns against a
 14 MeV-dominated spectrum is either fast capture or resonance capture, and only
 the breakdown says which -- which is the difference between a disagreement that
 belongs to the resonance processing and one that belongs to the fast cross
-section. It is also the per-group form of `rate_fraction_covered`, and on a
-shielded run it says which groups the depression moved. See
+section. Set against where a covariance states a nonzero variance, it also
+gives, to group resolution and for the rate the run actually used, the share
+that `rate_fraction_covered` reports for the dilute rate, and on a shielded run
+it says which groups the depression moved. See
 [Where in energy a rate came from](usage.md#where-in-energy-a-rate-came-from).
 
 **Verification and validation runs against every open benchmark we have
