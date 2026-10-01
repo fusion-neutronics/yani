@@ -377,7 +377,7 @@ variance of a sum when the term is positive and raises it when it is negative.
   report shows it: W186's capture block states zero variance from $10^{-5}$ eV
   to 10 keV, where nearly all of a capture rate is, so on the FNS spectrum its
   `rate_fraction_covered` reads about 0.07. W186 is still listed under
-  `perturbed`, since the block's other intervals are used ([#166][core166]). The
+  `perturbed`, since the block's other intervals are used. The
   same check gives 6.32% against 0.01% on the JEFF-4.0 Ag109 tape and 4.71%
   against 0.00% on the TENDL-2025 Co59 tape. yani's TENDL-2025 covariance is not
   published yet, so a run on it today lists Co59 under `no_covariance_data`
@@ -398,8 +398,7 @@ variance of a sum when the term is positive and raises it when it is negative.
   Tungsten's `(n,2n)` is lumped: ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d state it
   only together with `(n,2np)`. JEFF-4.0 Be9 states its `(n,2n)` only on the
   levels MT=875 to 890, and ENDF/B-VIII.1 Ca40 its `(n,p)` and `(n,a)` only on
-  MT=600 and 800, so Ca40 is listed under `perturbed` through its capture alone
-  ([#166][core166]).
+  MT=600 and 800, so Ca40 is listed under `perturbed` through its capture alone.
 - **Self-shielding.** With a shape or a chord, every replica uses the flux
   depression solved from the evaluated cross sections, and holding it drops two
   terms that pull opposite ways. A larger capture cross section would deepen its
@@ -412,8 +411,7 @@ variance of a sum when the term is positive and raises it when it is negative.
   with the feedback). TENDL-2017 states one, and there the held sigma is too
   small: 5.34% held against 6.07% with the feedback and the elastic term
   together (2.23% with the feedback alone). These figures fold the shielded
-  partials correctly, and the fold defect above overstates on top of them
-  ([#167][core167]).
+  partials, as the fold does.
 - **The flux's response to the cross sections.** In yamc's
   `Model.simulate_transmutation`, a replica's cross sections rescale the tallied
   rates and leave the tallied flux as it was. For a trace activation product
@@ -426,30 +424,28 @@ variance of a sum when the term is positive and raises it when it is negative.
   term understates the sigma of a product behind many mean free paths of steel.
   On `Material.transmute` the spectrum's uncertainty is only what the pulse is
   given. The coupled method refuses `data_uncertainty` because its step-to-step
-  tally noise is not propagated yet ([#162][core162]); it is also where the
-  flux's response to a perturbed cross section would come in ([#166][core166]).
+  tally noise is not propagated yet; it is also where the flux's response to a
+  perturbed cross section would come in.
 - **Decay photon line intensities.** Each line's emission per decay stays the
   evaluated one, so a line's band is the band on the activity of the nuclides
   emitting it. The decay data states a sigma on 99.6% of ENDF/B-VIII.1 gamma
   lines. On contact dose it is negligible for Co60 (0.014%) and not for Mn56
   (0.6 to 1.8%) or W187 (0.8 to 3.7%), the range running across ENDF/B-VIII.1,
-  JEFF-4.0 and JENDL-5.0 and from independent lines to fully correlated ones
-  ([#163][core163]).
+  JEFF-4.0 and JENDL-5.0 and from independent lines to fully correlated ones.
 - **Dose constants and build-up.** Contact dose uses the same photon attenuation
   coefficients, the same response (air energy absorption, or the ICRP-116
   coefficients for effective dose) and the same constant build-up factor in
   every replica. None of those tables publishes a per-value uncertainty, and the
   build-up factor is a model choice whose error is the larger term: the default
   of 2 reads 16 to 17% high for Co60 in steel against a photon transport
-  calculation of the same half-space ([#164][core164]).
+  calculation of the same half-space.
 - **Material composition and natural abundances.** Element and impurity
   fractions, density and natural isotopic abundances are the same in every
   replica. For activation driven by a trace impurity this is often the largest
   omission: in a 316L-like steel with 0.1 wt% cobalt, the contact dose at 10
   years is 99.6% Co60 and moves 0.69% per 1% on the cobalt fraction. A material
   carries only the elements it is given, and the bundled PNNL compendium's
-  `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver
-  ([#165][core165]).
+  `Steel, Stainless 316L` lists no cobalt, niobium, tantalum or silver.
 
 `not_perturbed` in `get_data_uncertainty_info` names every input in this list
 on every run: decay branching, fission yields, isomeric branching (MF=9/MF=10),
@@ -507,9 +503,3 @@ means are bit-identical to a build without any of it.
 
 [pusa2010]: https://doi.org/10.13182/NSE09-14
 [pusa2015]: https://doi.org/10.13182/NSE15-26
-[core162]: https://github.com/fusion-neutronics/core/issues/162
-[core163]: https://github.com/fusion-neutronics/core/issues/163
-[core164]: https://github.com/fusion-neutronics/core/issues/164
-[core165]: https://github.com/fusion-neutronics/core/issues/165
-[core166]: https://github.com/fusion-neutronics/core/issues/166
-[core167]: https://github.com/fusion-neutronics/core/issues/167

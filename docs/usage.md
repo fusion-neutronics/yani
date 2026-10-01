@@ -896,9 +896,7 @@ of zero on some intervals, and rate from those counts as uncovered, the same as
 rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
 block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
 is, because the evaluation keeps that uncertainty in resonance-parameter
-covariance (MF=32), which is not folded yet
-([#166](https://github.com/fusion-neutronics/core/issues/166)). On the FNS
-spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
+covariance (MF=32), which is not folded yet. On the FNS spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
 intervals above 10 keV.
 
 The share is of the dilute rate: the rate from energies with a nonzero stated
