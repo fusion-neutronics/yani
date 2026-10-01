@@ -4,11 +4,9 @@ on:
   push:
     branches: [main]
   # Every pull request, whatever it targets. Filtering on `branches: [main]`
-  # meant a stacked pull request was never built: #35 was opened against
-  # another pull request's branch, so the docs job never fired, and GitHub
-  # reported "all checks passed" for the one check that did run while the
-  # branch pinned a yani-core that does not exist. Retargeting to main when the
-  # parent merged did not help either, since a base change raises
+  # means a pull request stacked on another pull request's branch is never
+  # built, so GitHub reports "all checks passed" without the docs job having
+  # run. Retargeting to main later does not help, since a base change raises
   # `pull_request: edited`, which is not a default trigger type.
   pull_request:
   workflow_dispatch:
