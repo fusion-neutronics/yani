@@ -247,16 +247,24 @@ each beta, gamma and alpha component that states one, or on the total when no
 component states a sigma. In a transport run the tallied rates are drawn jointly
 from their per-history covariance.
 
-The decay data states a sigma on each value and no distribution or correlation,
-so the normal shape, and the independence between a nuclide's decay-energy
-components and between different nuclides' half-lives, are choices. These draws
-are normal, with a floor where a draw would leave the physical range. A flux bin
-or a tallied rate below zero is set to zero and counted in `flux_bins_floored`
-or `statistical_floored`. A half-life at or below zero is set to a millionth of
-its nominal value and counted in `half_lives_floored`. A decay energy below zero
-is set to zero and not counted. A floor biases that source's mean upward, as it
-did for the linear cross-section form, so a nonzero count says the normal is
-being used past where it describes the data.
+The decay data states an expected value and a standard deviation on each value
+and no distribution or correlation (ENDF-102 section 29.1), and each nuclide is
+drawn on its own. A half-life or decay energy is its nominal value times a
+lognormal factor with mean one and variance equal to the squared relative sigma,
+so every draw is positive and the ensemble has the stated mean and sigma
+exactly, with no floor, however wide the sigma. The independence between a
+nuclide's decay-energy components and between different nuclides' half-lives is
+a choice, since the data states no correlation. A sigma no draw can carry, one
+stated on a decay energy of zero or one that is not finite, is held at nominal
+and named in `half_life_uncertainty_not_carried` or
+`decay_energy_uncertainty_not_carried`, both counted as gaps.
+
+The flux and tallied-rate draws are normal, with a floor where a draw would
+leave the physical range: a flux bin or a tallied rate below zero is set to zero
+and counted in `flux_bins_floored` or `statistical_floored`. A floor biases that
+source's mean upward, as it did for the linear cross-section form, so a nonzero
+count says the normal is being used past where it describes the data. These two
+stay normal because they carry correlations, which a lognormal would not keep.
 
 Seeds are pure functions of their arguments. A cross-section, half-life or
 decay-energy draw depends on `(seed, replica, nuclide)` and on nothing else: not
