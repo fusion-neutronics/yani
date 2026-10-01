@@ -214,6 +214,20 @@ final.decay_heat(per="g")                  # W/g, needs only density
 final.decay_photon_spectrum(per="cm3")     # photons/s/cm3
 ```
 
+`component=` splits decay heat into the recoverable parts the decay data gives,
+`"beta"`, `"gamma"` or `"alpha"`. The gamma heat is the part that leaves a thin
+component, while the beta and alpha heat is deposited where the decay happens:
+
+<!-- doctest: skip -->
+```python
+final.decay_heat(component="gamma")                  # W, the photons alone
+final.decay_heat(component="beta", by_nuclide=True)  # dict[str, float], W
+```
+
+A nuclide making decay heat whose data carries no split, which data converted
+before the split was recorded does not, raises rather than understating the
+component.
+
 `contact_dose()` is the third of these, and the one that needs no `volume`: it
 is the dose someone receives with a hand on the material, from the material's
 own decay photons, and a bigger lump of the same material reads the same at
@@ -245,6 +259,24 @@ iron.interpolate(energy=1.0e6)                               # cm2/g at 1 MeV
 air = yani.data.mass_energy_absorption_coefficient(material="air")
 ```
 
+Fluence-to-dose coefficients for folding with a transport tally come from
+`yani.data.dose_coefficients()`. Effective dose is the default, from ICRP-116 or
+ICRP-74 for an irradiation geometry; `dose_quantity="ambient"` gives the ambient
+dose equivalent H*(10) from ICRP-74, the quantity most area-monitoring
+regulations still reference. H*(10) is defined in an aligned and expanded field,
+so it takes no `geometry`:
+
+<!-- doctest: skip -->
+```python
+effective = yani.data.dose_coefficients("neutron", geometry="AP")
+h10 = yani.data.dose_coefficients("neutron", dose_quantity="ambient")
+```
+
+The H*(10) tables cover 1 meV to 20 MeV for neutrons and 10 keV to 10 MeV for
+photons and are not extrapolated, so a particle outside that range scores
+nothing. H*(10) is meant to over-estimate effective dose, but for high-energy
+neutrons it reads under it.
+
 The default quantity follows the FISPACT-II methodology and agrees with
 OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
 electrons is not modelled, so a strong beta emitter reads low at contact.
@@ -256,6 +288,24 @@ transport run in yamc:
 <!-- doctest: skip -->
 ```python
 energies, intensities = final.decay_photon_spectrum()
+```
+
+Part of some decay spectra is given in the data as a density over energy rather
+than as lines: the spontaneous-fission photons of an actinide, or the whole
+photon emission of a nuclide far from stability. `decay_photon_spectrum()` holds
+the lines only, and `decay_photon_continua()` returns the rest, one
+`PhotonContinuum` per nuclide and continuum. Its rates are per eV, so they are
+not line rates and cannot be added to the spectrum above; `emission_rate` is
+their integral. It takes the same `per` argument:
+
+<!-- doctest: skip -->
+```python
+for continuum in final.decay_photon_continua(per="cm3"):
+    continuum.nuclide          # e.g. "Cf252"
+    continuum.energies         # eV, the continuum's own grid
+    continuum.rates            # photons/s/eV/cm3 on that grid
+    continuum.interpolation    # the ENDF law between points, e.g. "linear-linear"
+    continuum.emission_rate    # photons/s/cm3, the integral
 ```
 
 A material can also be checked against the regulatory clearance, exemption and
@@ -290,6 +340,41 @@ routes = [name for name, r in results.items() if r.clearable]
 `exclude_daughters` switch off the catch-all limit and the secular equilibrium
 credit that some tables define, and `uncovered_fraction` is the number to check
 before trusting a comfortable index.
+
+### Several materials at once
+
+`yani.transmute()` is the plural of `Material.transmute()`, for the cells of a
+mesh, a component broken into regions, or a sweep over compositions. Each
+material gets exactly the answer `material.transmute(schedule)` would give it,
+and the result is one `TransmutationResults` keyed by each material's `id`, so
+every material needs a distinct one:
+
+<!-- doctest: skip -->
+```python
+inner = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0, id=1)
+outer = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0, id=2)
+
+results = yani.transmute(materials=[inner, outer], schedules=[schedule, schedule])
+results.get_source_rates(material_id=2)   # list[float], each step's flux, n/cm2/s
+results.collapse_reuse                    # {"performed": ..., "requested": ...}
+```
+
+Pass one schedule for every material, or one per material in the same order.
+Each schedule carries that material's own spectra and flux magnitudes, but all
+of them must share one timeline: the same durations, irradiating on the same
+steps. What a Python loop would repeat is done once: the chain is read once,
+each nuclide's cross sections are decoded once for every material that needs
+them, and a collapse runs once per distinct spectrum, composition, temperature
+and shielding, so cells of one steel that saw the same spectrum share it
+whatever their flux magnitudes. `collapse_reuse` says how many collapses that
+saved, and the solves then run in parallel. `data_uncertainty`,
+`self_shielding_chord` and `self_shielding_shape` apply to every material as
+`Material.transmute()` applies them to one, and the same seed perturbs a given
+evaluation the same way in every material.
+
+`get_source_rates()` gives the rate each step drove a material at, zero for a
+cooldown. On a spectrum solve that is the material's own flux magnitude in
+n/cm²/s; on a yamc transport run it is the source strength in n/s.
 
 ## Self-shielding
 
@@ -476,6 +561,27 @@ listing it at 1.0 buries the ones that do.
 This is what separates a disagreement caused by a cross section from one caused
 by a branching ratio. On a foil whose decay heat comes from an isomer, getting it
 wrong is a factor of several.
+
+`get_branching_report()` says how each channel's split was read from the
+evaluation over the step's spectrum: as shares of the reaction's total, or as
+absolute productions with the ground state taking the rest, and how much of the
+parent's removal rate rests on anything the evaluation does not give:
+
+<!-- doctest: skip -->
+```python
+report = results.get_branching_report(material_id=mid, step=0)
+if report is not None:
+    channel = report["channels"][0]
+    channel["parent"], channel["reaction"], channel["representation"]
+    channel["states"]            # each final state and its share of the reaction
+    channel["clipped_share"]     # of the parent's removal rate
+    report["dropped"]            # channels that could not be folded, and why
+    report["unmodelled_mt5"]     # MT=5's share of each parent's removal rate
+```
+
+A run refuses when a channel's clipped or held production is more than 0.1% of
+its parent's neutron removal rate, so whatever the report lists is below that.
+MT=5's share is reported whatever its size, since its products are not modelled.
 
 ### Where in energy a rate came from
 
@@ -1018,6 +1124,42 @@ coefficients, response and build-up factor the same way.
 `get_uncertainty_inventories(material_id=mid, step=step)` is still there for a
 quantity these four do not cover, and returns every replica's full inventory to
 take the spread over yourself.
+
+### Where an uncertainty comes from
+
+`DataUncertainty(attribution=True)` also says where each nuclide's sigma comes
+from. The run then resamples each source alone as well as all of them together,
+so it costs more than one without:
+
+<!-- doctest: skip -->
+```python
+results = material.transmute(
+    schedule=schedule,
+    data_uncertainty=yani.DataUncertainty(seed=42, attribution=True),
+)
+breakdown = results.get_uncertainty_breakdown(
+    material_id=mid, nuclide="Mn56", step=1
+)
+if breakdown is not None:          # None unless attribution was asked for
+    breakdown["variance"]          # the total, the square of the sigma above
+    breakdown["by_source"]         # each source alone; these sum to the total
+    breakdown["unattributed"]      # what the sum leaves, small when it holds
+    breakdown["contributors"]      # (source, nuclide, reaction, variance), largest first
+```
+
+The sources are independent, so `by_source` is how much of the variance is
+cross sections, half-lives, flux and so on, and `unattributed` is interaction
+and sampling noise. `contributors` is first order and says which evaluation to
+look at: within the cross sections a nuclide's whole evaluation has a
+`reaction` of `None` and each channel names its own, and a half-life or a decay
+branching pair has `None`. The total stays the resampled one.
+
+On a yamc transport run with the `statistical` source,
+`get_reaction_rate_uncertainty(material_id=mid, step=step)` lists each tallied
+rate with its standard deviation, as `(nuclide, reaction, target, rate,
+std_dev)` in 1/s per atom. The rates were scored by the same histories and are
+correlated; the inventory sigmas carry those correlations, and these standard
+deviations alone do not.
 
 ## Limits worth knowing
 
