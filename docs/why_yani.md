@@ -85,10 +85,12 @@ genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no usable published covariance, what share of each
 reaction rate carries a nonzero stated variance, which evaluated matrices were
-not positive semi-definite and had to be repaired, and which sources were held
-at nominal ([What is not propagated](method.md#what-is-not-propagated) explains
-each one). On ENDF/B-VIII.1 the second point is not academic (42% of evaluations
-carry MF=33, against 100% of TENDL-2025 as published), so the same run on two
+not positive semi-definite and had to be repaired (a repair that only ever adds
+variance, with each channel's evaluated sigma beside the one sampled), and
+which sources were held at nominal
+([What is not propagated](method.md#what-is-not-propagated) explains each one).
+On ENDF/B-VIII.1 the second point is not academic (42% of evaluations carry
+MF=33, against 100% of TENDL-2025 as published), so the same run on two
 libraries can give two very different sigmas, and the report is what tells you
 why. yani's TENDL-2025 covariance is not distributed yet, so a TENDL-2025 run
 today lists its nuclides under `no_covariance_data`. What it separates is an

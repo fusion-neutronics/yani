@@ -217,7 +217,12 @@ not the data, that sets the tails. Such a channel is heavy-tailed enough that
 its sampled spread converges slowly: at 1024 replicas, the most the driver adds
 on its own, the median sample standard deviation is 0.98 of sigma at
 $\sigma = 1$, 0.92 at 2, 0.83 at 3 and 0.50 at 9. TENDL-2017 has channels at
-$10^4$% and more, and the report does not flag them yet ([#166][core166]).
+$10^4$% and more, and the report names every sampled channel of a populated
+nuclide whose evaluated relative sigma is at least 1 or at least 10 in
+`sigma_at_least_one` and `sigma_at_least_ten`. The channels at 1 or more of
+nuclides outside the populated bound described below are named in
+`sigma_at_least_one_outside_bound`, since a draw on exactly such a channel can
+sit orders above nominal and populate the nuclide.
 
 The eigendecomposition is a cyclic Jacobi rotation rather than a library call:
 the matrices are one per nuclide over that nuclide's activation channels, single
@@ -227,14 +232,47 @@ eigenvectors the clipping needs anyway. A Cholesky would be the obvious choice
 if the matrices were positive definite, and the point is that they are not:
 MF=33 matrices are frequently not PSD as evaluated, so negative eigenvalues are
 clipped to zero. That repair only ever adds variance, and it can give a spread
-to a channel whose evaluated variance is zero. `matrices_clipped` counts the
-matrices that needed it, summed over the material's spectra and including those
-whose negative eigenvalue is only round-off, and `worst_relative_clip` reports
-the largest
-$|\lambda_\text{min}| / \lambda_\text{max}$, which is not the change in any one
-sigma: a ratio under $10^{-3}$ can sit beside a dominant channel whose sigma
-grew by more than 10%. A matrix that needed a large repair is one whose sampled
-spread no longer means what the evaluation said.
+to a channel whose evaluated variance is zero. A matrix counts as repaired
+when its correlation matrix $R = D^{-1/2} C D^{-1/2}$, over the channels with a
+positive stated variance, has an eigenvalue below $-n \cdot 10^{-12}$, $n$ the
+number of those channels, or when a channel is stated with a negative variance,
+or with a zero one and a covariance to another channel. $R$ is congruent to
+that block of $C$, so one is PSD exactly when the other is, and on $R$ the
+round-off of the decomposition is about $n$ times machine epsilon whatever the
+spread of the channels, so a PSD matrix whose smallest eigenvalue comes back a
+few ulps below zero is not a repair. The test is not on $\lambda_\text{min}$
+of $C$ against its $\lambda_\text{max}$ because TENDL-2017 has channels at a
+relative sigma up to $5.6 \times 10^8$, a variance near $3 \times 10^{17}$,
+and one of those beside ordinary channels would set a whole-matrix threshold
+far above a real repair among them. `covariance_repaired` lists the distinct
+nuclides with a repaired channel a draw can move (a positive rate on a spectrum
+the schedule irradiates with), and any makes `has_gaps` true. The report covers
+the nuclides the material can populate: the fold takes every chain nuclide with
+data, which from almost any composition is the chain's whole closure, so a
+nuclide is reported only when an upper bound on its density over the schedule,
+at nominal rates, reaches the solver's floor of $10^{-30}$ atoms/b-cm. One the
+bound leaves out cannot move any nominal density by as much as that floor, but
+a replica's rates on a wide channel can sit orders above nominal, so repaired
+nuclides outside the bound with a channel a draw can move are named in
+`covariance_repaired_outside_bound`, and any of those makes `has_gaps` true as
+well, since the bound says nothing about a replica. `covariance_repairs`
+records, per repaired populated nuclide and spectrum, $\lambda_\text{min}$,
+$\lambda_\text{max}$, the variance added over the stated trace, and each
+channel's evaluated variance (kept as stated, even when negative) beside the
+sigma it is sampled at. Clipping can only widen a channel, and a small
+$|\lambda_\text{min}| / \lambda_\text{max}$ does not mean a small widening of
+the channel that matters, so the headline is the sigmas themselves:
+`worst_sigma_inflation` is the largest sampled over evaluated sigma, minus one,
+over the repaired channels a draw can move, and `rate_weighted_sigma_inflation`
+is the weighted mean of each channel's own sampled over evaluated sigma, minus
+one, each channel weighted by its rate at unit flux, its spectrum's fluence in
+the schedule and its parent's initial density. Weighting the inflation rather
+than the sigma keeps a wide channel with a small rate from drowning out a
+repair on the channels that carry the reactions, and the initial density makes
+it a first-generation measure: a produced nuclide carries no weight, and its
+repairs show in the other two. The sampled sigma is read off the
+factorization for every matrix, so a matrix below the repair threshold shows
+its round-off there as it is.
 
 The other sources are drawn on their own stated sigma. The flux is drawn once
 per replica, per group, from the pulse's `flux_std_dev` or through the factor of
@@ -437,15 +475,17 @@ sections of the materials the neutrons passed through.
 them met a nuclide with no usable MF=33 block, a skipped cross-material or NC
 block, a block whose layout is unsupported or malformed, a channel whose
 partial rates add up to more, or less, than its rate (`partials_above_rate`,
-`partials_below_rate`), a spectrum with no flux sigma, or a reachable unstable
-nuclide with no stated half-life sigma, or with a decay energy but no stated
-sigma on it. Until the fold weights a shielded rate with shielded partials
-([#166][core166] item 4), a self-shielded run lists most channels a relative
-block names under `partials_above_rate`, so `has_gaps` is True on it. Of the
-inputs in this list, the skipped cross-material and NC blocks set it, and the
-lumped and partial-level blocks set it only through `no_covariance_data`, when
-they are all a nuclide has. A sigma is the spread from the five sources above
-with everything in this list held. See
+`partials_below_rate`), a covariance repaired past round-off on a channel a
+draw can move (inside the populated bound or outside it), a spectrum with no
+flux sigma, or a reachable unstable nuclide with no stated half-life sigma, or
+with a decay energy but no stated sigma on it. Until the fold weights a
+shielded rate with shielded partials ([#166][core166] item 4), a self-shielded
+run lists most channels a relative block names under `partials_above_rate`, so
+`has_gaps` is True on it. Of the inputs in this list, the skipped
+cross-material and NC blocks set it, and the lumped and partial-level blocks
+set it only through `no_covariance_data`, when they are all a nuclide has. A
+sigma is the spread from the five sources above with everything in this list
+held. See
 [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility
