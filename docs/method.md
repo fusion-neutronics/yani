@@ -5,6 +5,29 @@ What YANI actually computes, in the order it computes it. The
 choice here has a reason, and where a cheaper option was measured and rejected
 that is recorded rather than quietly omitted.
 
+## From input to answer
+
+A run goes through six stages, and each section below takes one of them:
+
+1. **Network.** The transmutation chain gives every nuclide's decay modes,
+   reaction products and fission yields. The nuclides the material can actually
+   populate over the schedule are found from the starting composition, and the
+   rest are never loaded ([Which nuclides get loaded](#which-nuclides-get-loaded)).
+2. **Rates.** Each reaction's rate per atom comes from folding your spectrum
+   against the pointwise cross section ([The collapse](#the-collapse)), with a
+   flux depression applied first if you asked for self-shielding
+   ([Self-shielding](#self-shielding)). Fission yields and isomeric splits are
+   weighted by the same spectrum.
+3. **Matrix.** Decay constants and rates go into the sparse matrix $A$
+   ([Building the matrix](#building-the-matrix)).
+4. **Solve.** Each step of the schedule is one matrix exponential
+   ([The solve](#the-solve), [Schedules](#schedules)).
+5. **Observables.** Activity, decay heat, photon emission and contact dose are
+   computed from each step's inventory and the decay data
+   ([From inventory to observables](#from-inventory-to-observables)).
+6. **Uncertainty**, when asked for, repeats stages 2 to 5 with perturbed inputs
+   ([Nuclear-data uncertainty](#nuclear-data-uncertainty)).
+
 ## The solve
 
 One timestep is a matrix exponential, $\mathbf{N}(t) = e^{At}\mathbf{N}(0)$,
@@ -32,6 +55,20 @@ order of the floating point additions and therefore the last bits of the answer.
 The symbolic factorization is reused across the poles, which is where the
 structure does pay.
 
+Most of a transmutation network has no cycles: a chain of decays only goes
+downhill. The linear solve at each pole is therefore taken block by block over
+the strongly connected components of the network, in order, and only a block
+that does contain a cycle (a capture followed by a decay back to the parent, for
+instance) goes to the sparse LU. The rest is substitution.
+
+Two things happen after the exponential. A nuclide that nothing in the step
+feeds, because none of its parents is present, is set to its closed form
+$N_i(0)\,e^{A_{ii}t}$ rather than the CRAM value: the two solve the same
+equation, the closed form is exact, and it keeps a stable nuclide that is only
+being burned from picking up round-off. Then every density at or below
+$10^{-30}$ atoms/b-cm is dropped, which is the floor the network bound below is
+measured against.
+
 ## Building the matrix
 
 The exponential is published coefficients. The work is in the coefficients of
@@ -42,8 +79,31 @@ reaction products and fission yields. Which library supplies which of those is
 four independent settings, so a network can mix sources by subsection. See
 [Nuclear data settings](usage.md#nuclear-data-settings).
 
-**The collapse** supplies each $\sigma\phi$, by folding your spectrum against
-the pointwise cross section:
+**The collapse** supplies each $\sigma\phi$, described next.
+
+With both in hand, $A$ is filled column by column, one column per parent $j$:
+
+- **Decay.** $\lambda_j = \ln 2 / T_{1/2}$ goes on the diagonal as a loss, and
+  each mode adds $b\,\lambda_j$ to the row of its daughter, $b$ the mode's
+  branching. The light particle a mode emits is produced too, so an alpha decay
+  makes He4. A mode with no daughter in the chain, spontaneous fission among
+  them, removes atoms and makes nothing.
+- **Reactions.** Each reaction's rate $R$ goes on the diagonal as a loss and
+  $b\,R$ into the row of each product, along with the light ejectiles the
+  reaction names (H1, H2, H3, He3, He4), so gas production is part of the
+  inventory rather than a separate tally. A reaction that leaves the target as
+  it was cancels against its own loss.
+- **Fission.** The fission rate is a loss, and each fission product $p$ gains
+  $R_f\,Y(p)$, with $Y$ the spectrum-weighted yield described in
+  [Fission yields](#fission-yields).
+
+Stable nuclides are ordinary columns with no decay term: they are lost only to
+reactions.
+
+### The collapse
+
+Each $\sigma\phi$ comes from folding your spectrum against the pointwise cross
+section:
 
 $$
 \sigma_{\text{eff}} = \frac{\sum_g \sigma_g \phi_g}{\sum_g \phi_g},
@@ -56,6 +116,52 @@ The total flux cancels, so the rate is an integral of the cross section against
 your spectrum and nothing else. The cross section is read at the energy
 resolution of the evaluation, so the only averaging is the one your own spectrum
 implies.
+
+In practice each $\sigma_g$ is the integral of the cross section over the group
+divided by the group width, taken by the trapezoid rule over the group's edges
+and every evaluated point inside it. The cross section is read linear-linear
+between its points, so the trapezoid rule is exact for it rather than an
+approximation. Two edges need a rule:
+
+- **Below the evaluation's first energy** a threshold reaction is zero and any
+  other reaction holds its first value.
+- **Above its last energy** the cross section is zero and the group keeps its
+  full width. A spectrum reaching past a nuclide's evaluation would therefore
+  read low without saying so, so a run with more than 0.1% of its flux above
+  the top of a nuclide's evaluation raises instead. See
+  [Energy range](libraries.md#energy-range).
+
+Cross sections are taken at the material's temperature, which must be one the
+data was prepared at: nothing is interpolated between temperatures. A material
+with no temperature set takes the first one in the data.
+
+The flux shape within a group is taken as flat in energy, and that is a choice
+with an error of its own. Measured against a pointwise reference on the FNS
+foil reactions with VITAMIN-J-175, flat is the best of the shapes tried on the
+hard FNS spectrum (3.7% mean error, against 21% for $1/E$ within each group),
+and the worst once a 10% $1/E$ tail is added (28%, against 3.2%). No fixed
+shape wins on both, so the shape stays flat and the remedy is finer groups.
+
+### Fission yields
+
+Fission yields are tabulated at a few incident energies (thermal, 500 keV and
+14 MeV is typical), and the yield a fission actually has depends on what
+energy caused it. YANI uses the independent yields (MT=454) and mixes the
+tabulated sets as
+
+$$
+Y(p) = \sum_k c_k\,Y_k(p), \qquad
+c_k \propto \int \sigma_f(E)\,\psi(E)\,h_k(E)\,\mathrm{d}E
+$$
+
+where $h_k$ is a hat function that is 1 at the $k$-th tabulated energy and
+falls linearly to 0 at its neighbours, flat beyond the first and last. So each
+set is weighted by the share of fissions happening near its energy, and the
+weights sum to one. The interpolation between tabulated energies is linear
+whatever law the evaluation states. The fission products a material can reach
+are the union over all tabulated sets, so none is missed because the spectrum
+happens to weight its set lightly. A nuclide with yields and a nonzero fission
+rate but no weights raises rather than losing its products.
 
 ### Which nuclides get loaded
 
@@ -126,6 +232,134 @@ measurement as applying no correction at all. Whether a given run sits in the
 safe case depends on its field and composition, which is not something a caller
 can state up front, so the option is not offered. See
 [Self-shielding](usage.md#self-shielding).
+
+## Schedules
+
+A schedule is a list of steps, each with a duration and a rate, and each step is
+one matrix exponential. A `Cooldown` is a step with a rate of zero: its matrix
+holds decay terms only, and it goes through the same solver rather than a
+separate decay path, so there is no seam between irradiation and cooling. The
+inventory is reported at the start and at the end of every step, so the output
+times are the cumulative sums of the durations and nothing is reported inside a
+step. A decay curve wants many short cooldown steps, which cost almost nothing,
+and `cooldown_steps()` spaces them.
+
+On `Material.transmute` the rates are worked out once per distinct spectrum,
+not once per step. The collapse gives each reaction's rate per unit flux, from
+the spectrum's shape alone, and each pulse multiplies those by its own `rate`.
+Ten pulses sharing one `source` collapse once, and a pulse with a different
+`source` gets a collapse of its own. With self-shielding on, the flux
+depression is solved from the starting composition. That is the second half of
+the point under [The solve](#the-solve): within one spectrum the rates do not
+follow the composition, because the spectrum is your input.
+
+### Coupled to transport
+
+In yamc, `Model.simulate_transmutation` replaces the collapse with a transport
+run. Each material's rates are tallied directly as continuous-energy
+track-length estimates of $\sigma(E)\,\ell$, scored at each track's own
+energy, so there is no group structure and no within-group assumption. Per atom
+of the target, the rate is
+
+$$
+R = \frac{\langle \sigma \ell \rangle}{10^{24}\,V} \times S
+$$
+
+with $\langle \sigma \ell \rangle$ the mean per source particle in b-cm, $V$
+the material's volume in cm³ and $S$ the pulse's source rate in n/s. That is
+why `rate` means a source rate there and a flux here. The fission-yield weights
+are tallied the same way, with the hat functions applied on each track.
+
+Two methods differ in how often transport runs:
+
+- **independent** runs it once, at the starting composition, and scales the
+  per-source-particle rates by each step's source rate. It is the cheap one, and
+  the only one that propagates nuclear-data uncertainty.
+- **coupled** runs it at the start of every irradiation step, with the
+  compositions the previous step left, and writes the new compositions back to
+  the geometry. Rates are held at those beginning-of-step values over the step,
+  with no predictor-corrector, so a step long enough for its own burnup to move
+  the flux should be split.
+
+Before either, a short scouting run bounds every rate, and the bound picks
+which product nuclides get scored, the same bound as
+[Which nuclides get loaded](#which-nuclides-get-loaded) with the bounding
+rates in place of the collapsed ones.
+
+## From inventory to observables
+
+Everything a step reports beyond the inventory itself is a sum over nuclides of
+atom density times a per-atom quantity from the decay data. With $N_i$ in
+atoms/b-cm and $V$ in cm³, $10^{24} N_i V$ atoms are present.
+
+**Activity** is $A_i = \lambda_i\,10^{24} N_i V$ in Bq, with
+$\lambda_i = \ln 2 / T_{1/2}$ from the same chain the solve used. Stable
+nuclides contribute nothing and are left out.
+
+**Decay heat** is $P_i = A_i\,\bar E_i$, with $\bar E_i$ the mean energy
+released per decay, from the MT=457 average energies: the light-particle part
+(beta, conversion and Auger electrons), the electromagnetic part (gamma and
+X-rays) and the heavy-particle part (alpha, protons, neutrons and fragments).
+Neutrino energy is not included, since it is not deposited. The `component=`
+split returns each part on its own as beta, gamma and alpha, and a nuclide that
+makes heat but carries no split raises rather than being left out of a
+component. Some decay records state $Q/3$ placeholders instead of evaluated
+energies; how those are found and filled is in
+[Some decay records are placeholders](libraries.md#some-decay-records-are-placeholders).
+
+**Specific values** replace $V$: `per="cm3"` sets it to 1 and `per="g"` to
+$1/\rho$, which is why neither needs the material's volume.
+
+**Decay photon lines** come from the MF=8 discrete spectra of the gamma and
+X-ray radiation types. Each line carries its emission per atom per second,
+$\lambda_i$ times the line's intensity per decay, and the step's line spectrum
+is that times the number of atoms, summed over nuclides. Lines at the same
+energy are merged and nothing is binned, so the spectrum is exactly the
+evaluated one and goes straight into a photon source.
+
+**Decay photon continua** are the part of a decay photon spectrum the
+evaluation gives as a density over energy rather than as lines: the photons of
+spontaneous fission, or the whole emission of a nuclide far from stability where
+no lines are known. Each is kept on its own energy grid with its own ENDF
+interpolation law and is neither resampled nor merged with others, and its
+emission rate is its exact integral under that law. These are evaluated decay
+spectra, not bremsstrahlung, which is not modelled anywhere.
+
+### Contact dose
+
+The contact dose rate treats the material as a half-space emitting photons
+uniformly. At the surface, the uncollided photon flux of energy $E$ from a
+uniform isotropic source of $q$ photons per cm³ per second is $q / 2\mu(E)$,
+with $\mu$ the material's own linear attenuation coefficient: half the photons
+head away from the surface, and the depth they arrive from is set by $\mu$. The
+material's size drops out, which is why the answer needs no volume and no
+distance. Summed over the lines of every nuclide:
+
+$$
+\dot D = \frac{B}{2} \sum_i 10^{24} N_i \sum_\ell S_{i\ell}\,
+\frac{E_\ell\,(\mu_\text{en}/\rho)_\text{air}(E_\ell)}{\mu(E_\ell)}
+$$
+
+for absorbed dose in air, where $S_{i\ell}$ is line $\ell$'s emission per atom
+per second, and $\mu = \sum_e \rho_e\,(\mu/\rho)_e$ is built from each
+element's partial density and NIST XCOM mass attenuation coefficients.
+$(\mu_\text{en}/\rho)_\text{air}$ is from NIST SRD 126. For effective dose the
+factor $E\,(\mu_\text{en}/\rho)_\text{air}$ becomes the ICRP-116 photon
+fluence-to-effective-dose coefficient for the AP geometry. Both tables are read
+log-log, and a line outside the range both tables cover contributes nothing.
+A continuum enters the same sum as an integral over its density, taken exactly
+under its interpolation law against Gauss-Legendre moments of the response.
+
+The build-up factor $B$, 2 by default, stands in for photons that scatter and
+still arrive. It is the approximation that carries the error: against a photon
+transport calculation of the same half-space it reads 16 to 17% high for Co60
+in steel. This is the FISPACT-II method (UKAEA-CCFE-RE(21)02, Appendix C.7.1)
+and agrees with OpenMC's `Material.get_photon_contact_dose_rate` for lines.
+
+Dose anywhere other than in contact with the material is a photon transport
+problem: the photon lines are a source for it, and `dose_coefficients()` gives
+the ICRP-116 or ICRP-74 coefficients, H*(10) among them, to fold into its flux
+tally.
 
 ## Nuclear-data uncertainty
 
