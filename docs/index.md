@@ -52,16 +52,14 @@ sparse LU factorization whose symbolic factorization is reused across the poles.
 Reaction rates are held at their beginning-of-step values, so a schedule of $n$
 steps is $n$ matrix exponentials per material.
 
-What takes the work is not the exponential, which is published coefficients: it
-is the coefficients of $A$. Those come from a transmutation network (decay
-constants, branching, reaction products, fission yields) and from folding your
-spectrum against continuous-energy cross sections to get each $\sigma\phi$.
+The coefficients of $A$ come from a transmutation network (decay constants,
+branching, reaction products, fission yields) and from folding the spectrum
+against continuous-energy cross sections to get each $\sigma\phi$.
 
-Which of the six available libraries supplies which of those, and how much is in
-each, is in [Nuclear data libraries](libraries.md). How the network, the
-collapse, the self-shielding correction, the schedule, the derived quantities
-(activity, decay heat, photon emission, contact dose) and the uncertainty
-propagation actually work is in [Method](method.md).
+[Nuclear data libraries](libraries.md) describes the six available libraries
+and what each contains. [Method](method.md) describes how the network, the
+collapse, self-shielding, schedules, derived quantities (activity, decay heat,
+photon emission, contact dose, clearance) and uncertainty propagation work.
 
 ## Whether the answers are right
 
