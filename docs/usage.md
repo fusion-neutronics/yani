@@ -308,6 +308,8 @@ for continuum in final.decay_photon_continua(per="cm3"):
     continuum.emission_rate    # photons/s/cm3, the integral
 ```
 
+### Clearance and disposal limits
+
 A material can also be checked against the regulatory clearance, exemption and
 disposal limits directly, from yani-core 0.19.0. `clearance_index()` divides
 each radionuclide's activity by its limit in a set and sums the ratios; the
