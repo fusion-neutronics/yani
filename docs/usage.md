@@ -245,8 +245,7 @@ the photons that scatter on the way out and still arrive.
 
 The two NIST tabulations it folds against are public, so a response function of
 your own can be built from the same data: `mu/rho` for any element from Z = 1 to
-100, and `mu_en/rho` for air. Both read log-log between their tabulated points
-and carry the same names as their OpenMC counterparts.
+100, and `mu_en/rho` for air. Both read log-log between their tabulated points.
 
 <!-- doctest: skip -->
 ```python
