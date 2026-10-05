@@ -370,8 +370,7 @@ The build-up factor $B$ (default 2) accounts for photons that scatter and still
 reach the surface. It is the largest source of error: compared with a photon
 transport calculation of the same half-space, it gives a result 16 to 17% high
 for Co60 in steel. The method follows FISPACT-II (UKAEA-CCFE-RE(21)02,
-Appendix C.7.1) and agrees with OpenMC's `Material.get_photon_contact_dose_rate`
-for lines.
+Appendix C.7.1).
 
 Dose rates away from the material need a photon transport calculation. The
 photon lines can be used as its source, and `dose_coefficients()` provides the
