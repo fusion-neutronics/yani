@@ -272,9 +272,8 @@ photons and are not extrapolated, so a particle outside that range scores
 nothing. H*(10) is meant to over-estimate effective dose, but for high-energy
 neutrons it reads under it.
 
-The default quantity follows the FISPACT-II methodology and agrees with
-OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
-electrons is not modelled, so a strong beta emitter reads low at contact.
+The default quantity follows the FISPACT-II methodology. Bremsstrahlung from
+decay electrons is not modelled, so a strong beta emitter reads low at contact.
 
 The decay photon line spectrum comes back as the `(x, p)` pair the source
 distributions take, in photons per second, so it feeds straight into a photon
