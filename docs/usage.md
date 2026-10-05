@@ -113,12 +113,8 @@ the normal case and costs nothing. Which library reaches how far is in
 [Energy range](libraries.md#energy-range).
 
 Passing a name that is not one of these raises with the list of the ones that
-are, so a typo never silently becomes something else. Every name except
-`CCFE-24-PHOTON` carries the same boundaries as OpenMC's
-`openmc.mgxs.GROUP_STRUCTURES` entry of that name, so a spectrum tabulated for
-one code can be handed to the other without re-binning. Note that `SCALE-252`
-and `SHEM-361` start at exactly 0 eV, which is OpenMC's value; treat their
-bottom bin as open-ended.
+are, so a typo never silently becomes something else. Note that `SCALE-252`
+and `SHEM-361` start at exactly 0 eV; treat their bottom bin as open-ended.
 
 If you need the edges themselves, to bin your own data, to plot a spectrum
 against them, or to fold a cross section over them, ask for them by name:
