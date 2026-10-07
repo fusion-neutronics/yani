@@ -113,12 +113,8 @@ the normal case and costs nothing. Which library reaches how far is in
 [Energy range](libraries.md#energy-range).
 
 Passing a name that is not one of these raises with the list of the ones that
-are, so a typo never silently becomes something else. Every name except
-`CCFE-24-PHOTON` carries the same boundaries as OpenMC's
-`openmc.mgxs.GROUP_STRUCTURES` entry of that name, so a spectrum tabulated for
-one code can be handed to the other without re-binning. Note that `SCALE-252`
-and `SHEM-361` start at exactly 0 eV, which is OpenMC's value; treat their
-bottom bin as open-ended.
+are, so a typo never silently becomes something else. Note that `SCALE-252`
+and `SHEM-361` start at exactly 0 eV; treat their bottom bin as open-ended.
 
 If you need the edges themselves, to bin your own data, to plot a spectrum
 against them, or to fold a cross section over them, ask for them by name:
@@ -249,8 +245,7 @@ the photons that scatter on the way out and still arrive.
 
 The two NIST tabulations it folds against are public, so a response function of
 your own can be built from the same data: `mu/rho` for any element from Z = 1 to
-100, and `mu_en/rho` for air. Both read log-log between their tabulated points
-and carry the same names as their OpenMC counterparts.
+100, and `mu_en/rho` for air. Both read log-log between their tabulated points.
 
 <!-- doctest: skip -->
 ```python
@@ -277,9 +272,8 @@ photons and are not extrapolated, so a particle outside that range scores
 nothing. H*(10) is meant to over-estimate effective dose, but for high-energy
 neutrons it reads under it.
 
-The default quantity follows the FISPACT-II methodology and agrees with
-OpenMC's `Material.get_photon_contact_dose_rate`. Bremsstrahlung from decay
-electrons is not modelled, so a strong beta emitter reads low at contact.
+The default quantity follows the FISPACT-II methodology. Bremsstrahlung from
+decay electrons is not modelled, so a strong beta emitter reads low at contact.
 
 The decay photon line spectrum comes back as the `(x, p)` pair the source
 distributions take, in photons per second, so it feeds straight into a photon
