@@ -855,17 +855,19 @@ only its input changes. Omitting the argument costs nothing at all: no
 covariance is read, nothing is folded, and the inventories are bit-identical.
 
 Every draw is a pure function of the seed, the sample and what is drawn: a
-nuclide for the cross sections, half-lives, decay branching and decay energies, a spectrum for the
+nuclide for the cross sections, half-lives, decay branching, decay energies and
+decay photons, a spectrum for the
 flux, and a material's tallied rates, jointly, for the statistical error. So a
 seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the nuclide density sigmas
-settle. Convergence is judged on the densities alone, and a decay energy moves
-none of them. So when decay energies are the only thing any active source can
-draw (`decay_energy` alone, or the other sources found nothing to perturb), the
+settle. Convergence is judged on the densities alone, and a decay energy or
+photon moves none of them. So when decay energies and photons are the only
+things any active source can draw (`decay_energy` or `decay_photon_lines`
+alone, or the other sources found nothing to perturb), the
 run takes 128 samples, or `samples`, with no convergence check, and reports
 `converged` as True.
 
-Six sources can be perturbed, and `DataUncertainty.available_sources()` names
+Seven sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
 
 - `cross_sections`: the activation cross sections, from their ENDF MF=33
@@ -886,6 +888,10 @@ them:
   gamma and alpha component that states one, or on the total when no component
   states a sigma. A decay energy never enters the solve, so this moves decay
   heat and nothing else.
+- `decay_photon_lines`: each decay photon spectrum's normalisation, one draw
+  per spectrum shared by all its lines, and each line's own intensity and
+  energy, from the decay data's sigmas on them. No photon enters the solve, so
+  this moves the photon spectrum and contact dose and nothing else.
 - `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
   their per-history covariance, on a yamc `Model.simulate_transmutation` run
   with the independent method. A spectrum run's rates are a deterministic
@@ -950,6 +956,8 @@ if info is not None:               # None unless data_uncertainty was passed
     info["decay_branchings_perturbed"]   # two-mode parents whose split was drawn
     info["half_life_uncertainty_not_carried"]     # a stated sigma no draw can
     info["decay_energy_uncertainty_not_carried"]  # carry, held; see the method page
+    info["decay_photon_lines_perturbed"]  # nuclides whose photon data was drawn
+    info["no_decay_photon_line_uncertainty"]  # photon data held for want of a sigma
     info["flux_bins_floored"]      # flux draws floored at zero, see the method page;
                                    # also statistical_floored
     info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
@@ -962,7 +970,7 @@ if info is not None:               # None unless data_uncertainty was passed
 
 `not_perturbed` names every input held at nominal on every run, from fission
 yields and any resonance-parameter covariance (MF=32) not in `covariance.arrow`
-to photon line intensities,
+to the photon spectrum covariance,
 dose coefficients and the material composition, plus the run-dependent entries:
 a source the run switched off, spectra without a flux sigma, tallied-rate
 statistics a transport run did not draw, the self-shielding correction, and the
@@ -1105,6 +1113,7 @@ union of the lines the unperturbed run and every replica emit:
 lines = results.get_decay_photon_spectrum_uncertainty(material_id=mid, step=1)
 for line in lines or []:
     line.energy, line.nominal, line.std_dev
+    line.energy_mean, line.energy_std_dev  # the energy each replica drew
     line.emitting              # replicas that emitted it at all
 ```
 
@@ -1113,11 +1122,12 @@ under which two lines' spreads are taken over the same sample. `emitting` keeps
 that zero-fill visible, so a dim line and an intermittent one stay
 distinguishable.
 
-Every one of these bands is the inventory's, evaluated with each replica's own
-half-lives and, for decay heat, its own decay energies. A line's emission per
-decay is the evaluated one in every replica, so a line's band is the band on the
-activity of the nuclides emitting it, and contact dose holds its attenuation
-coefficients, response and build-up factor the same way.
+Every one of these bands is evaluated with each replica's own half-lives and,
+for decay heat, its own decay energies. With `decay_photon_lines` on, each
+replica also draws every line's emission per decay and energy, so a line's band
+is its emitters' activity and its own intensity together, and lines are matched
+across replicas on their nominal `energy`. Contact dose holds its attenuation
+coefficients, response and build-up factor the same in every replica.
 
 `get_uncertainty_inventories(material_id=mid, step=step)` is still there for a
 quantity these four do not cover, and returns every replica's full inventory to
@@ -1173,14 +1183,15 @@ deviations alone do not.
   the campaign, split the schedule and give each pulse its own spectrum. That is
   a statement about the physics you are feeding it, not about the solver.
 - `data_uncertainty` covers the activation cross sections, the half-lives, the
-  two-mode decay branching ratios, the decay energies, and the flux spectrum
+  two-mode decay branching ratios, the decay energies, the decay photon lines
+  and continuum normalisations, and the flux spectrum
   when a pulse carries `flux_std_dev` or `flux_covariance`. Without one the
   flux is taken as exact, since nothing is transported here. The other decay
   branching ratios, fission yields, isomeric branching, resonance-parameter
   covariance (MF=32) not in `covariance.arrow`, cross-material, underivable NC,
   unassignable lumped and
-  partial-level MF=33 blocks, the self-shielding correction, photon line
-  intensities, the dose constants and the material composition are held at
+  partial-level MF=33 blocks, the self-shielding correction, the photon
+  spectrum covariance, the dose constants and the material composition are held at
   their evaluated or nominal values;
   [What is not propagated](method.md#what-is-not-propagated) says how much each
   can matter.
