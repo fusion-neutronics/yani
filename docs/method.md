@@ -542,12 +542,19 @@ The other sources are sampled using their own stated sigma:
   takes its own draw from its intensity sigma (dRI, which MT=457 states
   relative to FD and without FD's sigma, so nothing is counted twice) and one
   from its energy sigma (dER).
+- **Fission yields.** Each independent yield (MT=454) the tape states a DY
+  for is drawn on the tape's own product, and the draws are summed onto the
+  chain's products the way the converter summed the nominal yields: a product
+  with no decay data lands on its stand-in. The mapping is not stored, so it
+  is rebuilt with the converter's rule and checked against the nominal yields.
+  An actinide that borrows another's yields shares that evaluation's draw.
 - **Tallied rates.** On a transport run, drawn jointly from their per-history
   covariance.
 
 The decay data gives an expected value and a standard deviation for each value,
 with no distribution or correlation (ENDF-102 section 29.1), and each nuclide is
-sampled independently. A half-life, decay energy or photon value is its nominal value times a
+sampled independently. A half-life, decay energy, photon value or fission
+yield is its nominal value times a
 lognormal factor with mean one and variance equal to the squared relative
 sigma, so every draw is positive and the ensemble has the stated mean and sigma
 exactly, with no floor. The independence between a nuclide's decay-energy
@@ -617,10 +624,10 @@ spectrum matches a line across replicas on its nominal energy.
 
 ### What is not propagated
 
-Seven sources are propagated: activation cross sections, the flux spectrum (on
+Eight sources are propagated: activation cross sections, the flux spectrum (on
 `Material.transmute`), half-lives, two-mode decay branching ratios as described
-above, decay energies, decay photon lines and continua, and the statistical
-error of tallies (on a transport run). Everything listed below is held at its evaluated or nominal value in
+above, decay energies, decay photon lines and continua, independent fission
+yields, and the statistical error of tallies (on a transport run). Everything listed below is held at its evaluated or nominal value in
 every replica. Most of these have their own uncertainty or model error, which
 is then missing from the sigma, so the sigma is underestimated, and for some
 results this is the largest term. Two can go either way, because holding them
@@ -632,13 +639,16 @@ another evaluation) can also go either way: dropping a covariance term lowers
 the variance of a sum when the term is positive and raises it when the term is
 negative.
 
-- **Decay branching ratios not covered by the two-mode draw, and fission
-  yields.** Both have published uncertainties, per decay mode and per yield. A
-  parent with three or more modes, two unequal sigmas, a pair too wide to
-  sample without truncation, or no sigma is held at its evaluated ratios.
-  Fission yields are not propagated yet. The weights that combine a nuclide's
-  yield sets by incident energy come from the nominal spectrum in every
-  replica, so a flux draw does not change them.
+- **Decay branching ratios not covered by the two-mode draw.** These have
+  published uncertainties per decay mode. A parent with three or more modes,
+  two unequal sigmas, a pair too wide to sample without truncation, or no
+  sigma is held at its evaluated ratios.
+- **Fission yield correlations and energy weights.** No evaluation publishes a
+  correlation between yields, so each is drawn independently and a draw's
+  yields are not renormalised to the nominal total. A parent whose tape yields
+  do not sum back to the chain's (`fission_yields_mapping_mismatch`) is held.
+  The weights that combine a nuclide's yield sets by incident energy come from
+  the nominal spectrum in every replica, so a flux draw does not change them.
 - **Isomeric branching.** The split of a reaction product between the ground
   state and an isomer comes from MF=9 or MF=10 (as named in `not_perturbed`).
   Where an evaluation gives its uncertainty, it does so in MF=40, which is
@@ -743,14 +753,15 @@ negative.
   silver.
 
 `not_perturbed` in `get_data_uncertainty_info` lists every input above on every
-run: fission yields, isomeric branching (MF=9/MF=10), cross-material,
+run: isomeric branching (MF=9/MF=10), cross-material,
 non-cross-section, underivable NC and unassignable lumped MF=33 blocks,
 resonance-parameter covariance (MF=32) not written into `covariance.arrow`,
 the decay photon spectrum covariance and continuum shape, the photon attenuation,
 energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
 factor, and the material composition, density, natural abundances and atomic
 masses. It also adds an entry for each source a run turns off (half-life,
-decay energy, decay photon lines, decay branching, activation cross section), the per-branch decay
+decay energy, decay photon lines, fission yield, decay branching, activation
+cross section), the per-branch decay
 emission of a parent whose branching was sampled, the flux spectrum on
 `Material.transmute` when that source is off or some or all spectra have no
 sigma, the tallied-rate statistics when a transport run does not sample them,

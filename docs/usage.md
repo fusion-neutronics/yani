@@ -856,7 +856,7 @@ covariance is read, nothing is folded, and the inventories are bit-identical.
 
 Every draw is a pure function of the seed, the sample and what is drawn: a
 nuclide for the cross sections, half-lives, decay branching, decay energies and
-decay photons, a spectrum for the
+decay photons, an evaluation for the fission yields, a spectrum for the
 flux, and a material's tallied rates, jointly, for the statistical error. So a
 seed reproduces a run regardless of sample count or iteration order. Leave
 `samples` unset and the driver adds samples until the nuclide density sigmas
@@ -867,7 +867,7 @@ alone, or the other sources found nothing to perturb), the
 run takes 128 samples, or `samples`, with no convergence check, and reports
 `converged` as True.
 
-Seven sources can be perturbed, and `DataUncertainty.available_sources()` names
+Eight sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
 
 - `cross_sections`: the activation cross sections, from their ENDF MF=33
@@ -892,6 +892,11 @@ them:
   per spectrum shared by all its lines, and each line's own intensity and
   energy, from the decay data's sigmas on them. No photon enters the solve, so
   this moves the photon spectrum and contact dose and nothing else.
+- `fission_yield`: each fissioning parent's independent yields, from the DY the
+  evaluation states on each, drawn independently since no evaluation states a
+  correlation. It needs the evaluated yields, which the published fission
+  yield libraries carry; a chain without them lists every parent under
+  `no_fission_yield_uncertainty`.
 - `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
   their per-history covariance, on a yamc `Model.simulate_transmutation` run
   with the independent method. A spectrum run's rates are a deterministic
@@ -900,7 +905,7 @@ them:
 
 `sources=` restricts a run to some of them, which is how a contribution is
 measured. Naming a source this build cannot perturb raises. The decay branching
-ratios that source does not sample, fission yields, isomeric branching, the material composition and the
+ratios that source does not sample, isomeric branching, the material composition and the
 other inputs listed under
 [What is not propagated](method.md#what-is-not-propagated) stay at their
 evaluated or nominal values.
@@ -958,6 +963,8 @@ if info is not None:               # None unless data_uncertainty was passed
     info["decay_energy_uncertainty_not_carried"]  # carry, held; see the method page
     info["decay_photon_lines_perturbed"]  # nuclides whose photon data was drawn
     info["no_decay_photon_line_uncertainty"]  # photon data held for want of a sigma
+    info["fission_yields_perturbed"]      # fissioning parents whose yields were drawn
+    info["fission_yields_mapping_mismatch"]  # yields that did not map back, held
     info["flux_bins_floored"]      # flux draws floored at zero, see the method page;
                                    # also statistical_floored
     info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
@@ -1184,10 +1191,10 @@ deviations alone do not.
   a statement about the physics you are feeding it, not about the solver.
 - `data_uncertainty` covers the activation cross sections, the half-lives, the
   two-mode decay branching ratios, the decay energies, the decay photon lines
-  and continuum normalisations, and the flux spectrum
+  and continuum normalisations, the fission yields, and the flux spectrum
   when a pulse carries `flux_std_dev` or `flux_covariance`. Without one the
   flux is taken as exact, since nothing is transported here. The other decay
-  branching ratios, fission yields, isomeric branching, resonance-parameter
+  branching ratios, isomeric branching, resonance-parameter
   covariance (MF=32) not in `covariance.arrow`, cross-material, underivable NC,
   unassignable lumped and
   partial-level MF=33 blocks, the self-shielding correction, the photon
