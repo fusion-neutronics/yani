@@ -572,12 +572,28 @@ if report is not None:
     channel["states"]            # each final state and its share of the reaction
     channel["clipped_share"]     # of the parent's removal rate
     report["dropped"]            # channels that could not be folded, and why
-    report["unmodelled_mt5"]     # MT=5's share of each parent's removal rate
+    report["unmodelled_mt5"]     # (nuclide, share, reason) where MT=5's residuals are not modelled
 ```
 
 A run refuses when a channel's clipped or held production is more than 0.1% of
 its parent's neutron removal rate, so whatever the report lists is below that.
-MT=5's share is reported whatever its size, since its products are not modelled.
+
+MT=5, `(n,anything)`, is the `(n,X)` reaction. The reactions subsection carries
+its products from the evaluation's MF=6 MT=5: each residual with its isomeric
+state, folded as a share of the MT=5 total at each energy (`file` 6,
+`representation` `"share"`), and each light particle H1, H2, H3, He3 and He4 as
+its multiplicity times that total (`representation` `"multiplicity"`, whose
+`share` is the multiplicity folded over the spectrum and can exceed one). Their
+gas is therefore in the inventory. In `TransmutationChain.reactions` an `(n,X)`
+edge's branching is NaN, since its split depends on the spectrum.
+
+`unmodelled_mt5` lists what is left: a parent whose evaluation gives MT=5's
+light particles but not its residuals (ENDF/B-VIII.1's Fe58 and zirconium
+isotopes, among others), each with its share of the parent's removal rate and
+the reason. A run refuses when the material's own nuclides lose more than 0.1%
+of the material's removal rate that way. A reactions subsection converted
+before MT=5 was carried has no `(n,X)` at all, and its MT=5 is reported, as it
+was, rather than refused.
 
 ### Where in energy a rate came from
 
