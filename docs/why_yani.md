@@ -73,10 +73,10 @@ Each is evaluated once per replica, with that replica's own half-lives, and
 summed inside that replica: adding the per-nuclide sigmas in quadrature
 double-counts a variance that partly cancels, and contact dose is not even
 linear in the densities, since a replica that makes more of an emitter also
-absorbs more of it. The band is the inventory's: a line's emission per decay,
-and the attenuation, response and build-up behind contact dose, are the same in
-every replica, so a photon line's band is the band on the activity of the
-nuclides emitting it. A calculated band beside a measured one says whether the
+absorbs more of it. Each line's emission per decay and energy are drawn from
+the decay data's own sigmas, so a photon line's band is its emitters' activity
+and its own intensity together. The attenuation, response and build-up behind
+contact dose are the same in every replica. A calculated band beside a measured one says whether the
 disagreement is larger than the propagated data allows.
 
 **A sigma of zero says which kind of zero it is.** The hard part of an

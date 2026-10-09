@@ -536,20 +536,26 @@ The other sources are sampled using their own stated sigma:
 - **Half-lives.** Drawn per nuclide from the sigma in the decay data.
 - **Decay energies.** Drawn from the sigma on each beta, gamma and alpha
   component that has one, or on the total if no component has a sigma.
+- **Decay photons.** Per spectrum, one draw from the sigma on its
+  normalisation (FD for lines, FC for a continuum) scales all of its lines or
+  continuum points, so the lines of one spectrum move together. Each line then
+  takes its own draw from its intensity sigma (dRI, which MT=457 states
+  relative to FD and without FD's sigma, so nothing is counted twice) and one
+  from its energy sigma (dER).
 - **Tallied rates.** On a transport run, drawn jointly from their per-history
   covariance.
 
 The decay data gives an expected value and a standard deviation for each value,
 with no distribution or correlation (ENDF-102 section 29.1), and each nuclide is
-sampled independently. A half-life or decay energy is its nominal value times a
+sampled independently. A half-life, decay energy or photon value is its nominal value times a
 lognormal factor with mean one and variance equal to the squared relative
 sigma, so every draw is positive and the ensemble has the stated mean and sigma
 exactly, with no floor. The independence between a nuclide's decay-energy
 components and between different nuclides' half-lives is an assumption, since
 the data gives no correlation. A sigma that cannot be sampled (one on a decay
 energy of zero, or one that is not finite) is held at nominal and listed in
-`half_life_uncertainty_not_carried` or `decay_energy_uncertainty_not_carried`,
-both counted as gaps.
+`half_life_uncertainty_not_carried`, `decay_energy_uncertainty_not_carried` or
+`decay_photon_line_uncertainty_not_carried`, all counted as gaps.
 
 A decay branching ratio is sampled only where the data determines the joint
 distribution of a parent's decay modes. MT=457 gives each mode a ratio and a
@@ -575,7 +581,8 @@ two sources stay normal because they carry correlations, which a lognormal
 would not preserve.
 
 Seeds depend only on their arguments. A cross-section, half-life,
-decay-branching or decay-energy draw depends only on `(seed, replica, nuclide)`:
+decay-branching, decay-energy or decay-photon draw depends only on
+`(seed, replica, nuclide)`:
 not on the number of replicas, the order they ran in, or the other nuclides in
 the material. The flux draw depends on `(seed, replica, spectrum)`, where
 spectrum is the spectrum's index among the schedule's spectra. The statistical
@@ -602,15 +609,18 @@ saturated activity is $\lambda N = R$, which depends very little on its own
 half-life. Using the nominal $\lambda$ would give it the full spread of
 $N = R / \lambda$. A line's intensity per atom is its emission per decay times
 $\lambda$, so it is also rescaled with the replica's $\lambda$, which keeps the
-emission per decay at its evaluated value. Decay energies are only used here:
-they are sampled where decay heat is calculated and affect nothing else.
+emission per decay at the value the decay photon draw then starts from. Decay
+energies and decay photons are only used here: they are sampled where decay
+heat, the photon spectrum and contact dose are calculated and affect nothing
+else. The photon draw moves line energies as well, so the photon
+spectrum matches a line across replicas on its nominal energy.
 
 ### What is not propagated
 
-Six sources are propagated: activation cross sections, the flux spectrum (on
+Seven sources are propagated: activation cross sections, the flux spectrum (on
 `Material.transmute`), half-lives, two-mode decay branching ratios as described
-above, decay energies, and the statistical error of tallies (on a transport
-run). Everything listed below is held at its evaluated or nominal value in
+above, decay energies, decay photon lines and continua, and the statistical
+error of tallies (on a transport run). Everything listed below is held at its evaluated or nominal value in
 every replica. Most of these have their own uncertainty or model error, which
 is then missing from the sigma, so the sigma is underestimated, and for some
 results this is the largest term. Two can go either way, because holding them
@@ -707,13 +717,15 @@ negative.
   given. The coupled method does not support `data_uncertainty` because its
   step-to-step tally noise is not propagated yet. It is also where the response
   of the flux to a perturbed cross section would be included.
-- **Decay photon line intensities.** Each line's emission per decay is the
-  evaluated value, so a line's uncertainty band is the band on the activity of
-  the nuclides emitting it. The decay data gives a sigma on 99.6% of
-  ENDF/B-VIII.1 gamma lines. The effect on contact dose is negligible for Co60
-  (0.014%) but not for Mn56 (0.6 to 1.8%) or W187 (0.8 to 3.7%), with the range
-  covering ENDF/B-VIII.1, JEFF-4.0 and JENDL-5.0 and both independent and fully
-  correlated lines.
+- **Decay photon spectrum covariance and continuum shape.** MT=457 can state a
+  covariance between a spectrum's lines (LCOV), and no library ships one, so
+  the lines of a spectrum are drawn independently apart from their shared
+  normalisation. A continuum's shape is held, and only its normalisation is
+  drawn. The decay data gives a sigma on 99.6% of ENDF/B-VIII.1 gamma lines,
+  and the intensities matter to contact dose: negligibly for Co60 (0.014%) but
+  0.6 to 1.8% for Mn56 and 0.8 to 3.7% for W187 across ENDF/B-VIII.1, JEFF-4.0
+  and JENDL-5.0, the ends of each range being independent and fully correlated
+  lines. Without a stated covariance the draw sits inside that range.
 - **Dose constants and build-up.** Contact dose uses the same photon
   attenuation coefficients, the same response (air energy absorption, or the
   ICRP-116 coefficients for effective dose) and the same constant build-up
@@ -734,12 +746,11 @@ negative.
 run: fission yields, isomeric branching (MF=9/MF=10), cross-material,
 non-cross-section, underivable NC and unassignable lumped MF=33 blocks,
 resonance-parameter covariance (MF=32) not written into `covariance.arrow`,
-decay photon line energies and
-intensities and the decay photon continuum, the photon attenuation,
+the decay photon spectrum covariance and continuum shape, the photon attenuation,
 energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
 factor, and the material composition, density, natural abundances and atomic
 masses. It also adds an entry for each source a run turns off (half-life,
-decay energy, decay branching, activation cross section), the per-branch decay
+decay energy, decay photon lines, decay branching, activation cross section), the per-branch decay
 emission of a parent whose branching was sampled, the flux spectrum on
 `Material.transmute` when that source is off or some or all spectra have no
 sigma, the tallied-rate statistics when a transport run does not sample them,
