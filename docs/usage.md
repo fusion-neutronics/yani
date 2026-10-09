@@ -961,7 +961,8 @@ if info is not None:               # None unless data_uncertainty was passed
 ```
 
 `not_perturbed` names every input held at nominal on every run, from fission
-yields and resonance-parameter covariance (MF=32) to photon line intensities,
+yields and any resonance-parameter covariance (MF=32) not in `covariance.arrow`
+to photon line intensities,
 dose coefficients and the material composition, plus the run-dependent entries:
 a source the run switched off, spectra without a flux sigma, tallied-rate
 statistics a transport run did not draw, the self-shielding correction, and the
@@ -1010,7 +1011,8 @@ of zero on some intervals, and rate from those counts as uncovered, the same as
 rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
 block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
 is, because the evaluation keeps that uncertainty in resonance-parameter
-covariance (MF=32), which is not folded yet. On the FNS spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
+covariance (MF=32), which the published library's `covariance.arrow` does not
+carry yet. On the FNS spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
 intervals above 10 keV.
 
 The share is of the rate the fold divides by: the rate from energies with a
@@ -1175,7 +1177,8 @@ deviations alone do not.
   when a pulse carries `flux_std_dev` or `flux_covariance`. Without one the
   flux is taken as exact, since nothing is transported here. The other decay
   branching ratios, fission yields, isomeric branching, resonance-parameter
-  covariance (MF=32), cross-material, underivable NC, unassignable lumped and
+  covariance (MF=32) not in `covariance.arrow`, cross-material, underivable NC,
+  unassignable lumped and
   partial-level MF=33 blocks, the self-shielding correction, photon line
   intensities, the dose constants and the material composition are held at
   their evaluated or nominal values;

@@ -642,8 +642,11 @@ negative.
 - **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
   covariance in the resonance range as an MF=32 part plus the MF=33 part, and
   many evaluations put the whole resonance-range uncertainty in MF=32 and leave
-  MF=33 at zero there. The ENDF parser reads MF=32 but the fold does not use it
-  yet. It folds MF=33 only, so a capture rate driven by resonance flux can have
+  MF=33 at zero there. From yani 0.20.0 the converter turns each resonance
+  range's MF=32 into blocks in `covariance.arrow`, which the fold uses like any
+  MF=33 block, except for a range whose formalism it does not reconstruct. The
+  published libraries were converted before that, so on them the fold sees
+  MF=33 only, and a capture rate driven by resonance flux can have
   a sigma near zero. For capture in a $1/E$ field, NJOY ERRORR gives
   ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone. The coverage
   report shows this: W186's capture block states zero variance from
@@ -730,7 +733,8 @@ negative.
 `not_perturbed` in `get_data_uncertainty_info` lists every input above on every
 run: fission yields, isomeric branching (MF=9/MF=10), cross-material,
 non-cross-section, underivable NC and unassignable lumped MF=33 blocks,
-resonance-parameter covariance (MF=32), decay photon line energies and
+resonance-parameter covariance (MF=32) not written into `covariance.arrow`,
+decay photon line energies and
 intensities and the decay photon continuum, the photon attenuation,
 energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
 factor, and the material composition, density, natural abundances and atomic

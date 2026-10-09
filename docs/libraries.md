@@ -109,13 +109,15 @@ evaluations, and its Fe56 covers 56 channels against ENDF/B-VIII.1's 7.
 
 Cross sections are the only covariance family that reaches the data, and only
 its MF=33 part. Resonance-parameter covariance (MF=32), where many evaluations
-keep their whole resonance-range uncertainty, is parsed and not used yet, so a
-capture rate driven by resonance flux can carry a sigma near zero on a library
-whose MF=33 is zero there. The coverage report shows that case: a zero-valued MF=33 interval counts as uncovered, so
+keep their whole resonance-range uncertainty, is turned into resonance-range
+blocks in `covariance.arrow` by the converter from yani 0.20.0, and the fold
+uses those like any MF=33 block. The published libraries were converted before
+that, so on them MF=32 is not used yet and a capture rate driven by resonance
+flux can carry a sigma near zero on a library whose MF=33 is zero there. The coverage report shows that case: a zero-valued MF=33 interval counts as uncovered, so
 such a capture reads a `rate_fraction_covered` well below 1 (about 0.07 for
-ENDF/B-VIII.1 W186 on the FNS spectrum). The ENDF parser reads
-resonance-parameter, angular-distribution and radionuclide-production covariance
-(MF=32, MF=34 and MF=40), and nothing consumes them yet. The decay data's own
+ENDF/B-VIII.1 W186 on the FNS spectrum). The ENDF parser also reads
+angular-distribution and radionuclide-production covariance (MF=34 and MF=40),
+and nothing consumes them yet. The decay data's own
 sigmas on half-lives, decay energies and two-mode decay branching ratios are
 carried as well, and propagated.
 Everything held at nominal is listed under [What is not
