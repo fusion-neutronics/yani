@@ -575,8 +575,12 @@ if report is not None:
     report["unmodelled_mt5"]     # (nuclide, share, reason) where MT=5's residuals are not modelled
 ```
 
-A run refuses when a channel's clipped or held production is more than 0.1% of
-its parent's neutron removal rate, so whatever the report lists is below that.
+A run refuses when the clipped or held production of its channels, each parent
+weighted by its density in the material, is more than 0.1% of the material's
+neutron removal rate; each channel's `clipped_share` and `extrapolated_share`
+are of its own parent's removal. Weighting by the material keeps one bad list
+on a product present at a trace from refusing every irradiation whose network
+reaches it, while a material made of that parent is held to the same 0.1%.
 
 MT=5, `(n,anything)`, is the `(n,X)` reaction. The reactions subsection carries
 its products from the evaluation's MF=6 MT=5: each residual with its isomeric
