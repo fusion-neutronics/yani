@@ -192,8 +192,9 @@ scratch. The cross sections a `transmute()` needs are kept on the material
 itself as well, so a second call on the same material does no file reading at
 all: on a steel against ENDF/B-VIII.1 that is 1.8 s of a 2.3 s call. A sweep
 over thousands of distinct compositions hands them back with
-`release_nuclear_data()`. Downloads are cached separately, to disk under
-`~/.cache/yamc`, so a second run of the script does not refetch.
+`release_nuclear_data()`. Downloads are cached separately, to disk in the
+platform cache directory (`yani.cache_dir()`), so a second run of the script
+does not refetch.
 
 **The chain that gets built is exactly the one your material can reach, no
 manual depth setting required.** Rather than truncating the transmutation

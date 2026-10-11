@@ -718,10 +718,45 @@ for. A decay-only schedule is exempt, since driving nothing is correct for it.
 
 ## Where the data comes from
 
-A keyword is resolved on first use: the sections needed are downloaded and
-cached under `~/.cache/yamc`, then reused. Only the sections activation reads
-are fetched, never a whole library, so this is a small fraction of a transport
-data set.
+A keyword is resolved on first use, once per process, to the library's current
+published release: a dated folder such as `2026-10-10.1` with a manifest listing
+every file in it with its size and sha256. The sections needed are downloaded
+from that release, each checked against the manifest (a byte range against its
+own hash) before it is kept, then reused. A file that does not match is refused
+with an error naming it, never cached. Only the sections activation reads are
+fetched, never a whole library, so this is a small fraction of a transport data
+set. A load of many nuclides fetches them in concurrent batches and prints a
+`Downloaded k of N nuclides` counter as it goes.
+
+The cache is a `yamc` folder in the platform's per-user cache directory, shared
+with yamc, and `yani.cache_dir()` returns it:
+
+| platform | cache directory |
+| --- | --- |
+| Linux | `~/.cache/yamc`, or `$XDG_CACHE_HOME/yamc` when that is set |
+| macOS | `~/Library/Caches/yamc` |
+| Windows | `%LOCALAPPDATA%\yamc` |
+
+Each release keeps a folder of its own, laid out as the published tree:
+
+```
+<cache dir>/<keyword>/<release>/manifest.json
+<cache dir>/<keyword>/<release>/neutron/<Nuclide>.arrow/...
+<cache dir>/<keyword>/<release>/transmutation/<subsection>.arrow/...
+```
+
+There is no setting that moves the cache. To read data from somewhere else,
+point the setting at a local directory instead (below), which bypasses the
+cache. When a newer release is published, the next run downloads what it needs
+from the new release, says so once, and leaves the older folder in place; every
+file of one library a run reads comes from a single release. With no connection,
+yani uses the newest cached release that already holds every file the run needs
+and says which; only a file missing from the cache is then an error.
+
+The release each keyword resolved to is recorded on the results, as
+`TransmutationResults.data_releases`: keyword to `release`, `manifest_sha256`,
+`format_version` and `offline`, so a result says exactly which data produced
+it.
 
 Every setting also accepts a **path** to a local converted directory instead of
 a keyword:

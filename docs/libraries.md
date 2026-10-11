@@ -1,8 +1,11 @@
 # Nuclear data libraries
 
 Six libraries are available by keyword. Point a setting at one and the sections it
-needs are downloaded on first use and cached under `~/.cache/yamc`; only the
-sections activation reads are fetched, never a whole library.
+needs are downloaded on first use from the library's current published release,
+verified against that release's manifest, and cached on disk (`yani.cache_dir()`
+says where); only the sections activation reads are fetched, never a whole
+library. Releases, the cache layout and offline use are in
+[Where the data comes from](usage.md#where-the-data-comes-from).
 
 <!-- doctest: skip -->
 ```python
@@ -20,7 +23,7 @@ yani.transmutation_decay_data = "endf-b8.1"
 | `jendl-5.0` | JENDL-5. |
 | `tendl-2025` | TENDL-2025. The widest isotope coverage of the six. |
 | `tendl-2017` | TENDL-2017, for comparing a result against the older release. |
-| `fendl-3.2d` | FENDL-3.2d. Cross sections only, no transmutation data. |
+| `fendl-3.2d` | FENDL-3.2d. Cross sections, plus `reactions` and `branching` subsections. |
 
 Every setting also takes a path to a converted directory instead of a keyword,
 and `cross_section_data` takes a dict keyed by nuclide. Which setting does what,
@@ -38,7 +41,7 @@ is set on its own, so a network can take each part from wherever publishes it.
 | `endf-b8.1` | neutron + photon | yes | yes | yes | yes |
 | `jeff-4.0` | neutron | yes | yes | yes | yes |
 | `jendl-5.0` | neutron + photon | yes | yes | yes | yes |
-| `fendl-3.2d` | neutron + photon | -- | -- | -- | -- |
+| `fendl-3.2d` | neutron + photon | -- | yes | -- | yes |
 | `tendl-2025` | neutron | -- | yes | -- | yes |
 | `tendl-2017` | neutron | -- | yes | -- | yes |
 
@@ -48,6 +51,12 @@ what you want for `reactions`, because it covers far more parent nuclides, and
 that is what decides whether an activation product appears in your inventory at
 all. `endf-b8.1`, `jeff-4.0` and `jendl-5.0` each supply a complete network from
 one library.
+
+FENDL-3.2d publishes the same two subsections as TENDL, both built against
+ENDF/B-VIII.1 decay data, so it too takes its `decay` and `fission_yields` from
+elsewhere. Its `branching` subsection is the main reason to use it: 54 of its
+evaluations carry isomer production (MF=9 or MF=10), 15 of them with MF=40
+covariances.
 
 Pointing a subsection at a library that does not publish it fails immediately,
 naming what that library does have, rather than solving to an inventory that is
@@ -70,7 +79,7 @@ all, rather than publishing an empty one.
 | `endf-b8.1` | 557 | 100 | 5,175 | 915 | 3,820 | 42% |
 | `jeff-4.0` | 593 | -- | 13,513 | 8,303 | 3,851 | 98% |
 | `jendl-5.0` | 795 | 100 | 9,902 | 5,349 | 4,070 | 13% |
-| `fendl-3.2d` | 192 | 61 | -- | -- | -- | 35% |
+| `fendl-3.2d` | 192 | 61 | pending | pending | -- | 35% |
 | `tendl-2025` | 2,848 | -- | 67,797 | 8,416 | -- | pending |
 | `tendl-2017` | 2,801 | -- | 68,827 | 8,365 | -- | pending |
 
@@ -227,8 +236,8 @@ network against 21 MB for JENDL-5's complete one.
 
 ### TENDL chains are not standalone
 
-`TransmutationChain` cannot open a TENDL chain on its own, because it has no
-`decay` subsection and the loader wants a complete one. Set the subsections
+`TransmutationChain` cannot open a TENDL or FENDL chain on its own, because it
+has no `decay` subsection and the loader wants a complete one. Set the subsections
 individually instead, which is the arrangement the tables above describe:
 
 <!-- doctest: skip -->
