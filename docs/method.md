@@ -548,6 +548,31 @@ The other sources are sampled using their own stated sigma:
   with no decay data lands on its stand-in. The mapping is not stored, so it
   is rebuilt with the converter's rule and checked against the nominal yields.
   An actinide that borrows another's yields shares that evaluation's draw.
+- **Isomeric branching.** Where the branching subsection carries the MF=40
+  covariance of a reaction's final-state productions
+  (`branching_covariance.arrow`), each state's production is drawn as a
+  lognormal multiplier on the covariance's own energy intervals, folded with
+  the same spectrum and weight as the nominal split, and the split is remade
+  from the drawn productions by the nominal branching rule. Where the list
+  names its ground state, the shares are the drawn productions over their
+  drawn sum and the reaction total stays the one the cross-section draw gives,
+  so a factor common to every state cancels and the uncertainty of the total
+  is not counted twice. An isomer listed alone, and every `(n,n')` isomer, is
+  an absolute production: it is made at its drawn value and the ground state
+  takes the rest of the total, so its own MF=40 sigma replaces the MF=33 sigma
+  of its reaction that it carries with the cross sections alone, and adding
+  this source can lower its sigma. A draw above the drawn total is scaled back
+  to it and counted in `isomer_branchings_clipped`. Only on
+  `Material.transmute`: a transport run's split comes from tallied partials
+  scored at collisions, with no energy to fold MF=40 over, and is held.
+- **Resonance parameters.** Where a nuclide's folder carries its resonance
+  parameters and their covariance (MF=2 and MF=32, `resonance_parameters.arrow`,
+  in the published libraries), each replica draws the parameters themselves,
+  rebuilds the resonance range's cross sections from them and Doppler broadens
+  the change to the temperature in use, so that range's uncertainty is exact
+  in the parameters rather than first order. A nuclide whose parameters cannot
+  be sampled falls back to the first-order MF=32 rows in `covariance.arrow`;
+  `resonance_parameters` in the report says which was used, and why.
 - **Tallied rates.** On a transport run, drawn jointly from their per-history
   covariance.
 
@@ -564,19 +589,37 @@ energy of zero, or one that is not finite) is held at nominal and listed in
 `half_life_uncertainty_not_carried`, `decay_energy_uncertainty_not_carried` or
 `decay_photon_line_uncertainty_not_carried`, all counted as gaps.
 
-A decay branching ratio is sampled only where the data determines the joint
-distribution of a parent's decay modes. MT=457 gives each mode a ratio and a
-sigma with no covariance between modes, and the ratios sum to a fixed total.
-The split of the error is therefore only determined for a parent with exactly
-two modes and one sigma between them: both modes have the same sigma, or one
-has a sigma and the other is its complement. In that case one normal draw moves
-one mode up and the other down by the same amount, keeping the total. The
-parent is sampled only when its smaller ratio is at least five sigmas from
-zero, so the normal stays within the physical range. A draw clamped to the
-pair's total is counted in `decay_branchings_floored`. Every other parent is
-held at its evaluated ratios and listed by reason:
-`no_decay_branching_uncertainty`, `decay_branchings_three_or_more_modes`,
-`decay_branchings_unequal_sigmas` and `decay_branchings_too_wide`, each counted
+Decay branching ratios are drawn per parent, for every parent with two or more
+modes and a stated sigma. MT=457 gives each mode a ratio and a sigma with no
+covariance between modes, and the ratios sum to a fixed total $T$, so the
+deviations of a draw must sum to zero. Such a zero-sum covariance exists only
+when no mode's sigma exceeds the sum of the others'. Of those that realise
+every stated sigma, the draw takes the one of largest entropy, which assumes no
+correlation the sum rule does not force; for two or three modes it is the only
+one. When the largest sigma exceeds the sum of the others', that mode is drawn
+at their sum, the most the sum rule allows.
+
+Every moving mode but one is a logit-normal on $[0, T]$ whose mean and
+standard deviation are fitted to the evaluated ratio and its sigma, so a small
+branch with a large relative sigma is drawn skewed and never below zero. The
+modes are coupled through a Gaussian copula so that they carry the target
+covariance, and the last mode is their complement, which keeps the total. A
+single mode stating no sigma is that complement when it is the largest mode or
+when only one other mode states a sigma, as an evaluator writing a dominant
+mode as one minus the others intends. A mode is held at its ratio only when
+its stated sigma is one no ratio with its mean can have,
+$\sigma^2 \ge b (T - b)$ for a ratio $b$, or when it states none and is not
+the complement; the other modes share what is left. A draw whose complement would fall below zero is pulled back
+towards nominal and counted in `decay_branchings_floored`.
+
+A parent held whole is listed in `no_decay_branching_uncertainty` (no mode
+states a sigma, or one does beside two or more that do not) or
+`decay_branchings_too_wide` (every mode that could move states a sigma no ratio
+can have). A parent drawn short of its stated sigmas is listed in
+`decay_branchings_partly_held` (some modes held) or
+`decay_branchings_sigma_adjusted` (a mode drawn more than 0.1% from its stated
+sigma, because the largest exceeds the sum of the others' or the complement
+needs a correlation non-negative ratios cannot carry). Each of the four counts
 as a gap. Only the inventory changes: a sampled parent's lines and decay energy
 per decay use its nominal branching.
 
@@ -588,8 +631,9 @@ two sources stay normal because they carry correlations, which a lognormal
 would not preserve.
 
 Seeds depend only on their arguments. A cross-section, half-life,
-decay-branching, decay-energy or decay-photon draw depends only on
-`(seed, replica, nuclide)`:
+decay-branching, decay-energy, decay-photon or isomeric-branching draw depends
+only on `(seed, replica, nuclide)`, the nuclide being the parent for an
+isomeric split:
 not on the number of replicas, the order they ran in, or the other nuclides in
 the material. The flux draw depends on `(seed, replica, spectrum)`, where
 spectrum is the spectrum's index among the schedule's spectra. The statistical
@@ -624,10 +668,12 @@ spectrum matches a line across replicas on its nominal energy.
 
 ### What is not propagated
 
-Eight sources are propagated: activation cross sections, the flux spectrum (on
-`Material.transmute`), half-lives, two-mode decay branching ratios as described
-above, decay energies, decay photon lines and continua, independent fission
-yields, and the statistical error of tallies (on a transport run). Everything listed below is held at its evaluated or nominal value in
+Nine sources are propagated: activation cross sections (with resonance
+parameters where the library carries them), the flux spectrum (on
+`Material.transmute`), half-lives, decay branching ratios as described above,
+decay energies, decay photon lines and continua, independent fission yields,
+isomeric branching from MF=40 (on `Material.transmute`), and the statistical
+error of tallies (on a transport run). Everything listed below is held at its evaluated or nominal value in
 every replica. Most of these have their own uncertainty or model error, which
 is then missing from the sigma, so the sigma is underestimated, and for some
 results this is the largest term. Two can go either way, because holding them
@@ -639,35 +685,43 @@ another evaluation) can also go either way: dropping a covariance term lowers
 the variance of a sum when the term is positive and raises it when the term is
 negative.
 
-- **Decay branching ratios not covered by the two-mode draw.** These have
-  published uncertainties per decay mode. A parent with three or more modes,
-  two unequal sigmas, a pair too wide to sample without truncation, or no
-  sigma is held at its evaluated ratios.
+- **Decay branching ratios the draw holds.** A mode whose stated sigma no
+  ratio with its mean can have, a mode stating no sigma that is not the
+  complement of the rest, and a parent with no sigma at all are held at their
+  evaluated ratios. The draw cannot reproduce a stated sigma the sum rule or
+  non-negative ratios cannot carry, and reports where it fell short.
 - **Fission yield correlations and energy weights.** No evaluation publishes a
   correlation between yields, so each is drawn independently and a draw's
   yields are not renormalised to the nominal total. A parent whose tape yields
   do not sum back to the chain's (`fission_yields_mapping_mismatch`) is held.
   The weights that combine a nuclide's yield sets by incident energy come from
   the nominal spectrum in every replica, so a flux draw does not change them.
-- **Isomeric branching.** The split of a reaction product between the ground
-  state and an isomer comes from MF=9 or MF=10 (as named in `not_perturbed`).
-  Where an evaluation gives its uncertainty, it does so in MF=40, which is
-  parsed but not used yet. With the branching overlay configured
+- **Isomeric branching without MF=40.** The split of a reaction product
+  between the ground state and an isomer comes from MF=9 or MF=10. Where an
+  evaluation gives its uncertainty, in MF=40, the `isomer_branching` source
+  draws it on `Material.transmute`. A split whose evaluation states no MF=40
+  on any of its states is held and listed in `no_isomer_branching_uncertainty`,
+  every split is held on a transport run, and MF=40 blocks that cannot be used
+  (another evaluation's partner, a partner that is not an MF=10 production, NC,
+  absolute and short-range layouts, a state the branching rule folds no curve
+  for) are counted in `isomer_branching_blocks_not_used`. With the branching
+  overlay configured
   (`transmutation_branch_ratios`), the flux-weighted split is calculated once
   from the nominal spectrum, so on `Material.transmute` a flux draw changes the
   rates but not the split. The `(n,n')` channels added by the overlay to reach a
   metastable state, including In115 to In115m, have no group-averaged cross
   section. They have no cross-section covariance, and on `Material.transmute`
   no flux-spectrum uncertainty either.
-- **Resonance-parameter covariance (MF=32).** ENDF-6 gives the cross-section
-  covariance in the resonance range as an MF=32 part plus the MF=33 part, and
-  many evaluations put the whole resonance-range uncertainty in MF=32 and leave
-  MF=33 at zero there. From yani 0.20.0 the converter turns each resonance
-  range's MF=32 into blocks in `covariance.arrow`, which the fold uses like any
-  MF=33 block, except for a range whose formalism it does not reconstruct. The
-  published libraries were converted before that, so on them the fold sees
-  MF=33 only, and a capture rate driven by resonance flux can have
-  a sigma near zero. For capture in a $1/E$ field, NJOY ERRORR gives
+- **Resonance-parameter covariance (MF=32) neither sampled nor written.**
+  ENDF-6 gives the cross-section covariance in the resonance range as an MF=32
+  part plus the MF=33 part, and many evaluations put the whole resonance-range
+  uncertainty in MF=32 and leave MF=33 at zero there. Where the library
+  carries the resonance parameters, the draw samples them exactly (above);
+  otherwise the converter's first-order MF=32 rows in `covariance.arrow` are
+  folded like any MF=33 block. What is left held is a range whose formalism
+  `endf` does not reconstruct, and data converted before either was written,
+  on which the fold sees MF=33 only and a capture rate driven by resonance
+  flux can have a sigma near zero. For capture in a $1/E$ field, NJOY ERRORR gives
   ENDF/B-VIII.1 W186 1.53% with MF=32 and 0.00% from MF=33 alone. The coverage
   report shows this: W186's capture block states zero variance from
   $10^{-5}$ eV to 10 keV, where nearly all the capture rate is, so on the FNS
@@ -753,15 +807,16 @@ negative.
   silver.
 
 `not_perturbed` in `get_data_uncertainty_info` lists every input above on every
-run: isomeric branching (MF=9/MF=10), cross-material,
+run: isomeric branching (MF=9/MF=10) of a reaction with no stated MF=40
+covariance, cross-material,
 non-cross-section, underivable NC and unassignable lumped MF=33 blocks,
-resonance-parameter covariance (MF=32) not written into `covariance.arrow`,
+resonance-parameter covariance (MF=32) neither sampled nor in `covariance.arrow`,
 the decay photon spectrum covariance and continuum shape, the photon attenuation,
 energy-absorption and fluence-to-dose coefficients, the contact-dose build-up
 factor, and the material composition, density, natural abundances and atomic
 masses. It also adds an entry for each source a run turns off (half-life,
-decay energy, decay photon lines, fission yield, decay branching, activation
-cross section), the per-branch decay
+decay energy, decay photon lines, fission yield, decay branching, isomeric
+branching, activation cross section), the per-branch decay
 emission of a parent whose branching was sampled, the flux spectrum on
 `Material.transmute` when that source is off or some or all spectra have no
 sigma, the tallied-rate statistics when a transport run does not sample them,
@@ -793,12 +848,15 @@ these occurs:
 - a reachable unstable nuclide with no half-life sigma, or with a decay energy
   but no sigma on it;
 - a half-life or decay-energy sigma that cannot be sampled;
-- a multi-mode parent whose branching was held.
+- a multi-mode parent whose branching was held, wholly or in part, or drawn
+  short of its stated sigmas;
+- a reachable isomeric split with no MF=40 to draw, an MF=40 block not used,
+  or an MF=40 matrix repaired to the nearest correlation matrix.
 
 Of the inputs in the not-propagated list, the skipped and unassignable MF=33
 blocks set `has_gaps`, and the partial-level blocks set it only through
 `no_covariance_data`, when they are all a nuclide has. A reported sigma is the
-spread from the six propagated sources, with everything in this list held
+spread from the propagated sources, with everything in this list held
 fixed. See [Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty).
 
 ## Reproducibility

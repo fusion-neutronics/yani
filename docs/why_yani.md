@@ -53,9 +53,10 @@ group structure smears across a bin.
 **An uncertainty on the answer, not just the answer.** Pass
 `data_uncertainty=` and every nuclide density comes back with a standard
 deviation beside it. The activation cross sections are resampled from the
-evaluation's own ENDF MF=33 covariance, folded against your spectrum, the
-half-lives, decay energies and two-mode decay branching ratios from the decay
-data's own sigmas, and the
+evaluation's own ENDF MF=33 covariance, folded against your spectrum, and
+their resonance parameters from MF=32 where the library carries them; the
+half-lives, decay energies and decay branching ratios from the decay data's
+own sigmas; the isomeric splits from MF=40; and the
 schedule is re-solved for each sample. That is exact to all orders in the
 matrix exponential: nothing is linearized, and the sandwich rule is not used,
 so correlations between nuclides survive. When a replica moves a channel, the
