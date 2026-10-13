@@ -63,6 +63,13 @@ terms, `dN/dt = A N`, solved as a matrix exponential `N(t) = exp(A t) N(0)` by
 CRAM at order 48. The solver is Rust; the wheel needs no compiler and no
 external toolchain.
 
+## Getting the spectrum
+
+If you do not have a neutron spectrum for the material yet,
+[YAMC](https://github.com/fusion-neutronics/yamc) computes one by Monte Carlo
+transport through your geometry. It uses the same materials, schedules and
+nuclear data, and can run the transmutation coupled to the transport.
+
 ## Licence
 
 Dual-licensed under either of
