@@ -6,7 +6,12 @@
 # extension carries no annotations and the committed `.pyi` files carry all of
 # them.
 #
-# Build: mkdocs build -f mkdocs.yml   (needs `pip install yani-core` first)
+# The exporter plugin renders every page in headless Chromium and joins them
+# into one PDF, linked from the nav. Chromium rather than WeasyPrint because
+# the maths is typeset by MathJax, which needs a browser to run.
+#
+# Build: mkdocs build -f mkdocs.yml
+#   (needs `pip install yani-core` and `playwright install chromium` first)
 site_name: YANI
 site_description: YANI -- Yet Another Nuclide Inventory -- transmutation and activation calculations
 site_url: https://fusion-neutronics.github.io/yani/
@@ -49,6 +54,19 @@ plugins:
             extensions:
               - docs/griffe_ext.py:PyO3Constructor
               - docs/griffe_ext.py:PublicApi
+  - exporter:
+      formats:
+        pdf:
+          enabled: true
+          concurrency: 8
+          stylesheets:
+            - docs/pdf/pdf.css
+          scripts:
+            - docs/pdf/mathjax-wait.js
+          aggregator:
+            enabled: true
+            output: yani-documentation.pdf
+            covers: none
 
 extra:
   generator: false
@@ -83,3 +101,6 @@ nav:
   - Method: method.md
   - Validation: validation.md
   - API reference: api.md
+  # Absolute, because the PDF is written by the exporter after the build and
+  # is not a file in docs/ for MkDocs to resolve a relative link against.
+  - Download as PDF: https://fusion-neutronics.github.io/yani/yani-documentation.pdf
