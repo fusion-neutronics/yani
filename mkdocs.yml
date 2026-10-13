@@ -62,7 +62,7 @@ plugins:
           stylesheets:
             - docs/pdf/pdf.css
           scripts:
-            - docs/pdf/mathjax-wait.js
+            - docs/pdf/before-paging.js
           aggregator:
             enabled: true
             output: yani-documentation.pdf
