@@ -169,7 +169,9 @@ atom densities into the atom counts that activity and decay heat need.
 them there, so calling it again on the same material does no file reading at
 all. That is the right trade for a material you transmute more than once and the
 wrong one for a sweep over thousands of distinct compositions, each of which
-would otherwise hold a few hundred nuclides' data for as long as it lives. Call
+would otherwise hold its nuclides' data for as long as it lives: those of the
+composition and of the products the irradiation populates, a few dozen for a
+pure metal and up to a couple of hundred for a steel. Call
 `material.release_nuclear_data()` when you are done with one; the material stays
 usable, and the next call that needs the data loads it again.
 
@@ -572,12 +574,32 @@ if report is not None:
     channel["states"]            # each final state and its share of the reaction
     channel["clipped_share"]     # of the parent's removal rate
     report["dropped"]            # channels that could not be folded, and why
-    report["unmodelled_mt5"]     # MT=5's share of each parent's removal rate
+    report["unmodelled_mt5"]     # (nuclide, share, reason) where MT=5's residuals are not modelled
 ```
 
-A run refuses when a channel's clipped or held production is more than 0.1% of
-its parent's neutron removal rate, so whatever the report lists is below that.
-MT=5's share is reported whatever its size, since its products are not modelled.
+A run refuses when the clipped or held production of its channels, each parent
+weighted by its density in the material, is more than 0.1% of the material's
+neutron removal rate; each channel's `clipped_share` and `extrapolated_share`
+are of its own parent's removal. Weighting by the material keeps one bad list
+on a product present at a trace from refusing every irradiation whose network
+reaches it, while a material made of that parent is held to the same 0.1%.
+
+MT=5, `(n,anything)`, is the `(n,X)` reaction. The reactions subsection carries
+its products from the evaluation's MF=6 MT=5: each residual with its isomeric
+state, folded as a share of the MT=5 total at each energy (`file` 6,
+`representation` `"share"`), and each light particle H1, H2, H3, He3 and He4 as
+its multiplicity times that total (`representation` `"multiplicity"`, whose
+`share` is the multiplicity folded over the spectrum and can exceed one). Their
+gas is therefore in the inventory. In `TransmutationChain.reactions` an `(n,X)`
+edge's branching is NaN, since its split depends on the spectrum.
+
+`unmodelled_mt5` lists what is left: a parent whose evaluation gives MT=5's
+light particles but not its residuals (ENDF/B-VIII.1's Fe58 and zirconium
+isotopes, among others), each with its share of the parent's removal rate and
+the reason. A run refuses when the material's own nuclides lose more than 0.1%
+of the material's removal rate that way. A reactions subsection converted
+before MT=5 was carried has no `(n,X)` at all, and its MT=5 is reported, as it
+was, rather than refused.
 
 ### Where in energy a rate came from
 
@@ -635,7 +657,7 @@ Five module-level settings, read and written like attributes:
 
 | setting | supplies | decides | left unset |
 | --- | --- | --- | --- |
-| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | nothing at all: every `sigma * phi` is zero |
+| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
 | `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
 | `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
 | `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
@@ -649,9 +671,11 @@ process state, not per-call arguments. See
 subsection, and how much is in each.
 
 Note which way the last column goes. Four of the five have a default and answer
-something without being set. `cross_section_data` has none: leave it alone and
-there are no cross sections to fold, so every rate is zero, the composition comes
-back as it went in and the decay heat is `0.0` with nothing to say why.
+something without being set. `cross_section_data` has none, because which
+library the neutrons see moves a result more than any other setting: leave it
+alone and an irradiation stops with a `ValueError` that names the setting and
+the nuclide it had no data for. A decay-only schedule folds no cross sections
+and runs without it.
 
 ### The two that both say reactions
 
@@ -665,15 +689,15 @@ library behind `transmutation_reactions` and products appear or disappear, swap
 the one behind `cross_section_data` and the same products arrive at different
 rates.
 
-Two consequences follow from that loop, and both are quiet:
+Two consequences follow from that loop, one quiet and one not:
 
 * A channel the network names whose MT the cross sections do not carry is
   skipped. `(n,n')` is the standing example: it has no transport MT, so its rate
   comes from the branching overlay's partials rather than from a group average,
   which is why it is absent from a `get_reaction_rate_spectrum()` answer.
-* The two fail differently. A missing `cross_section_data` is silent, per the
-  column above. A network pointed at the wrong material is refused before the
-  solve, naming what the material holds against what the network drives.
+* A missing `cross_section_data` is refused, per the column above, and so is a
+  network pointed at the wrong material: before the solve, naming what the
+  material holds against what the network drives.
 
 `transmutation_reactions` and `transmutation_fission_yields` additionally accept
 `False`, which turns that subsection off. A decay-only calculation carries no
@@ -698,10 +722,45 @@ for. A decay-only schedule is exempt, since driving nothing is correct for it.
 
 ## Where the data comes from
 
-A keyword is resolved on first use: the sections needed are downloaded and
-cached under `~/.cache/yamc`, then reused. Only the sections activation reads
-are fetched, never a whole library, so this is a small fraction of a transport
-data set.
+A keyword is resolved on first use, once per process, to the library's current
+published release: a dated folder such as `2026-10-10.1` with a manifest listing
+every file in it with its size and sha256. The sections needed are downloaded
+from that release, each checked against the manifest (a byte range against its
+own hash) before it is kept, then reused. A file that does not match is refused
+with an error naming it, never cached. Only the sections activation reads are
+fetched, never a whole library, so this is a small fraction of a transport data
+set. A load of many nuclides fetches them in concurrent batches and prints a
+`Downloaded k of N nuclides` counter as it goes.
+
+The cache is a `yamc` folder in the platform's per-user cache directory, shared
+with yamc, and `yani.cache_dir()` returns it:
+
+| platform | cache directory |
+| --- | --- |
+| Linux | `~/.cache/yamc`, or `$XDG_CACHE_HOME/yamc` when that is set |
+| macOS | `~/Library/Caches/yamc` |
+| Windows | `%LOCALAPPDATA%\yamc` |
+
+Each release keeps a folder of its own, laid out as the published tree:
+
+```
+<cache dir>/<keyword>/<release>/manifest.json
+<cache dir>/<keyword>/<release>/neutron/<Nuclide>.arrow/...
+<cache dir>/<keyword>/<release>/transmutation/<subsection>.arrow/...
+```
+
+There is no setting that moves the cache. To read data from somewhere else,
+point the setting at a local directory instead (below), which bypasses the
+cache. When a newer release is published, the next run downloads what it needs
+from the new release, says so once, and leaves the older folder in place; every
+file of one library a run reads comes from a single release. With no connection,
+yani uses the newest cached release that already holds every file the run needs
+and says which; only a file missing from the cache is then an error.
+
+The release each keyword resolved to is recorded on the results, as
+`TransmutationResults.data_releases`: keyword to `release`, `manifest_sha256`,
+`format_version` and `offline`, so a result says exactly which data produced
+it.
 
 Every setting also accepts a **path** to a local converted directory instead of
 a keyword:

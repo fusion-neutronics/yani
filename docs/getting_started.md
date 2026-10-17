@@ -52,13 +52,9 @@ needs. Which does which, and how much is in each, is in
 
 Pointing a subsection at a library that does not publish it fails immediately,
 with a message listing what that library does have, rather than failing partway
-through a download.
-
-!!! warning
-    Unconfigured data tends to read as a zero rather than an error. Forgetting
-    `cross_section_data` leaves every `sigma * phi` at zero, so an irradiation
-    produces nothing and the decay heat comes back `0.0` with no complaint. If a
-    result is suspiciously empty or exactly zero, check these settings first.
+through a download. Forgetting `cross_section_data` fails too: it has no
+default, so an irradiation stops with a message naming the setting rather than
+running with no rates.
 
 A keyword is all this page needs. Paths, per-nuclide dicts and where the
 download lands are in
