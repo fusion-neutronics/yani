@@ -87,25 +87,22 @@ genuinely small would otherwise both report `0.0`, and only one of those is
 reassuring. `get_data_uncertainty_info` keeps them apart: which nuclides were
 perturbed, which have no usable published covariance, what share of each
 reaction rate carries a nonzero stated variance, which evaluated matrices were
-not positive semi-definite and had to be repaired (a repair that only ever adds
-variance, with each channel's evaluated sigma beside the one sampled), and
+not positive semi-definite and had to be repaired (a repair that keeps every
+evaluated sigma and moves only correlations, with each channel's evaluated
+sigma beside the one sampled), and
 which sources were held at nominal
 ([What is not propagated](method.md#what-is-not-propagated) explains each one).
-On ENDF/B-VIII.1 the second point is not academic (42% of evaluations carry
-MF=33, against 100% of TENDL-2025 as published), so the same run on two
+On ENDF/B-VIII.1 the second point is not academic (48% of evaluations carry
+cross-section covariance, against 100% of TENDL-2025), so the same run on two
 libraries can give two very different sigmas, and the report is what tells you
-why. yani's TENDL-2025 covariance is not distributed yet, so a TENDL-2025 run
-today lists its nuclides under `no_covariance_data`. What it separates is an
-evaluation with no MF=33 from one whose MF=33 is small, and a capture whose
-MF=33 is zero over the resonance range, because the evaluation keeps that
-uncertainty in resonance-parameter covariance (MF=32), reads as uncovered there
-(ENDF/B-VIII.1 W186 about 0.07 on the FNS spectrum).
-`rate_fraction_covered_total` weights coverage by reaction rate and by parent
-density instead of counting evaluations. ENDF/B-VIII.1, JEFF-4.0 and FENDL-3.2d
-state covariance for all five natural tungsten isotopes, and state it for the
-`(n,2n)` making 98% of a foil's decay heat only lumped with `(n,2np)`, which is
-not used and is listed as such, so the count reads as full coverage where the weighted figure reads 4%
-on ENDF/B-VIII.1 and JEFF-4.0.
+why. What it separates is an evaluation with no MF=33 from one whose MF=33 is
+small, and a capture whose MF=33 is zero over the resonance range, because the
+evaluation keeps that uncertainty in resonance-parameter covariance (MF=32),
+reads as uncovered there when the data carries no resonance parameters
+(ENDF/B-VIII.1 W186 about 0.07 on the FNS spectrum from MF=33 alone, and 1 on
+the published library, which samples them). `rate_fraction_covered_total`
+weights coverage by reaction rate and by parent density instead of counting
+evaluations.
 
 **Resonance self-shielding from a slowing-down solve, with a warning when you
 skip it.** Give a lump its shape, `yani.shapes.FoilLump(thickness=0.1)`, or its

@@ -855,17 +855,24 @@ only its input changes. Omitting the argument costs nothing at all: no
 covariance is read, nothing is folded, and the inventories are bit-identical.
 
 Every draw is a pure function of the seed, the sample and what is drawn: a
-nuclide for the cross sections, half-lives, decay branching, decay energies and
-decay photons, an evaluation for the fission yields, a spectrum for the
-flux, and a material's tallied rates, jointly, for the statistical error. So a
-seed reproduces a run regardless of sample count or iteration order. Leave
-`samples` unset and the driver adds samples until the nuclide density sigmas
-settle. Convergence is judged on the densities alone, and a decay energy or
-photon moves none of them. So when decay energies and photons are the only
-things any active source can draw (`decay_energy` or `decay_photon_lines`
-alone, or the other sources found nothing to perturb), the
-run takes 128 samples, or `samples`, with no convergence check, and reports
-`converged` as True.
+nuclide for the cross sections (the linked group, where a cross-material block
+joins two evaluations), half-lives, decay branching, decay energies, decay
+photons and isomeric splits, an evaluation for the fission yields, a spectrum
+for the flux, and a material's tallied rates, jointly, for the statistical
+error. So a seed reproduces a run regardless of sample count or iteration
+order. Leave `samples` unset and the driver adds samples, 64 at a time, until
+every tracked standard deviation is known to `convergence`, the standard error
+of a sigma relative to that sigma (0.05 unless set). It is judged at every step
+on each nuclide density within 1e-6 of that step's largest and on the total
+activity, decay heat and decay photon line rate, leaving out any sigma under
+0.01% of its value. At least 128 samples run whatever the target and at most
+1024; a run the cap stops sets `hit_cap`, and `get_data_uncertainty_info` lists
+every sigma that missed, worst first, under `unconverged`. A fixed `samples`
+runs exactly that many and lists what missed all the same, and a transport run
+fixes its count before the transport, 256 at the default target. The photon
+spectrum line by line and the contact dose are not judged, since their dose
+quantity and build-up are chosen when they are read; every `Estimate` carries
+its own `std_dev_standard_error`.
 
 Nine sources can be perturbed, and `DataUncertainty.available_sources()` names
 them:
@@ -921,8 +928,8 @@ them:
   isomer listed alone, and every `(n,n')` isomer, is made at its drawn
   production, so its MF=40 sigma replaces the MF=33 sigma of its reaction
   that it carries under `cross_sections` alone, and can be the smaller. It
-  applies to `Material.transmute`; a transport run's split comes from tallied
-  partials and is held.
+  applies on `Material.transmute` and on a transport run, where the tally
+  scores each state's production on the covariance's intervals.
 - `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
   their per-history covariance, on a yamc `Model.simulate_transmutation` run
   with the independent method. A spectrum run's rates are a deterministic
@@ -968,8 +975,8 @@ and positive semi-definite, and is checked.
 Because a zero sigma could mean either "well known" or "nothing published", the
 two are separated in `get_data_uncertainty_info` for a nuclide with no usable
 MF=33 block for any channel the chain drives (none on the tape, or only
-underivable NC, cross-material, unassignable lumped, partial-level or
-unsupported ones):
+underivable NC blocks, blocks to an evaluation the run does not hold, lumped
+blocks stated in barns, partial-level or unsupported ones):
 
 <!-- doctest: skip -->
 ```python
@@ -996,9 +1003,9 @@ if info is not None:               # None unless data_uncertainty was passed
     info["no_isomer_branching_uncertainty"]  # splits held, no MF=40 on any state
     info["isomer_production_sigma"]       # MF=40's folded sigma per product
     info["resonance_parameters"]   # per nuclide: parameters sampled, or first-order rows and why
-    info["flux_bins_floored"]      # flux draws floored at zero, see the method page;
+    info["rates_floored"]          # rate draws floored at zero, see the method page;
                                    # also statistical_floored
-    info["skipped_cross_material"] # {nuclide: blocks naming another evaluation}
+    info["skipped_cross_material"] # {nuclide: blocks to an evaluation not in the run}
     info["skipped_other_file"]     # {nuclide: blocks whose partner is not a cross section}
     info["mirrored_disagree"]      # pairs stored both ways whose copies differ
     info["not_perturbed"]          # every input held at nominal, see below
@@ -1008,36 +1015,42 @@ if info is not None:               # None unless data_uncertainty was passed
 
 `not_perturbed` names every input held at nominal on every run, from any
 resonance-parameter covariance (MF=32) neither sampled nor in `covariance.arrow`
-to the photon spectrum covariance,
-dose coefficients and the material composition, plus the run-dependent entries:
-a source the run switched off, spectra without a flux sigma, tallied-rate
+and the MT=5 product multiplicities to the photon spectrum covariance, dose
+coefficients and the material composition, plus the run-dependent entries: a
+source the run switched off, spectra without a flux sigma, tallied-rate
 statistics a transport run did not draw, the self-shielding correction, and the
-flux response to perturbed cross sections on a transport run that perturbs the
-cross sections. [What is not propagated](method.md#what-is-not-propagated)
+per-branch decay emission of a parent whose branching was drawn.
+[What is not propagated](method.md#what-is-not-propagated)
 explains each one, and names the few held inputs with no entry of their own,
 among them MF=33 blocks on partial levels (MT=600-849, 875-891), which are
 neither listed nor counted unless an LTY=0 NC block names them, because the
 chain drives no rate for them. `skipped_cross_material`, `skipped_nc` and
-`lumped_covariance_not_assignable` count the cross-material, underivable NC and
-multi-component lumped MF=33 blocks that were not used. A multi-mode parent
+`lumped_covariance_not_assignable` count the cross-material blocks naming an
+evaluation the run does not hold, the underivable NC blocks and the lumped
+blocks stated in barns, none of which is used. A multi-mode parent
 whose branching was held whole is named in `no_decay_branching_uncertainty` or
 `decay_branchings_too_wide`, and one that was drawn short of its stated sigmas
 in `decay_branchings_partly_held` (some modes held) or
 `decay_branchings_sigma_adjusted` (a mode drawn more than 0.1% from its stated
 sigma, because the sum rule or non-negative ratios cannot carry it). MF=40
 blocks that could not be used are counted per parent in
-`isomer_branching_blocks_not_used`. `has_gaps` looks
-only at the sources the run perturbs, and is True when one of them met a nuclide
-with no usable MF=33 block, a skipped or unassignable MF=33 block, a block whose
-layout is unsupported or malformed, a channel whose partial rates add up to
-more, or less, than its rate (`partials_above_rate`, `partials_below_rate`,
-below), a covariance repaired past round-off on a channel a draw can move
-(inside the populated bound or outside it), a spectrum with no flux sigma, or a
-reachable unstable nuclide with no stated half-life sigma, or with a decay
-energy but no stated sigma on it, or with a half-life or decay-energy sigma no
-draw can carry, a multi-mode parent whose branching was held or drawn short of
-its stated sigmas, or an isomeric split with no MF=40 to draw or an MF=40
-block not used. Partial-level
+`isomer_branching_blocks_not_used`. `has_gaps` looks only at the sources the
+run perturbs, and is True when one of them met a nuclide with no usable MF=33
+block, a skipped or unassignable MF=33 block, a block whose layout is
+unsupported or malformed, a channel whose partial rates add up to more, or
+less, than its rate (`partials_above_rate`, `partials_below_rate`, below), a
+derived channel resting on an unstated covariance between opposing terms, a
+covariance repaired past round-off on a channel a draw can move (inside the
+populated bound or outside it), a cross-material covariance drawn at the
+closest admissible one (`cross_material_adjusted`), an evaluation its own
+library warns about (`covariance_warnings`), a spectrum with no flux sigma or a
+rate under one that the flux draw cannot move, a reachable unstable nuclide
+with no stated half-life sigma, or with a decay energy or decay photon data but
+no stated sigma on it, a half-life, decay-energy or photon sigma no draw can
+carry, a fissioning parent with no yield sigma, a yield sigma no draw can carry
+or yields that do not map back, a multi-mode parent whose branching was held or
+drawn short of its stated sigmas, or an isomeric split with no MF=40 to draw,
+an MF=40 block not used or an MF=40 matrix repaired. Partial-level
 blocks set it only through `no_covariance_data`, when they are all a nuclide
 has.
 
@@ -1046,26 +1059,25 @@ nuclides with MF=33 measures how much covariance exists. This measures how much
 of it lands on the reactions the run drove, weighted by rate and by the parent's
 own density.
 
-Tungsten shows how far the two can diverge. ENDF/B-VIII.1, JEFF-4.0 and
-FENDL-3.2d state covariance for all five natural tungsten isotopes, so a count
-reads as complete coverage, and what reaches the run is `(n,3n)` and
-`(n,gamma)`: the `(n,2n)` making 98% of a tungsten foil's decay heat is stated
-only lumped with `(n,2np)`, as the uncertainty of their sum, which is not used
-and is listed in `lumped_covariance_not_assignable`.
-On ENDF/B-VIII.1 and JEFF-4.0 the ensemble perturbs about 4% of the production
-and reports a cross-section spread under 0.1% (with
-`sources=["cross_sections"]`). With the default sources the half-life and
-decay-energy sigmas of W185 and W185m dominate the spread.
+Tungsten is a case where the coverage rests on a lump. ENDF/B-VIII.1, JEFF-4.0
+and FENDL-3.2d state the `(n,2n)` that makes 98% of a tungsten foil's decay heat
+only lumped with `(n,2np)`, as the uncertainty of their sum (MT 852). Each
+component takes the lump's relative perturbation, so the two move together and
+their sum moves as the lump states. On ENDF/B-VIII.1 and the FNS spectrum a
+tungsten foil's `rate_fraction_covered_total` is 1, and
+`sources=["cross_sections"]` gives its decay heat a spread of about 3% at the
+first measured cooling time, nearly all of it W185m's.
 
 Covered means the evaluation states a nonzero variance there, not that a
 covariance grid spans it. A grid can run across the whole range with a variance
 of zero on some intervals, and rate from those counts as uncovered, the same as
 rate from outside the grid. ENDF/B-VIII.1 W186 `(n,gamma)` is the case: its
-block states zero from 1e-5 eV to 10 keV, where nearly all of a capture rate
-is, because the evaluation keeps that uncertainty in resonance-parameter
-covariance (MF=32), which the published library's `covariance.arrow` does not
-carry yet. On the FNS spectrum it reads 0.07 rather than 1, and W186 stays under `perturbed` for the
-intervals above 10 keV.
+MF=33 block states zero from 1e-5 eV to 10 keV, where nearly all of a capture
+rate is, because the evaluation keeps that uncertainty in resonance-parameter
+covariance (MF=32). The published libraries carry the resonance parameters,
+which are sampled and cover that range, so on the FNS spectrum W186 `(n,gamma)`
+reads 1; on data with MF=33 alone it reads 0.07, and W186 stays under
+`perturbed` for the intervals above 10 keV.
 
 The share is of the rate the fold divides by: the rate from energies with a
 nonzero stated variance, over the rate across the flux range, both with the
@@ -1104,10 +1116,16 @@ towards `has_gaps`.
 
 Three maps say which blocks were read but not folded. `skipped_cross_material`
 counts, per nuclide, the blocks correlating one of its reactions with a
-reaction of another evaluation: using them would mean sampling two nuclides'
-cross sections jointly, and the fold is per nuclide. A block naming its partner
-by the evaluation's own MAT is not one of them; ENDF-102 allows that spelling
-alongside `MAT1 = 0`, and both are folded. `skipped_other_file` counts the
+reaction of another evaluation that were not applied: the evaluation they name
+is not in the run, or one of the two reactions has no relative covariance to
+correlate. Where the run holds both evaluations the block is applied, and the
+nuclides it links are drawn jointly, one draw per replica shared by every
+material, counted in `applied_cross_material`; where the stated covariance is
+not admissible beside each evaluation's own, the closest admissible one is
+drawn and `cross_material_adjusted` says by how much (ENDF/B-VIII.1 U235 and
+U238 fission read about 0.31), which counts towards `has_gaps`. A block naming
+its partner by the evaluation's own MAT is not one of them; ENDF-102 allows
+that spelling alongside `MAT1 = 0`, and both are folded. `skipped_other_file` counts the
 blocks whose partner is not a cross section (`XMF1` other than 0 or 3, or a
 final state). Both count only blocks on a reaction the run drives, once per
 nuclide however many spectra the run has. `mirrored_disagree` is keyed
@@ -1203,8 +1221,8 @@ The sources are independent, so `by_source` is how much of the variance is
 cross sections, half-lives, flux and so on, and `unattributed` is interaction
 and sampling noise. `contributors` is first order and says which evaluation to
 look at: within the cross sections a nuclide's whole evaluation has a
-`reaction` of `None` and each channel names its own, and a half-life or a decay
-branching pair has `None`. The total stays the resampled one.
+`reaction` of `None` and each channel names its own, and a half-life or a
+parent's decay branching (its whole split) has `None`. The total stays the resampled one.
 
 On a yamc transport run with the `statistical` source,
 `get_reaction_rate_uncertainty(material_id=mid, step=step)` lists each tallied
@@ -1235,9 +1253,8 @@ deviations alone do not.
   flux is taken as exact, since nothing is transported here. The decay
   branching ratios the draw holds, isomeric splits with no MF=40,
   resonance-parameter covariance (MF=32) neither sampled nor in
-  `covariance.arrow`, cross-material, underivable NC,
-  unassignable lumped and
-  partial-level MF=33 blocks, the self-shielding correction, the photon
+  `covariance.arrow`, cross-material blocks to an evaluation the run does not
+  hold, underivable NC, barn-stated lumped and partial-level MF=33 blocks, the self-shielding correction, the photon
   spectrum covariance, the dose constants and the material composition are held at
   their evaluated or nominal values;
   [What is not propagated](method.md#what-is-not-propagated) says how much each

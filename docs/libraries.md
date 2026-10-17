@@ -100,9 +100,10 @@ product.
 
 The percentage counts evaluations that carry cross-section covariance, which is
 not the same as covariance landing where your run needs it. Read
-`rate_fraction_covered_total` before any sigma; the tungsten case in
-[Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty) has all five
-natural isotopes covered by the count and 4% of the production covered in fact.
+`rate_fraction_covered_total` before any sigma: it weights each channel by the
+production it drove, so a channel stated with no covariance, or only on partial
+levels, reads as uncovered however many of the element's isotopes carry MF=33.
+[Nuclear-data uncertainty](usage.md#nuclear-data-uncertainty) has the cases.
 
 Depth varies as much as presence. JENDL-5 carries covariance for only 13% of its
 evaluations, and its Fe56 covers 56 channels against ENDF/B-VIII.1's 7.
