@@ -21,7 +21,7 @@ yani.transmutation_decay_data = "endf-b8.1"
 | `endf-b8.1` | ENDF/B-VIII.1. What the transmutation subsections fall back to when unset. |
 | `jeff-4.0` | JEFF-4.0. |
 | `jendl-5.0` | JENDL-5. |
-| `tendl-2025` | TENDL-2025. The widest isotope coverage of the six. |
+| `tendl-2025` | TENDL-2025. The widest isotope coverage of the six, but its lithium [breeds no tritium](#tendl-2025s-lithium-breeds-no-tritium). |
 | `tendl-2017` | TENDL-2017, for comparing a result against the older release. |
 | `fendl-3.2d` | FENDL-3.2d. Cross sections, plus `reactions` and `branching` subsections. |
 
@@ -231,6 +231,34 @@ for channel in channels:
 The excitation energy is what compares between libraries. The level index beside
 it is the evaluation's own numbering and is not comparable: Ir190's 377 keV
 isomer is level 3 in ENDF/B-VIII.1 and level 37 in JEFF-4.0 and TENDL-2025.
+
+### TENDL-2025's lithium breeds no tritium
+
+TENDL-2019 and TENDL-2023 carried ENDF/B-VIII.0's lithium unchanged, two Los
+Alamos evaluations: Li6 by G.M. Hale (2017), which gives `(n,p)` and `(n,t)` as
+MT=103 and MT=105, and Li7 by P.G. Young (1988). TENDL-2025 replaces both with
+TALYS output, written as ENDF by TEFAL. Its Li6 file has cross sections for MT
+1 to 5, 51 to 55, 91 and 102 only, and its Li7 file for MT 1 to 5, 16, 51 to 54,
+91 and 102, so neither has a triton channel: the tritons MT=5 produces, and the
+MT=205 derived from them, begin at 30 MeV. Li6's resonance range is a
+six-resonance multi-level Breit-Wigner fit with neutron and gamma widths only,
+and its thermal total cross section is 0.485 b, where ENDF/B-VIII.1's is
+938.9 b, almost all of it `(n,t)`.
+
+So lithium on `tendl-2025` makes no tritium below 30 MeV, which is every energy
+a fusion or fission system reaches. ENDF/B-VIII.1 at 294 K has Li6 `(n,t)` at
+938.1 b at 0.0253 eV and 0.0259 b at 14.06 MeV, and Li7 triton production
+(MT=205) at 0.301 b at 14.06 MeV; TENDL-2025 has zero for all three. In yani, a
+Li6 foil's H3 production averaged over a 0.02 to 0.03 eV group is 949 b on
+`endf-b8.1` and 0 on `tendl-2025`, and over a 14.0 to 14.1 MeV group 0.0259 b
+and 0. Transport shows it at the scale of a blanket: a 100 cm sphere of natural
+lithium around a 14.06 MeV source has a tritium breeding ratio of 1.2169 +/-
+0.0021 on `endf-b8.1` and exactly 0 on `tendl-2025` in yamc (100,000 histories).
+
+For a lithium-bearing breeder, blanket or shield, take both the cross sections
+and the `reactions` network from another library. The network is what holds
+the `(n,t)` channel: with `transmutation_reactions = "tendl-2025"`, Li6 makes no
+tritium even when its cross sections come from `endf-b8.1`.
 
 ### Temperatures and size
 
