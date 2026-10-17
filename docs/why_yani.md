@@ -190,20 +190,24 @@ schedule variants in one script pays the parse cost once, not once per
 source (say, more reactions) tops the cache up rather than re-parsing it from
 scratch. The cross sections a `transmute()` needs are kept on the material
 itself as well, so a second call on the same material does no file reading at
-all: on a steel against ENDF/B-VIII.1 that is 1.8 s of a 2.3 s call. A sweep
-over thousands of distinct compositions hands them back with
-`release_nuclear_data()`. Downloads are cached separately, to disk under
-`~/.cache/yamc`, so a second run of the script does not refetch.
+all. A sweep over thousands of distinct compositions hands them back with
+`release_nuclear_data()`. Downloads are cached separately, to disk in the
+platform cache directory (`yani.cache_dir()`), so a second run of the script
+does not refetch.
 
 **The chain that gets built is exactly the one your material can reach, no
 manual depth setting required.** Rather than truncating the transmutation
 network at a fixed number of reaction or decay steps from the starting
 nuclides, a value that silently drops real nuclides if set too low and loads
-data no calculation needs if set too high, YANI computes a provable upper
-bound on the density every candidate nuclide could reach given the actual
-irradiation time and rates, and only loads and solves for the ones that can
-clear a floor. Nothing that could matter is dropped, and nothing that
-provably can't is loaded.
+data no calculation needs if set too high, YANI finds the products that
+matter by solving: it loads the composition's cross sections, solves the
+schedule, loads every product that reached `product_threshold` (1e-12 by
+default) as an atom fraction or as a share of the activity, decay heat or
+decay photon power, and repeats until nothing new crosses it. A year's
+irradiation of a 316 steel against ENDF/B-VIII.1 loads 99 nuclides that way,
+of the 465 its network can reach. A product left out is still made, decays and is reported, and only its own
+reactions are dropped, by an amount `get_product_screening_info` bounds;
+`product_threshold=0` loads every product the solve populates, which is exact.
 
 **Nuclear data is a binary columnar format, not text to parse.** Cross
 sections and transmutation chains are stored as Arrow, so loading them is
