@@ -199,16 +199,15 @@ does not refetch.
 manual depth setting required.** Rather than truncating the transmutation
 network at a fixed number of reaction or decay steps from the starting
 nuclides, a value that silently drops real nuclides if set too low and loads
-data no calculation needs if set too high, YANI computes a provable upper
-bound on the density every candidate nuclide could reach given the actual
-irradiation time and rates, and only solves for the ones that can clear a
-floor. Cross sections are then loaded for the composition and for the
-products the irradiation actually populates, not for everything the network
-can reach: a product whose atom fraction, and share of the activity, decay
-heat and decay photon power, stays below `product_threshold` (1e-12 by
-default) is still made, decays and is reported, and only its own reactions
-are left out. `get_product_screening_info` lists what was loaded and what was
-not, and `product_threshold=0` loads every product.
+data no calculation needs if set too high, YANI finds the products that
+matter by solving: it loads the composition's cross sections, solves the
+schedule, loads every product that reached `product_threshold` (1e-12 by
+default) as an atom fraction or as a share of the activity, decay heat or
+decay photon power, and repeats until nothing new crosses it. A year's
+irradiation of a 316 steel against ENDF/B-VIII.1 loads 99 nuclides that way,
+of the 465 its network can reach. A product left out is still made, decays and is reported, and only its own
+reactions are dropped, by an amount `get_product_screening_info` bounds;
+`product_threshold=0` loads every product the solve populates, which is exact.
 
 **Nuclear data is a binary columnar format, not text to parse.** Cross
 sections and transmutation chains are stored as Arrow, so loading them is

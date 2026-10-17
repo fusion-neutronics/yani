@@ -9,8 +9,9 @@ tried and measured, the result is recorded here as well.
 A run has six stages:
 
 1. **Network.** The transmutation chain gives each nuclide's decay modes,
-   reaction products and fission yields. YANI finds the nuclides the material
-   can populate over the schedule and loads only those
+   reaction products and fission yields. YANI finds the products the material
+   populates over the schedule by solving it, and loads cross sections for
+   those and the composition only
    ([Which nuclides get loaded](#which-nuclides-get-loaded)).
 2. **Rates.** Each reaction rate per atom is the pointwise cross section folded
    against the spectrum ([The collapse](#the-collapse)), with an optional
@@ -61,8 +62,7 @@ After the exponential, two adjustments are made:
   $N_i(0)\,e^{A_{ii}t}$ instead of the CRAM value. Both describe the same
   equation, and the closed form is exact, so a stable nuclide that is only
   being burned does not accumulate round-off.
-- Densities at or below $10^{-30}$ atoms/b-cm are dropped. This is the same
-  floor used by the network bound described below.
+- Densities at or below $10^{-30}$ atoms/b-cm are dropped.
 
 ## Building the matrix
 
@@ -162,17 +162,31 @@ nuclide with yields and a nonzero fission rate but no weights raises an error.
 
 YANI does not truncate the network at a fixed number of reaction or decay
 steps. A fixed depth drops real nuclides when set too low and loads unneeded
-data when set too high. Instead, YANI calculates an upper bound on the density
-each candidate nuclide could reach, given the irradiation time and rates, and
-keeps the nuclides whose bound reaches the $10^{-30}$ atoms/b-cm floor.
+data when set too high. Nor does it load cross sections for everything the
+composition can reach: from almost any composition that is one large connected
+network, 465 nuclides with neutron data on ENDF/B-VIII.1 from Fe56, Al27 or
+anything from Be9 up, and hundreds of MB, where a year's irradiation of a 316
+steel needs 99 of them.
 
-The bound is calculated over the whole reachable network in a single pass.
-Setting the edges of unloaded nuclides to zero would not give a bound, because
-a nuclide fed by many parents that are each below the floor can still exceed it
-in total. Growing the loaded set in rounds and finishing with a bounding sweep
-is correct but slower: on the ENDF/B-VIII.1 chain from Fe56, the sweep only
-terminates once 1059 of 1060 nuclides are loaded, and returns the same result
-as the single pass after thirteen rounds.
+Instead, YANI finds the products that matter by solving. It loads the
+composition's cross sections, solves the schedule, and loads every product with
+neutron reactions that, at any state of the schedule, reached
+`product_threshold` (default $10^{-12}$) as its atom fraction or as its share
+of the activity, the decay heat or the decay photon line power. It then solves
+again with those products reacting, and repeats until a solve populates nothing
+new above the threshold. Decay shares are tested as well as atom fractions
+because a rare product can carry a decay quantity: Na22 in an irradiated
+Li4SiO4, at an atom fraction near $10^{-15}$, carries nearly all of the contact
+dose a month after shutdown, and its own 28 kb thermal (n,p) burns it out
+twelvefold.
+
+A product left out is still produced, decays and is reported; only its own
+neutron reactions are dropped. Its atom fraction and its share of each decay
+quantity are then off by less than the threshold, and what its reactions would
+have made is bounded by the summed peak atom fraction of the products left out.
+`get_product_screening_info` reports that sum as `dropped_fraction`, beside
+what was loaded, what was left out and how many solves the screening took. A
+threshold of 0 loads every product the solve populates at all, which is exact.
 
 ## Isomeric branching
 
@@ -271,8 +285,9 @@ There are two methods:
   with no predictor-corrector, so split any step long enough for burnup to
   change the flux.
 
-Both methods start with a short scouting run that bounds every reaction rate.
-These bounds select which product nuclides are tallied, using the same bound as
+Both methods start with a short scouting transport that gives each material's
+flux spectrum. The products whose cross sections are loaded and tallied are
+chosen on it by the same screening as
 [Which nuclides get loaded](#which-nuclides-get-loaded).
 
 ## Derived quantities
