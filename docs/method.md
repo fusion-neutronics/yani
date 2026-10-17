@@ -507,7 +507,7 @@ A matrix counts as repaired when any of the following holds:
 - a cell has zero variance and a nonzero covariance with another cell.
 
 $R$ is congruent to that block of $C$, so one is positive semi-definite exactly
-when the other is. On $R$ the round-off of the decomposition is about $n$ times
+when the other is. On $R$ the round-off of the decomposition is about $m$ times
 machine epsilon regardless of the cell sigmas, so a positive semi-definite
 matrix whose smallest eigenvalue is a few ulps below zero does not count as
 repaired. The test does not compare $\lambda_\text{min}$ of $C$ with its
@@ -522,9 +522,9 @@ The repair is reported in these fields:
   entry sets `has_gaps` to true.
 - The report covers the nuclides the material can populate. The fold uses every
   nuclide whose data the run loaded, the composition and the products that
-  reach `product_threshold`, so a nuclide is reported only when an upper bound on its
-  density over the schedule, at nominal rates, reaches the solver floor of
-  $10^{-30}$ atoms/b-cm. A nuclide outside the bound cannot change any nominal
+  reach `product_threshold`, so a nuclide is reported only when an upper bound
+  on its density over the schedule, at nominal rates, reaches the solver floor
+  of $10^{-30}$ atoms/b-cm. A nuclide outside the bound cannot change any nominal
   density by that much, but a replica's rates on a wide channel can be orders
   of magnitude above nominal. Repaired nuclides outside the bound with a
   channel a draw can move are listed in `covariance_repaired_outside_bound`,
@@ -558,9 +558,9 @@ The other sources are sampled using their own stated sigma:
 - **Flux.** Drawn once per replica and group, from the pulse's `flux_std_dev`
   or through the factor of its `flux_covariance`, and shared by every rate
   collapsed against that spectrum, the isomeric splits and the `(n,n')` rates
-  the branching overlay folds from it included. A rate is linear in the flux, so the
-  perturbed rate is the collapse's per-group terms reweighted exactly, without
-  repeating the collapse.
+  the branching overlay folds from it included. A rate is linear in the flux,
+  so the perturbed rate is the collapse's per-group terms reweighted exactly,
+  without repeating the collapse.
 - **Half-lives.** Drawn per nuclide from the sigma in the decay data.
 - **Decay energies.** Drawn from the sigma on each beta, gamma and alpha
   component that has one, or on the total if no component has a sigma.
