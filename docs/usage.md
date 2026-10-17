@@ -891,7 +891,11 @@ them:
 - `decay_photon_lines`: each decay photon spectrum's normalisation, one draw
   per spectrum shared by all its lines, and each line's own intensity and
   energy, from the decay data's sigmas on them. No photon enters the solve, so
-  this moves the photon spectrum and contact dose and nothing else.
+  this moves the photon spectrum, the contact dose and, through the gamma decay
+  energy, which follows each replica's drawn lines in place of a `decay_energy`
+  draw, the decay heat. Each of these has a range rather than one spread,
+  `Estimate.std_dev` to `Estimate.std_dev_correlated`, because the decay data
+  do not state how a nuclide's photon intensities are correlated.
 - `statistical`: the Monte Carlo error of transport-tallied reaction rates, from
   their per-history covariance, on a yamc `Model.simulate_transmutation` run
   with the independent method. A spectrum run's rates are a deterministic
