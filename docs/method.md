@@ -541,7 +541,11 @@ The other sources are sampled using their own stated sigma:
   continuum points, so the lines of one spectrum move together. Each line then
   takes its own draw from its intensity sigma (dRI, which MT=457 states
   relative to FD and without FD's sigma, so nothing is counted twice) and one
-  from its energy sigma (dER).
+  from its energy sigma (dER). A nuclide's gamma decay energy follows the
+  draw, by the drawn change in its photon energy per decay (each line's energy
+  times its intensity, plus each continuum's energy integral), in place of a
+  `decay_energy` draw of it; the part of it the tabulated spectra do not carry
+  is held, and the beta and alpha parts keep their own draws.
 - **Fission yields.** Each independent yield (MT=454) the tape states a DY
   for is drawn on the tape's own product, and the draws are summed onto the
   chain's products the way the converter summed the nominal yields: a product
@@ -728,14 +732,21 @@ negative.
   step-to-step tally noise is not propagated yet. It is also where the response
   of the flux to a perturbed cross section would be included.
 - **Decay photon spectrum covariance and continuum shape.** MT=457 can state a
-  covariance between a spectrum's lines (LCOV), and no library ships one, so
-  the lines of a spectrum are drawn independently apart from their shared
-  normalisation. A continuum's shape is held, and only its normalisation is
-  drawn. The decay data gives a sigma on 99.6% of ENDF/B-VIII.1 gamma lines,
-  and the intensities matter to contact dose: negligibly for Co60 (0.014%) but
-  0.6 to 1.8% for Mn56 and 0.8 to 3.7% for W187 across ENDF/B-VIII.1, JEFF-4.0
-  and JENDL-5.0, the ends of each range being independent and fully correlated
-  lines. Without a stated covariance the draw sits inside that range.
+  covariance between a spectrum's lines (LCOV), and no library ships one. A
+  continuum's shape is held, and only its normalisation is drawn. The decay
+  data also leave unstated whether a spectrum's line intensities share a part
+  (ENDF/B-VIII.1 folds each spectrum's normalisation sigma into every line's),
+  whether a normalisation and its lines are correlated, and whether a nuclide's
+  gamma and x-ray spectra are. None of these is assumed: every photon output,
+  and the gamma part of decay heat, is evaluated with all of them taken as zero
+  (`Estimate.std_dev`) and as one (`Estimate.std_dev_correlated`), which bounds
+  every non-negative correlation, and `decay_photon_spectra_folded` names the
+  spectra written the ENDF/B way, where most of that range comes from. The
+  decay data give a sigma on 99.6% of ENDF/B-VIII.1 gamma lines, and for one
+  emitter as a trace in iron the contact dose from its line data alone has a
+  relative sigma of 0.014% for Co60, 1.09 to 1.75% for Mn56 and 0.82 to 1.70%
+  for W187 on ENDF/B-VIII.1, from the independent end to the fully correlated
+  one.
 - **Dose constants and build-up.** Contact dose uses the same photon
   attenuation coefficients, the same response (air energy absorption, or the
   ICRP-116 coefficients for effective dose) and the same constant build-up
