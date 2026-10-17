@@ -563,10 +563,12 @@ lognormal factor with mean one and variance equal to the squared relative
 sigma, so every draw is positive and the ensemble has the stated mean and sigma
 exactly, with no floor. The independence between a nuclide's decay-energy
 components and between different nuclides' half-lives is an assumption, since
-the data gives no correlation. A sigma that cannot be sampled (one on a decay
-energy of zero, or one that is not finite) is held at nominal and listed in
-`half_life_uncertainty_not_carried`, `decay_energy_uncertainty_not_carried` or
-`decay_photon_line_uncertainty_not_carried`, all counted as gaps.
+the data gives no correlation. A sigma that cannot be sampled (one on a value
+of zero, such as a decay energy or a yield, or one that is not finite) is held
+at nominal and listed in `half_life_uncertainty_not_carried`,
+`decay_energy_uncertainty_not_carried`,
+`decay_photon_line_uncertainty_not_carried` or
+`fission_yield_uncertainty_not_carried`, all counted as gaps.
 
 A decay branching ratio is sampled only where the data determines the joint
 distribution of a parent's decay modes. MT=457 gives each mode a ratio and a
@@ -651,8 +653,10 @@ negative.
   correlation between yields, so each is drawn independently and a draw's
   yields are not renormalised to the nominal total. A parent whose tape yields
   do not sum back to the chain's (`fission_yields_mapping_mismatch`) is held.
-  The weights that combine a nuclide's yield sets by incident energy come from
-  the nominal spectrum in every replica, so a flux draw does not change them.
+  On `Material.transmute` the weights that combine a nuclide's yield sets by
+  incident energy come from the nominal spectrum in every replica, so a flux
+  draw does not change them; on a transport run with `cross_sections` on, each
+  replica tallies its own.
 - **Isomeric branching.** The split of a reaction product between the ground
   state and an isomer comes from MF=9 or MF=10 (as named in `not_perturbed`).
   Where an evaluation gives its uncertainty, it does so in MF=40, which is
