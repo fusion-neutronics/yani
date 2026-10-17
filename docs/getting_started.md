@@ -201,10 +201,12 @@ by side.
 
 Here that costs `Ag109_m1` and `Pd109` their places: third and fourth in the
 activity, neither makes the five largest by dose, and `Rh106_m1` and `Ag108_m1`
-take their seats. Fourteen of the eighty-nine nuclides carrying activity emit no
-photons at all and are simply absent -- `H3`, `Ru106` and `Zr93` among them.
+take their seats. Nine of the seventy-one nuclides carrying activity are simply
+absent: six emit no photons at all, `H3`, `Ru106` and `Pd107` among them, and
+three, `Ag104_m1`, `Rh100_m1` and `Rh108_m1`, are short-lived isomers whose decay
+records carry a gamma energy but no photon lines for the dose to use.
 
-The dose itself is `Ag106_m1`'s out to twenty days, better than 99% of it, and
+The dose itself is `Ag106_m1`'s out to twenty days, 96 to 99% of it, and
 `Ag110_m1`'s by a hundred. What the log axis then shows, and the other two plots
 have no equivalent of, is the flat line the total settles onto: `Ag108_m1` has a
 438 year half-life, so across the whole ten years it neither grows nor decays,
@@ -291,7 +293,7 @@ you can ask a result:
 
 <!-- doctest: skip -->
 ```python
-print(final.activity(by_nuclide=True))     # {"Ag110m": ..., "Ag108m": ..., ...}
+print(final.activity(by_nuclide=True))     # {"Ag108_m1": ..., "Ag110_m1": ..., ...}
 print(final.decay_heat(by_nuclide=True))   # W per nuclide
 print(final.contact_dose(by_nuclide=True)) # Gy/h per nuclide
 print(len(final.nuclides))                 # how much the network grew

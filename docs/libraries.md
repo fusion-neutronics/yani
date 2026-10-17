@@ -142,8 +142,9 @@ propagated](method.md#what-is-not-propagated).
 
 ### Energy range
 
-Every library reaches past 20 MeV for at least some evaluations, and none is
-uniform. Counting evaluations by the ceiling they were converted to:
+Every library reaches past 20 MeV for at least some evaluations, and only
+TENDL-2025 is uniform. Counting evaluations by the ceiling they were converted
+to:
 
 | library | ceiling |
 | --- | --- |
@@ -152,7 +153,7 @@ uniform. Counting evaluations by the ceiling they were converted to:
 | `jendl-5.0` | 579 at 200 MeV, 216 at 20 |
 | `fendl-3.2d` | 109 at 200 MeV, 72 at 150, 11 at 60 to 65, none at 20 |
 | `tendl-2025` | 200 MeV throughout |
-| `tendl-2017` | 200 MeV throughout |
+| `tendl-2017` | 2,780 at 200 MeV, 14 at 20, 4 at 150, rest at 30 to 60 |
 
 So ENDF/B-VIII.1 is the only one that is mostly a 20 MeV library, and even its
 Fe56 and W186 reach 150 MeV. A spectrum whose flux reaches above a nuclide's
@@ -184,7 +185,7 @@ decay scheme.
 | --- | ---: |
 | `endf-b8.1` | 1144 |
 | `jeff-4.0` | 1529 |
-| `jendl-5.0` | 375 |
+| `jendl-5.0` | 377 |
 
 They are exotic nuclides, so most runs never touch one, but decay heat at short
 cooling times is carried by exactly the short-lived products that tend to be
