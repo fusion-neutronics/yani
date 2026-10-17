@@ -122,10 +122,11 @@ At the ends of the evaluated energy range:
   more than 0.1% of the flux lies above the top of a nuclide's evaluation. See
   [Energy range](libraries.md#energy-range).
 
-Cross sections are taken at the material's temperature, which must be one of
-the temperatures in the data. There is no interpolation between temperatures.
-If the material has no temperature set, the first temperature in the data is
-used.
+Cross sections are taken at the material's temperature. A temperature between
+two in the data is served by blending the two that bracket it, linearly in
+temperature, and one outside the data's range is refused, naming the range. If
+the material has no temperature set, the lowest temperature in the data is
+used, 250 K on the published libraries.
 
 Within each group the flux is assumed flat in energy. This assumption has an
 error of its own. Compared with a pointwise reference for the FNS foil

@@ -190,8 +190,7 @@ schedule variants in one script pays the parse cost once, not once per
 source (say, more reactions) tops the cache up rather than re-parsing it from
 scratch. The cross sections a `transmute()` needs are kept on the material
 itself as well, so a second call on the same material does no file reading at
-all: on a steel against ENDF/B-VIII.1 that is 1.8 s of a 2.3 s call. A sweep
-over thousands of distinct compositions hands them back with
+all. A sweep over thousands of distinct compositions hands them back with
 `release_nuclear_data()`. Downloads are cached separately, to disk in the
 platform cache directory (`yani.cache_dir()`), so a second run of the script
 does not refetch.
@@ -202,9 +201,14 @@ network at a fixed number of reaction or decay steps from the starting
 nuclides, a value that silently drops real nuclides if set too low and loads
 data no calculation needs if set too high, YANI computes a provable upper
 bound on the density every candidate nuclide could reach given the actual
-irradiation time and rates, and only loads and solves for the ones that can
-clear a floor. Nothing that could matter is dropped, and nothing that
-provably can't is loaded.
+irradiation time and rates, and only solves for the ones that can clear a
+floor. Cross sections are then loaded for the composition and for the
+products the irradiation actually populates, not for everything the network
+can reach: a product whose atom fraction, and share of the activity, decay
+heat and decay photon power, stays below `product_threshold` (1e-12 by
+default) is still made, decays and is reported, and only its own reactions
+are left out. `get_product_screening_info` lists what was loaded and what was
+not, and `product_threshold=0` loads every product.
 
 **Nuclear data is a binary columnar format, not text to parse.** Cross
 sections and transmutation chains are stored as Arrow, so loading them is

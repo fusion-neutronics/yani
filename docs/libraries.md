@@ -76,29 +76,32 @@ all, rather than publishing an empty one.
 
 | library | neutron | photon | reaction edges | branching channels | decay nuclides | covariance |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `endf-b8.1` | 557 | 100 | 5,175 | 915 | 3,820 | 42% |
-| `jeff-4.0` | 593 | -- | 13,513 | 8,303 | 3,851 | 98% |
-| `jendl-5.0` | 795 | 100 | 9,902 | 5,349 | 4,070 | 13% |
-| `fendl-3.2d` | 192 | 61 | pending | pending | -- | 35% |
-| `tendl-2025` | 2,848 | -- | 67,797 | 8,416 | -- | pending |
-| `tendl-2017` | 2,801 | -- | 68,827 | 8,365 | -- | pending |
+| `endf-b8.1` | 557 | 100 | 12,444 | 917 | 3,820 | 48% |
+| `jeff-4.0` | 593 | -- | 81,045 | 8,362 | 3,851 | 99% |
+| `jendl-5.0` | 795 | 100 | 145,117 | 5,397 | 4,070 | 13% |
+| `fendl-3.2d` | 192 | 61 | 27,814 | 652 | -- | 35% |
+| `tendl-2025` | 2,848 | -- | 415,154 | 40,934 | -- | 100% |
+| `tendl-2017` | 2,801 | -- | 417,434 | 41,185 | -- | 100% |
 
 `neutron` and `photon` are evaluations, one per nuclide and one per element.
 `reaction edges` is how many `(parent, reaction, product)` triples the network
 holds, which is the number that decides whether a product is reachable at all;
-the isomeric overlay adds more at solve time, 5,546 rather than 5,175 on
-`endf-b8.1`. `covariance` is the share of neutron evaluations carrying
-cross-section covariance.
+the isomeric overlay adds more at solve time, 12,817 rather than 12,444 on
+`endf-b8.1`. Most of each count is the residual production of MT=5, the
+`(n,X)` edges described under
+[Weighted, from a solve](usage.md#weighted-from-a-solve): 7,269 of
+ENDF/B-VIII.1's 12,444 and 347,357 of TENDL-2025's 415,154. `covariance` is the
+share of neutron evaluations carrying cross-section covariance.
 
 The spread between the two ends is the thing worth noticing: TENDL carries five
-times the evaluations of ENDF/B-VIII.1 and thirteen times the reaction edges,
-and ENDF/B-VIII.1 carries the decay data that TENDL has none of. That is why the
-usual arrangement is a TENDL `reactions` network with ENDF/B-VIII.1 `decay` and
-`fission_yields` beside it.
+times the evaluations of ENDF/B-VIII.1 and thirty-three times the reaction
+edges, and ENDF/B-VIII.1 carries the decay data that TENDL has none of. That is
+why the usual arrangement is a TENDL `reactions` network with ENDF/B-VIII.1
+`decay` and `fission_yields` beside it.
 
 Mixing that way asks the decay subsection to cover everything the reactions
 network can reach, and the published pairings do: the TENDL-2025 network puts
-3,116 nuclides in play, and both ENDF/B-VIII.1 and JENDL-5 carry decay data for
+3,366 nuclides in play, and both ENDF/B-VIII.1 and JENDL-5 carry decay data for
 every one of them. It is worth knowing what the miss would look like, because a
 hand-built or scoped chain can produce it. A product with no decay entry gets no
 decay term in the burnup matrix, so it accumulates and never decays, reports zero
@@ -229,10 +232,13 @@ isomer is level 3 in ENDF/B-VIII.1 and level 37 in JEFF-4.0 and TENDL-2025.
 All six are converted at the same six temperatures, 250, 293.6, 600, 900, 1200
 and 2500 K, so a library swap never changes which temperature is available.
 
-Size is per nuclide rather than per library, because only the nuclides in your
-material are fetched. Fe56 is 65 MB on `endf-b8.1` and 25 MB on `tendl-2025`;
-U235 is 199 MB and 63 MB. The chains are small by comparison, 3.4 MB for a TENDL
-network against 21 MB for JENDL-5's complete one.
+Size is per nuclide rather than per library, because only the nuclides a run
+loads are fetched: those in your material and the products its irradiation
+populates. Fe56 is 56 MB on `endf-b8.1` and 19 MB on `tendl-2025`; U235 is
+179 MB and 387 MB, 346 MB of the latter its cross-section covariance, which
+only an uncertainty run reads. The chains are not small: 88 MB for a TENDL
+network against 67 MB for JENDL-5's complete one, most of it the `(n,X)`
+residual production in `reactions`.
 
 ### TENDL chains are not standalone
 

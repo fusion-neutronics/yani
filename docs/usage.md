@@ -169,7 +169,9 @@ atom densities into the atom counts that activity and decay heat need.
 them there, so calling it again on the same material does no file reading at
 all. That is the right trade for a material you transmute more than once and the
 wrong one for a sweep over thousands of distinct compositions, each of which
-would otherwise hold a few hundred nuclides' data for as long as it lives. Call
+would otherwise hold its nuclides' data for as long as it lives: those of the
+composition and of the products the irradiation populates, a few dozen for a
+pure metal and up to a couple of hundred for a steel. Call
 `material.release_nuclear_data()` when you are done with one; the material stays
 usable, and the next call that needs the data loads it again.
 
@@ -655,7 +657,7 @@ Five module-level settings, read and written like attributes:
 
 | setting | supplies | decides | left unset |
 | --- | --- | --- | --- |
-| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | nothing at all: every `sigma * phi` is zero |
+| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
 | `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
 | `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
 | `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
@@ -669,9 +671,11 @@ process state, not per-call arguments. See
 subsection, and how much is in each.
 
 Note which way the last column goes. Four of the five have a default and answer
-something without being set. `cross_section_data` has none: leave it alone and
-there are no cross sections to fold, so every rate is zero, the composition comes
-back as it went in and the decay heat is `0.0` with nothing to say why.
+something without being set. `cross_section_data` has none, because which
+library the neutrons see moves a result more than any other setting: leave it
+alone and an irradiation stops with a `ValueError` that names the setting and
+the nuclide it had no data for. A decay-only schedule folds no cross sections
+and runs without it.
 
 ### The two that both say reactions
 
@@ -685,15 +689,15 @@ library behind `transmutation_reactions` and products appear or disappear, swap
 the one behind `cross_section_data` and the same products arrive at different
 rates.
 
-Two consequences follow from that loop, and both are quiet:
+Two consequences follow from that loop, one quiet and one not:
 
 * A channel the network names whose MT the cross sections do not carry is
   skipped. `(n,n')` is the standing example: it has no transport MT, so its rate
   comes from the branching overlay's partials rather than from a group average,
   which is why it is absent from a `get_reaction_rate_spectrum()` answer.
-* The two fail differently. A missing `cross_section_data` is silent, per the
-  column above. A network pointed at the wrong material is refused before the
-  solve, naming what the material holds against what the network drives.
+* A missing `cross_section_data` is refused, per the column above, and so is a
+  network pointed at the wrong material: before the solve, naming what the
+  material holds against what the network drives.
 
 `transmutation_reactions` and `transmutation_fission_yields` additionally accept
 `False`, which turns that subsection off. A decay-only calculation carries no
