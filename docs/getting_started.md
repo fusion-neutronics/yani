@@ -40,8 +40,10 @@ yani.transmutation_decay_data = "endf-b8.1"
 yani.transmutation_fission_yields = "endf-b8.1"
 ```
 
-The split above is not arbitrary. TENDL is a neutron-only evaluation, so it has
-no decay or fission-yield sublibrary and those two come from a library that does.
+The split above is not arbitrary. TENDL has no decay or fission-yield
+sublibrary, so those two come from a library that does. Its gamma evaluations
+are photonuclear data, separate from the neutron data used for activation;
+see [the next TENDL release](libraries.md#photonuclear-data-in-the-next-tendl-release).
 It is still what you want for `reactions`, because it covers far more parent
 nuclides, and that is what decides whether an activation product appears in your
 inventory at all.

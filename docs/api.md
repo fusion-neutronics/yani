@@ -81,6 +81,12 @@ yamc ships and this wheel does not.
 ::: yani.convert_neutron_transport
 ::: yani.convert_photon
 
+The photonuclear converter preserves evaluated MF=3 cross sections and the
+original ENDF sections. It does not enable photon-induced transmutation or
+photon transport; see [TENDL photonuclear data](libraries.md#photonuclear-data-in-the-next-tendl-release).
+
+::: yani.convert_photonuclear
+
 ## Reading data back
 
 Both of these read a converted Arrow directory through the same loader transport
@@ -92,3 +98,8 @@ interpreter reports on each of them rather than handing back the first.
 
 ::: yani.read_nuclide_from_arrow
 ::: yani.read_element_from_arrow
+
+The photonuclear readback validates its cross-section tables against the
+preserved MF=3 source rather than invoking either transport loader.
+
+::: yani.read_photonuclear_from_arrow

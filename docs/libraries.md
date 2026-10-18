@@ -38,15 +38,15 @@ is set on its own, so a network can take each part from wherever publishes it.
 
 | library | cross sections | `decay` | `reactions` | `fission_yields` | `branching` |
 | --- | --- | :---: | :---: | :---: | :---: |
-| `endf-b8.1` | neutron + photon | yes | yes | yes | yes |
+| `endf-b8.1` | neutron + photoatomic | yes | yes | yes | yes |
 | `jeff-4.0` | neutron | yes | yes | yes | yes |
-| `jendl-5.0` | neutron + photon | yes | yes | yes | yes |
-| `fendl-3.2d` | neutron + photon | -- | yes | -- | yes |
-| `tendl-2025` | neutron | -- | yes | -- | yes |
-| `tendl-2017` | neutron | -- | yes | -- | yes |
+| `jendl-5.0` | neutron + photoatomic | yes | yes | yes | yes |
+| `fendl-3.2d` | neutron + photoatomic | -- | yes | -- | yes |
+| `tendl-2025` | neutron + photonuclear (next release, data only) | -- | yes | -- | yes |
+| `tendl-2017` | neutron + photonuclear (next release, data only) | -- | yes | -- | yes |
 
-TENDL is a neutron-only evaluation, so it has no decay or fission-yield
-sublibrary and those two must come from one of the three that do. It is still
+TENDL has neutron and photonuclear evaluations, but no decay or fission-yield
+sublibrary, so those two must come from one of the three that do. It is still
 what you want for `reactions`, because it covers far more parent nuclides, and
 that is what decides whether an activation product appears in your inventory at
 all. `endf-b8.1`, `jeff-4.0` and `jendl-5.0` each supply a complete network from
@@ -62,19 +62,57 @@ Pointing a subsection at a library that does not publish it fails immediately,
 naming what that library does have, rather than solving to an inventory that is
 quietly missing a route.
 
-The `cross sections` column is about transport rather than about activation:
-YANI reads neutron data only, and the photon column matters when a decay photon
-spectrum from here is fed into a transport run in yamc. `jeff-4.0` reads as
-neutron because its photon sublibrary is photonuclear rather than the photoatomic
-and atomic-relaxation pair a photon transport needs, and `fendl-3.2d` publishes
-photon cross sections with no atomic relaxation at all.
+The `cross sections` column lists different kinds of evaluated data. YANI's
+activation rates use neutron cross sections. Photoatomic data matters when a
+decay photon spectrum is transported in yamc; it is not the photonuclear data
+in TENDL. JEFF's photonuclear sublibrary is not processed as photoatomic data,
+and FENDL's photoatomic data carries no atomic relaxation.
+
+### Photonuclear data in the next TENDL release
+
+The next TENDL-2025 and TENDL-2017 regeneration processes `TENDL-g.tgz` as well
+as the neutron archive. These gamma evaluations describe photonuclear
+reactions on nuclides, not photoatomic interactions on elements. The published
+`2026-10-12.1` release does not contain the new files; they become available
+only after the regenerated release is validated and published.
+
+Output lives under `photonuclear/{Nuclide}.arrow/`:
+
+- `photonuclear.arrow` holds MF=3 cross sections on their original energy grids,
+  Q values and ENDF interpolation, in eV and barns.
+- `photonuclear_sections.arrow` preserves every original ENDF section,
+  including outgoing-particle distributions.
+- `version.json` identifies `particle="photonuclear"` and `scope="evaluated"`.
+
+The particle index and release manifest list the available evaluations and
+files. These are evaluated data, not transport-ready secondary distributions.
+`Material.transmute()` remains neutron-flux driven and does not consume these
+tables, and yamc does not yet sample photonuclear collisions. In particular,
+TENDL gamma data cannot replace a photoatomic `photon/` library.
+
+For a local evaluation, the converter and readback are available on this wheel:
+
+<!-- doctest: skip -->
+```python
+folder = yani.convert_photonuclear(
+    input_path="g-Fe056.tendl", output_dir="out/photonuclear",
+    library="tendl-2025",
+)
+summary = yani.read_photonuclear_from_arrow(folder)
+print(summary["name"], summary["mts"])
+```
+
+The readback checks the Arrow cross sections against the preserved MF=3 source.
+Neither neutron NJOY processing nor auxiliary atomic tabulations are needed.
 
 ## How big each library is
 
-Counted from the built trees. `--` means the library does not publish that at
-all, rather than publishing an empty one.
+Counted from published release `2026-10-12.1`, not from the forthcoming
+regeneration. `--` means that release does not publish the category, rather
+than publishing an empty one. Photonuclear evaluation counts will come from
+the new release's index; the photoatomic counts below do not include them.
 
-| library | neutron | photon | reaction edges | branching channels | decay nuclides | covariance |
+| library | neutron | photoatomic elements | reaction edges | branching channels | decay nuclides | covariance |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `endf-b8.1` | 557 | 100 | 12,444 | 917 | 3,820 | 48% |
 | `jeff-4.0` | 593 | -- | 81,045 | 8,362 | 3,851 | 99% |
@@ -83,7 +121,7 @@ all, rather than publishing an empty one.
 | `tendl-2025` | 2,848 | -- | 415,154 | 40,934 | -- | 100% |
 | `tendl-2017` | 2,801 | -- | 417,434 | 41,185 | -- | 100% |
 
-`neutron` and `photon` are evaluations, one per nuclide and one per element.
+`neutron` and `photoatomic elements` are evaluations, one per nuclide and one per element.
 `reaction edges` is how many `(parent, reaction, product)` triples the network
 holds, which is the number that decides whether a product is reachable at all;
 the isomeric overlay adds more at solve time, 12,817 rather than 12,444 on
