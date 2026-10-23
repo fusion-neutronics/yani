@@ -180,7 +180,8 @@ usable, and the next call that needs the data loads it again.
 `transmute()` returns a `TransmutationResults` -- the same object the coupled
 `Model.simulate_transmutation()` returns in yamc -- keyed by the material's `id`.
 Every material has one from construction: the `id` passed to it, or else a
-fresh one that no earlier material in the process was given.
+fresh one that no earlier yani material in the process was given (yamc numbers
+its own materials separately).
 `step_materials()` unpacks the results into `list[Material]`, one per step,
 each holding the inventory at the end of that step and keeping the original's
 `id`. Extensive quantities need the material's `volume` in cm³:
@@ -348,8 +349,9 @@ mesh, a component broken into regions, or a sweep over compositions. Each
 material gets exactly the answer `material.transmute(schedule)` would give it,
 and the result is one `TransmutationResults` keyed by each material's `id`, so
 the ids must be distinct. Every material is built with its own, so two share one
-only when one was given the other's explicitly or came out of the other's
-results, which keep their original's `id`:
+only when one was given it explicitly or came out of a transmutation result: the
+materials a result returns keep their original's `id`, so they share it with the
+original and with each other.
 
 <!-- doctest: skip -->
 ```python
