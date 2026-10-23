@@ -102,7 +102,7 @@ schedule = yani.PulseSchedule(
 )
 
 results = foil.transmute(schedule=schedule)    # TransmutationResults
-steps = results.step_materials(material_id=foil.id or 0)   # one Material per step
+steps = results.step_materials(material_id=foil.id)   # one Material per step
 final = steps[-1]
 
 print(final.activity(), "Bq")

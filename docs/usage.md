@@ -178,15 +178,17 @@ usable, and the next call that needs the data loads it again.
 ## Results
 
 `transmute()` returns a `TransmutationResults` -- the same object the coupled
-`Model.simulate_transmutation()` returns in yamc -- keyed by the material's `id`,
-or `0` when it has none. `step_materials()` unpacks it into `list[Material]`, one
-per step, each holding the inventory at the end of that step. Extensive
-quantities need the material's `volume` in cm³:
+`Model.simulate_transmutation()` returns in yamc -- keyed by the material's `id`.
+Every material has one from construction: the `id` passed to it, or else a
+fresh one that no earlier material in the process was given.
+`step_materials()` unpacks the results into `list[Material]`, one per step,
+each holding the inventory at the end of that step and keeping the original's
+`id`. Extensive quantities need the material's `volume` in cm³:
 
 <!-- doctest: skip -->
 ```python
 results = material.transmute(schedule=schedule)
-steps = results.step_materials(material_id=material.id or 0)
+steps = results.step_materials(material_id=material.id)
 
 for step, mat in enumerate(steps, start=1):
     print(step, mat.activity(), "Bq", mat.decay_heat(), "W")
@@ -345,16 +347,18 @@ before trusting a comfortable index.
 mesh, a component broken into regions, or a sweep over compositions. Each
 material gets exactly the answer `material.transmute(schedule)` would give it,
 and the result is one `TransmutationResults` keyed by each material's `id`, so
-every material needs a distinct one:
+the ids must be distinct. Every material is built with its own, so two share one
+only when one was given the other's explicitly or came out of the other's
+results, which keep their original's `id`:
 
 <!-- doctest: skip -->
 ```python
-inner = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0, id=1)
-outer = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0, id=2)
+inner = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0)
+outer = yani.Material(composition={"Fe": 1.0}, density=7.87, volume=10.0)
 
 results = yani.transmute(materials=[inner, outer], schedules=[schedule, schedule])
-results.get_source_rates(material_id=2)   # list[float], each step's flux, n/cm2/s
-results.collapse_reuse                    # {"performed": ..., "requested": ...}
+results.get_source_rates(material_id=outer.id)   # list[float], each step's flux, n/cm2/s
+results.collapse_reuse                           # {"performed": ..., "requested": ...}
 ```
 
 Pass one schedule for every material, or one per material in the same order.
@@ -410,7 +414,7 @@ rather than staying silent:
 
 <!-- doctest: skip -->
 ```python
-shielding = results.get_self_shielding_info(material_id=foil.id or 0)
+shielding = results.get_self_shielding_info(material_id=foil.id)
 if shielding is not None:              # None for a coupled solve or unknown id
     shielding["method"], shielding["chord_cm"]   # how, and the chord used
     shielding["shielded"]              # nuclides the correction reached
@@ -902,7 +906,7 @@ results = material.transmute(
     data_uncertainty=yani.DataUncertainty(seed=42),
 )
 
-mid = material.id or 0
+mid = material.id
 mean = results.get_nuclide_density(material_id=mid, nuclide="Mn56", step=1)
 sigma = results.get_nuclide_uncertainty(material_id=mid, nuclide="Mn56", step=1)
 ```

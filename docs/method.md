@@ -697,10 +697,12 @@ jointly from `(seed, replica, group)`, the group being every linked nuclide of
 the run, so their draw depends on which partners the run holds, though their
 distribution does not. The flux draw depends on `(seed, replica, spectrum)`,
 where spectrum is the spectrum's index among the schedule's spectra. The
-statistical draw depends on `(seed, replica, material)`, keyed on the
-material's id, and is made jointly over that material's tallied rates, so
-adding or removing a tallied rate changes the other draws of that material. A
-given seed always reproduces a run.
+statistical draw depends on `(seed, replica, material)`, the material being its
+slot in the yamc geometry's material store rather than its id: the model fixes
+the slot, while an id the user did not set depends on what else the process
+built. It is made jointly over that material's tallied rates, so adding or
+removing a tallied rate changes the other draws of that material. A given seed
+always reproduces a run.
 
 ### Derived quantities under uncertainty
 
