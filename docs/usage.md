@@ -1,5 +1,10 @@
 # Usage
 
+The examples on this page assume the nuclear data settings are made, as in
+[Getting started](getting_started.md): `cross_section_data` and the three
+`transmutation_*` subsections have no default, and a calculation that reads an
+unset one is refused (see [Nuclear data settings](#nuclear-data-settings)).
+
 ## Schedules
 
 An irradiation history is one `PulseSchedule` built from `Pulse` (irradiation) and
@@ -664,9 +669,9 @@ Five module-level settings, read and written like attributes:
 | setting | supplies | decides | left unset |
 | --- | --- | --- | --- |
 | `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
-| `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
-| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
-| `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
+| `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | none: a calculation that reads it is refused, naming the setting |
+| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | none: a calculation that reads it is refused, naming the setting |
+| `transmutation_fission_yields` | fission product yields | what a fission makes | none: a calculation that reads it is refused, naming the setting |
 | `transmutation_branch_ratios` | isomeric branching against incident energy | which product is left in a metastable state | no overlay, so every product lands in its ground state |
 
 Each takes a library keyword or a path, and each can point somewhere different,
@@ -676,12 +681,20 @@ process state, not per-call arguments. See
 [Nuclear data libraries](libraries.md) for which library publishes which
 subsection, and how much is in each.
 
-Note which way the last column goes. Four of the five have a default and answer
-something without being set. `cross_section_data` has none, because which
-library the neutrons see moves a result more than any other setting: leave it
-alone and an irradiation stops with a `ValueError` that names the setting and
-the nuclide it had no data for. A decay-only schedule folds no cross sections
-and runs without it.
+Note which way the last column goes. Only `transmutation_branch_ratios` has a
+default. The other four name the data a result is made from, so none is chosen
+for you and nothing is downloaded from a library you did not pick: leave one
+alone and a calculation that reads it stops with a `ValueError` naming each
+unset setting, the hosted keywords and a line to copy. What each calculation
+reads:
+
+| calculation | reads |
+| --- | --- |
+| a schedule with an irradiating step (`Material.transmute()`, `yani.transmute()`) | `cross_section_data` and all three `transmutation_*` subsections above |
+| a schedule that only cools, and `activity()`, `decay_heat()`, `contact_dose()`, `clearance_index()` and the other decay quantities | `transmutation_decay_data` |
+
+A decay-only schedule folds no cross sections and runs without
+`cross_section_data`.
 
 ### The two that both say reactions
 
@@ -709,8 +722,9 @@ Two consequences follow from that loop, one quiet and one not:
 `False`, which turns that subsection off. A decay-only calculation carries no
 reaction rates, so it needs no reaction topology; a material nothing in which
 fissions needs no yields, and neither does a library that publishes none of its
-own. Off is not the same as unset: for these two `None` restores the default
-library, whereas `False` says the subsection is absent on purpose. A rate that then needs it is
+own. Off is not the same as unset: `None` leaves the setting unset, so a calculation
+that reads it is refused, whereas `False` says the subsection is absent on
+purpose. Each reads back as it was assigned: the source, `False` or `None`. A rate that then needs it is
 refused when the burnup matrix is built, naming the nuclide and the reaction,
 rather than being solved as though the reaction produced nothing.
 
