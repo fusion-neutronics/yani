@@ -60,6 +60,7 @@ covers, and what a sigma of zero does and does not mean, is in
 ::: yani.Reaction
 ::: yani.TransmutationChain
 ::: yani.cache_dir
+::: yani.verify_library
 ::: yani.lookup_cross_section_data
 ::: yani.set_cross_section_data_entry
 ::: yani.group_structure
