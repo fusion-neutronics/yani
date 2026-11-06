@@ -803,6 +803,73 @@ yani.cross_section_data = {
 }
 ```
 
+### A whole library in one folder
+
+A folder laid out as a published release, with its `manifest.json` beside the
+`neutron/` and `transmutation/` folders it describes, is a release folder, and
+its one path serves every setting. Cross sections are read from `neutron/`, and
+each transmutation subsection from `transmutation/<subsection>.arrow/`:
+
+<!-- doctest: skip -->
+```python
+yani.cross_section_data = "/data/endf-b8.1"
+yani.transmutation_decay_data = "/data/endf-b8.1"
+yani.transmutation_reactions = "/data/endf-b8.1"
+yani.transmutation_fission_yields = "/data/endf-b8.1"
+```
+
+A copy of every file a published release's `manifest.json` lists, from
+`https://yamc-data.xsplot.com/<keyword>/<release>/`, with the manifest itself
+at the top, is such a folder, and so is a release folder in the cache
+(`<cache dir>/<keyword>/<release>/`) for the files it holds.
+
+Nothing is downloaded. The manifest is read as a published release's is: a
+`format_version` this build does not read is refused with the advice to upgrade,
+and each file a load reads is checked against the size the manifest gives it. A
+subsection the manifest does not list is refused, naming the subsections the
+folder does carry, and so is a file the manifest lists that the folder does not
+hold. `TransmutationResults.data_releases` records the folder under its absolute
+path, with its `release` and `manifest_sha256`, and `offline` set to `False`.
+
+A load checks sizes only. `yani.verify_library` is the full check: it re-hashes
+every file the manifest lists and looks for files it does not list, which is
+worth running on a library kept for offline use or copied between machines:
+
+<!-- doctest: skip -->
+```python
+import pprint
+
+report = yani.verify_library("/data/irdff-ii")
+pprint.pprint(report, sort_dicts=False)
+```
+
+```text
+{'keyword': 'irdff-ii',
+ 'release': '2026-10-12.1',
+ 'format_version': 2,
+ 'manifest_sha256': '547003e2d63c167978be82915986206c581af7373c6f71ca0bb78732a1e182c5',
+ 'file_count': 3,
+ 'total_bytes': 6508798,
+ 'missing': [],
+ 'changed': [],
+ 'unlisted': [],
+ 'ok': True}
+```
+
+`ok` is `True` when `missing`, `changed` and `unlisted` are all empty. An
+unlisted file fails the check, because results identify the library by the
+manifest's sha256 and a file the manifest does not list is data that identity
+does not cover. A release folder in the cache holds only the files runs have
+downloaded, so the rest are reported missing.
+
+Wherever a reactions or fission-yields source resolves, the folder must hold
+`reactions.arrow` or `fission_yields.arrow`: one without it is refused, naming
+the folder, rather than read as a network with no reactions or no yields, which
+would make every rate through it zero. Set the subsection to `False` to leave
+it out. A bare name that is both a keyword and a folder in the working directory
+(`endf-b8.1` with a folder `./endf-b8.1` beside it) is refused rather than
+guessed at; write `./endf-b8.1` or an absolute path to mean the folder.
+
 To build the data yourself from ENDF tapes rather than download it, the
 converters ship on this wheel: see [Making your own data](#making-your-own-data).
 
@@ -830,6 +897,13 @@ yani.convert_branching(
     output_path="out/branching.arrow",
 )
 ```
+
+`convert_transmutation`, `convert_branching` and `radionuclide_production` read
+every material in each file, so a tape can be passed as it is published:
+JEFF-4.0's decay and fission yield tapes, or IRDFF-II's neutron tape of 70
+materials, need no splitting first. `convert_neutron_xs` runs NJOY in a hidden
+folder inside `output_dir`, removed when the conversion ends, so that disk, not
+the system's temporary folder, needs room for NJOY's tapes.
 
 Both network converters record which nuclides carry reactions of their own, as
 `parents` on each subsection of the manifest they write. A nuclide that appears
