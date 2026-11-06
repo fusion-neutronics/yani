@@ -14,11 +14,12 @@ import yani
 yani.cross_section_data = "tendl-2025"
 yani.transmutation_reactions = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"
+yani.transmutation_fission_yields = "endf-b8.1"
 ```
 
 | keyword | what it is |
 | --- | --- |
-| `endf-b8.1` | ENDF/B-VIII.1. What the transmutation subsections fall back to when unset. |
+| `endf-b8.1` | ENDF/B-VIII.1. |
 | `jeff-4.0` | JEFF-4.0. |
 | `jendl-5.0` | JENDL-5. |
 | `tendl-2025` | TENDL-2025. The widest isotope coverage of the six, but its lithium [breeds no tritium](#tendl-2025s-lithium-breeds-no-tritium). |
@@ -26,10 +27,14 @@ yani.transmutation_decay_data = "endf-b8.1"
 | `fendl-3.2d` | FENDL-3.2d. Cross sections, plus `reactions` and `branching` subsections. |
 
 Every setting also takes a path to a converted directory instead of a keyword,
-and `cross_section_data` takes a dict keyed by nuclide. Which setting does what,
+including a folder that holds a whole library laid out as a release, which
+serves every setting at once (see
+[A whole library in one folder](usage.md#a-whole-library-in-one-folder)), and
+`cross_section_data` takes a dict keyed by nuclide. Which setting does what,
 and what each one does when left alone, is in
-[Nuclear data settings](usage.md#nuclear-data-settings); `cross_section_data` is
-the one with no default.
+[Nuclear data settings](usage.md#nuclear-data-settings). Only
+`transmutation_branch_ratios` has a default; the others are refused when a
+calculation reads them unset.
 
 ## What each library publishes
 

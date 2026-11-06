@@ -1,5 +1,10 @@
 # Usage
 
+The examples on this page assume the nuclear data settings are made, as in
+[Getting started](getting_started.md): `cross_section_data` and the three
+`transmutation_*` subsections have no default, and a calculation that reads an
+unset one is refused (see [Nuclear data settings](#nuclear-data-settings)).
+
 ## Schedules
 
 An irradiation history is one `PulseSchedule` built from `Pulse` (irradiation) and
@@ -306,6 +311,75 @@ for continuum in final.decay_photon_continua(per="cm3"):
     continuum.interpolation    # the ENDF law between points, e.g. "linear-linear"
     continuum.emission_rate    # photons/s/cm3, the integral
 ```
+
+### Displacement damage
+
+`displacement_damage=True` also computes the damage the irradiation does to the
+material's lattice: the damage energy deposited per atom, and NRT displacements
+per atom (dpa), per element and for the material. Each getter returns one
+cumulative value per state, aligned with `times`, starting from zero:
+
+<!-- doctest: skip -->
+```python
+iron = yani.Material(composition={"Fe": 1.0}, density=7.874, volume=1.0)
+schedule = yani.PulseSchedule(steps=[
+    yani.Pulse(rate=sum(multigroup_flux), duration=(1, "a"), source=spectrum),
+    yani.Cooldown(duration=(1, "d")),
+])
+results = iron.transmute(schedule=schedule, displacement_damage=True)
+
+results.get_dpa(material_id=iron.id)                  # [0.0, 6.49, 6.49]
+results.get_dpa(material_id=iron.id, element="Fe")    # the iron's own dpa
+results.get_damage_energy(material_id=iron.id)        # eV per atom: [0.0, 649.4, 649.4]
+results.get_displacement_damage_info(material_id=iron.id)
+```
+
+Each nuclide's MT=444 damage-energy cross section is folded against the pulse
+spectrum by the same collapse as the reaction rates, self-shielding included,
+at each step's composition; cooldowns add nothing. An element's dpa is
+`0.8 * E_damage / (2 * E_d)` (the NRT model, ASTM E521), with the displacement
+threshold energy `E_d` from ASTM E521, or from the OECD-NEA 2015 report
+"Primary Radiation Damage in Materials" for an element E521 does not cover.
+`displacement_energies={"Fe": 40.0}` replaces them, and an element in neither
+must be given there. The material total weights the elements by atom fraction.
+`get_displacement_damage_info` names the `E_d` used for each element and its
+source, the transmutation products whose data has no MT=444
+(`without_damage_energy`) and the product elements with no `E_d`, hydrogen and
+helium above all (`without_displacement_energy`), each with the largest atom
+fraction it reached. Without the flag, MT=444 is not fetched and nothing about
+the solve changes.
+
+Pass a `DataUncertainty` as well and the dpa and damage energy come with a
+nuclear-data spread, one `Estimate` per step:
+
+<!-- doctest: skip -->
+```python
+results = iron.transmute(
+    schedule=schedule,
+    displacement_damage=True,
+    data_uncertainty=yani.DataUncertainty(seed=42),
+)
+dpa = results.get_dpa_uncertainty(material_id=iron.id, step=1)
+if dpa is not None:                 # None unless both were asked for
+    dpa.nominal, dpa.std_dev        # 6.49, 0.158: 2.4%
+results.get_damage_energy_uncertainty(material_id=iron.id, step=1, element="Fe")
+```
+
+Each replica's dpa is accumulated over its own inventory. Under
+`cross_sections`, MT=444 has no covariance of its own, but it is the sum over
+reactions of each cross section times the damage energy that reaction deposits,
+so a draw moves it by each reaction's deposit times its drawn change. Elastic
+and inelastic scattering, which carry most of it, are drawn with the activation
+channels as one evaluation. What no reaction's deposit reproduces, fission's
+share above all, is held, and `get_data_uncertainty_info(...)["damage_energy"]`
+gives, per nuclide of the starting composition, the share of its MT=444 rate the
+deposits reproduce (`explained`) and the relative sigma of its drawn rate
+(`sigma`); for this iron, Fe56 is explained in full with a sigma of 2.8%. Under
+`flux_spectrum`, the damage energy moves with the replica's flux draw. The
+damage energy of transmutation products, short-range (LB=8) covariance and the
+displacement threshold energies are held at nominal. Asking for damage widens
+what is drawn for each nuclide of the starting composition, so for one seed the
+draws differ from those of a run without `displacement_damage`.
 
 ### Clearance and disposal limits
 
@@ -664,9 +738,9 @@ Five module-level settings, read and written like attributes:
 | setting | supplies | decides | left unset |
 | --- | --- | --- | --- |
 | `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
-| `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | `endf-b8.1` |
-| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | `endf-b8.1` |
-| `transmutation_fission_yields` | fission product yields | what a fission makes | `endf-b8.1` |
+| `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | none: a calculation that reads it is refused, naming the setting |
+| `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | none: a calculation that reads it is refused, naming the setting |
+| `transmutation_fission_yields` | fission product yields | what a fission makes | none: a calculation that reads it is refused, naming the setting |
 | `transmutation_branch_ratios` | isomeric branching against incident energy | which product is left in a metastable state | no overlay, so every product lands in its ground state |
 
 Each takes a library keyword or a path, and each can point somewhere different,
@@ -676,12 +750,20 @@ process state, not per-call arguments. See
 [Nuclear data libraries](libraries.md) for which library publishes which
 subsection, and how much is in each.
 
-Note which way the last column goes. Four of the five have a default and answer
-something without being set. `cross_section_data` has none, because which
-library the neutrons see moves a result more than any other setting: leave it
-alone and an irradiation stops with a `ValueError` that names the setting and
-the nuclide it had no data for. A decay-only schedule folds no cross sections
-and runs without it.
+Note which way the last column goes. Only `transmutation_branch_ratios` has a
+default. The other four name the data a result is made from, so none is chosen
+for you and nothing is downloaded from a library you did not pick: leave one
+alone and a calculation that reads it stops with a `ValueError` naming each
+unset setting, the hosted keywords and a line to copy. What each calculation
+reads:
+
+| calculation | reads |
+| --- | --- |
+| a schedule with an irradiating step (`Material.transmute()`, `yani.transmute()`) | `cross_section_data` and all three `transmutation_*` subsections above |
+| a schedule that only cools, and `activity()`, `decay_heat()`, `contact_dose()`, `clearance_index()` and the other decay quantities | `transmutation_decay_data` |
+
+A decay-only schedule folds no cross sections and runs without
+`cross_section_data`.
 
 ### The two that both say reactions
 
@@ -709,8 +791,9 @@ Two consequences follow from that loop, one quiet and one not:
 `False`, which turns that subsection off. A decay-only calculation carries no
 reaction rates, so it needs no reaction topology; a material nothing in which
 fissions needs no yields, and neither does a library that publishes none of its
-own. Off is not the same as unset: for these two `None` restores the default
-library, whereas `False` says the subsection is absent on purpose. A rate that then needs it is
+own. Off is not the same as unset: `None` leaves the setting unset, so a calculation
+that reads it is refused, whereas `False` says the subsection is absent on
+purpose. Each reads back as it was assigned: the source, `False` or `None`. A rate that then needs it is
 refused when the burnup matrix is built, naming the nuclide and the reaction,
 rather than being solved as though the reaction produced nothing.
 
@@ -789,6 +872,73 @@ yani.cross_section_data = {
 }
 ```
 
+### A whole library in one folder
+
+A folder laid out as a published release, with its `manifest.json` beside the
+`neutron/` and `transmutation/` folders it describes, is a release folder, and
+its one path serves every setting. Cross sections are read from `neutron/`, and
+each transmutation subsection from `transmutation/<subsection>.arrow/`:
+
+<!-- doctest: skip -->
+```python
+yani.cross_section_data = "/data/endf-b8.1"
+yani.transmutation_decay_data = "/data/endf-b8.1"
+yani.transmutation_reactions = "/data/endf-b8.1"
+yani.transmutation_fission_yields = "/data/endf-b8.1"
+```
+
+A copy of every file a published release's `manifest.json` lists, from
+`https://yamc-data.xsplot.com/<keyword>/<release>/`, with the manifest itself
+at the top, is such a folder, and so is a release folder in the cache
+(`<cache dir>/<keyword>/<release>/`) for the files it holds.
+
+Nothing is downloaded. The manifest is read as a published release's is: a
+`format_version` this build does not read is refused with the advice to upgrade,
+and each file a load reads is checked against the size the manifest gives it. A
+subsection the manifest does not list is refused, naming the subsections the
+folder does carry, and so is a file the manifest lists that the folder does not
+hold. `TransmutationResults.data_releases` records the folder under its absolute
+path, with its `release` and `manifest_sha256`, and `offline` set to `False`.
+
+A load checks sizes only. `yani.verify_library` is the full check: it re-hashes
+every file the manifest lists and looks for files it does not list, which is
+worth running on a library kept for offline use or copied between machines:
+
+<!-- doctest: skip -->
+```python
+import pprint
+
+report = yani.verify_library("/data/irdff-ii")
+pprint.pprint(report, sort_dicts=False)
+```
+
+```text
+{'keyword': 'irdff-ii',
+ 'release': '2026-10-12.1',
+ 'format_version': 2,
+ 'manifest_sha256': '547003e2d63c167978be82915986206c581af7373c6f71ca0bb78732a1e182c5',
+ 'file_count': 3,
+ 'total_bytes': 6508798,
+ 'missing': [],
+ 'changed': [],
+ 'unlisted': [],
+ 'ok': True}
+```
+
+`ok` is `True` when `missing`, `changed` and `unlisted` are all empty. An
+unlisted file fails the check, because results identify the library by the
+manifest's sha256 and a file the manifest does not list is data that identity
+does not cover. A release folder in the cache holds only the files runs have
+downloaded, so the rest are reported missing.
+
+Wherever a reactions or fission-yields source resolves, the folder must hold
+`reactions.arrow` or `fission_yields.arrow`: one without it is refused, naming
+the folder, rather than read as a network with no reactions or no yields, which
+would make every rate through it zero. Set the subsection to `False` to leave
+it out. A bare name that is both a keyword and a folder in the working directory
+(`endf-b8.1` with a folder `./endf-b8.1` beside it) is refused rather than
+guessed at; write `./endf-b8.1` or an absolute path to mean the folder.
+
 To build the data yourself from ENDF tapes rather than download it, the
 converters ship on this wheel: see [Making your own data](#making-your-own-data).
 
@@ -816,6 +966,13 @@ yani.convert_branching(
     output_path="out/branching.arrow",
 )
 ```
+
+`convert_transmutation`, `convert_branching` and `radionuclide_production` read
+every material in each file, so a tape can be passed as it is published:
+JEFF-4.0's decay and fission yield tapes, or IRDFF-II's neutron tape of 70
+materials, need no splitting first. `convert_neutron_xs` runs NJOY in a hidden
+folder inside `output_dir`, removed when the conversion ends, so that disk, not
+the system's temporary folder, needs room for NJOY's tapes.
 
 Both network converters record which nuclides carry reactions of their own, as
 `parents` on each subsection of the manifest they write. A nuclide that appears
@@ -1231,6 +1388,10 @@ inventory gives no spread at all, and adding sigmas in quadrature double-counts
 a variance that partly cancels, since every Mn56 atom in an irradiated iron foil
 came out of an Fe56 atom. `mean` and `std_dev` are `None` below two replicas,
 because a spread over one sample is unmeasured rather than zero.
+
+With `displacement_damage=True`, the dpa and damage energy come with a band
+too, from `get_dpa_uncertainty` and `get_damage_energy_uncertainty`: see
+[Displacement damage](#displacement-damage).
 
 The decay photon spectrum comes back line by line, as `LineEstimate`s over the
 union of the lines the unperturbed run and every replica emit:
