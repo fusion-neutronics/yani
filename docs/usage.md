@@ -944,8 +944,108 @@ converters ship on this wheel: see [Making your own data](#making-your-own-data)
 
 ## Making your own data
 
-The wheel also carries the converters, so producing the Arrow data is a function
-call rather than a separate toolchain:
+The wheel carries the library builder and the converters, so producing the Arrow
+data is a function call rather than a separate toolchain.
+
+### A whole library
+
+`generate_library` builds one of the published libraries from its evaluated
+source archives into a folder laid out exactly as the published release, with its
+`manifest.json` written last:
+
+```python
+report = yani.generate_library("endf-b8.1", "/data/endf-b8.1")
+print(report["release"], report["file_count"], report["njoy"])
+```
+
+It downloads each source archive and checks it against the size and sha256 it is
+pinned to, unpacks it, converts every evaluation, builds the transmutation chain,
+reads every folder back, and writes each particle's `index.json` and then the
+manifest. The folder then serves every setting, as a downloaded release does
+(see [A whole library in one folder](#a-whole-library-in-one-folder)):
+
+```python
+yani.cross_section_data = "/data/endf-b8.1"
+yani.transmutation_decay_data = "/data/endf-b8.1"
+yani.transmutation_reactions = "/data/endf-b8.1"
+yani.transmutation_fission_yields = "/data/endf-b8.1"
+yani.transmutation_branch_ratios = "/data/endf-b8.1"
+```
+
+The libraries are `"endf-b8.1"`, `"jeff-4.0"`, `"jendl-5.0"`, `"tendl-2025"`,
+`"tendl-2017"`, `"fendl-3.2d"` and `"irdff-ii"`. Each is built from its own
+evaluations only, never with another library's data, so a library publishes the
+parts it can build from what it evaluates:
+
+| keyword | particles | transmutation parts |
+| --- | --- | --- |
+| `endf-b8.1`, `jendl-5.0` | neutron, photon | decay, reactions, fission_yields, branching |
+| `jeff-4.0` | neutron | decay, reactions, fission_yields, branching |
+| `tendl-2025`, `tendl-2017` | neutron, photonuclear | reactions, branching |
+| `fendl-3.2d` | neutron, photon | reactions, branching |
+| `irdff-ii` | none | branching |
+
+A library without decay data of its own (TENDL, FENDL, IRDFF-II) writes each
+excited product level of its branching as the evaluation gives it, by level and
+excitation energy, and a run names the isomer against the decay data it is given:
+TENDL branching run with `transmutation_decay_data = "endf-b8.1"` is matched to
+ENDF/B-VIII.1's isomers, and the branching report says so.
+
+The keyword arguments narrow a build, for testing or for the part you need:
+
+```python
+# The transmutation chain alone, which needs no NJOY and takes minutes.
+yani.generate_library("endf-b8.1", "/data/endf-b8.1-chain",
+                      parts=["decay", "reactions", "fission_yields", "branching"])
+
+# Two nuclides and an element (every Fe evaluation, and Fe photon data), at
+# two temperatures.
+yani.generate_library("endf-b8.1", "/data/endf-b8.1-few",
+                      nuclides=["Li6", "Li7", "Fe"], temperatures=[293.6, 600.0])
+```
+
+- `parts`: of `"neutron"`, `"photon"`, `"photonuclear"`, `"decay"`,
+  `"reactions"`, `"fission_yields"` and `"branching"`; the default is every part
+  the library's release carries, and a part it does not carry is refused.
+- `nuclides`: nuclides and element symbols. The chain is always built whole.
+- `temperatures`: in Kelvin, by default 250, 293.6, 600, 900, 1200 and 2500 K.
+  The 0 K grid is always kept.
+- `njoy_exec`: the NJOY to run. The default is the `njoy` the
+  [njoy2016](https://shimwell.github.io/wheels) wheel installs beside this
+  Python, then the one on PATH. Only neutron data needs NJOY; FENDL needs the
+  IAEA-NDS fork, and the builder refuses any other for it.
+- `downloads`: a folder of source archives fetched by hand, searched first.
+
+Running it again resumes: a folder finished for this release is kept and only the
+rest are converted, so an interrupted build continues where it stopped. The
+release stamp is the date the build started, kept on every resume. A folder holds
+one library built by one version of the package, and a resume by another is
+refused rather than mixed.
+
+No manifest is written unless every evaluation converted (or is one NJOY is known
+not to process, declared in the builder with the reason), every folder reads back,
+and the chain loads. An evaluation that fails is reported with its reason, which
+is also kept in `<path>/.build/failed/`, and running again retries only those.
+The returned dict says what the build did:
+
+- `keyword`, `release`, `path`, `parts`;
+- `converted` and `reused`: `"<particle>/<Name>"` keys;
+- `not_converted`: the declared failures, with NJOY's reason for each;
+- `stale_declarations`: declared failures that converted after all;
+- `njoy`: the NJOY version used, or `None`;
+- `chain_nuclides`, `manifest_sha256`, `file_count` and `total_bytes`.
+
+`verify_library` re-hashes the finished folder against its manifest, as for any
+library folder.
+
+A full build is long, most of it NJOY: on a 32-core machine about 50 minutes for
+ENDF/B-VIII.1, 9 hours for JENDL-5 and a day or more for each TENDL. The builder
+checks the free disk a full build needs before it starts.
+
+### Single evaluations
+
+The converters behind the builder take one evaluation, or one set of tapes, at a
+time:
 
 <!-- doctest: skip -->
 ```python
@@ -1004,7 +1104,9 @@ is what decides whether to publish:
 
 * `level_routes` counts how each excited production level was matched to an
   isomeric state: by energy, by energy within a tenth, by level index, as the
-  only candidate, or not at all. A level matched by index is right only while
+  only candidate, or not at all. Given no decay files, nothing is matched: each
+  level is written as the evaluation gives it (route `as_evaluated`) and a run
+  matches it against the decay data it is given. A level matched by index is right only while
   two level schemes happen to agree, so a rebuild against another decay library
   moving levels out of `energy` is the regression the plain counts hide.
 * `flagged_levels` is one line per level worth reading before publishing.
@@ -1046,6 +1148,19 @@ worth reading even when you do not act on it.
 
 `convert_neutron_transport` and `convert_photon` are present too, since all the
 wheels share one bindings crate, but they write sections only transport reads.
+`convert_photon` carries the Compton profile, density effect and bremsstrahlung
+tabulations it adds to every element (they are in no evaluation), so it takes the
+photo-atomic file and an output folder, and the same call gives the same data
+from yamc:
+
+```python
+yani.convert_photon("photoat-026_Fe_000.endf", "out/photon",
+                    relaxation_path="atom-026_Fe_000.endf")
+```
+
+`convert_photonuclear` keeps a photonuclear evaluation (TENDL's gamma
+sublibrary) as evaluated, its MF=3 cross sections on their own grids and every
+original section, without NJOY.
 
 NJOY is needed for the ENDF route and nothing avoids it: an ENDF evaluation
 describes the resonance region with resonance parameters rather than pointwise

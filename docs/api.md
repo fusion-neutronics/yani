@@ -68,6 +68,7 @@ covers, and what a sigma of zero does and does not mean, is in
 
 ## Making data
 
+::: yani.generate_library
 ::: yani.convert_neutron_xs
 ::: yani.convert_transmutation
 ::: yani.convert_branching
@@ -76,8 +77,7 @@ covers, and what a sigma of zero does and does not mean, is in
 The two below write sections only transport reads, so nothing here consumes
 their output. They are on this wheel so that a data-generation script works
 against either wheel, which the bindings repository pins with a parity test.
-`convert_photon` has to be given the three auxiliary tabulation paths, which
-yamc ships and this wheel does not.
+`convert_photon` carries its auxiliary tabulations, the same ones yamc's does.
 
 ::: yani.convert_neutron_transport
 ::: yani.convert_photon
