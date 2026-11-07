@@ -953,6 +953,7 @@ data is a function call rather than a separate toolchain.
 source archives into a folder laid out exactly as the published release, with its
 `manifest.json` written last:
 
+<!-- doctest: skip -->
 ```python
 report = yani.generate_library("endf-b8.1", "/data/endf-b8.1")
 print(report["release"], report["file_count"], report["njoy"])
@@ -964,6 +965,7 @@ reads every folder back, and writes each particle's `index.json` and then the
 manifest. The folder then serves every setting, as a downloaded release does
 (see [A whole library in one folder](#a-whole-library-in-one-folder)):
 
+<!-- doctest: skip -->
 ```python
 yani.cross_section_data = "/data/endf-b8.1"
 yani.transmutation_decay_data = "/data/endf-b8.1"
@@ -993,6 +995,7 @@ ENDF/B-VIII.1's isomers, and the branching report says so.
 
 The keyword arguments narrow a build, for testing or for the part you need:
 
+<!-- doctest: skip -->
 ```python
 # The transmutation chain alone, which needs no NJOY and takes minutes.
 yani.generate_library("endf-b8.1", "/data/endf-b8.1-chain",
@@ -1153,6 +1156,7 @@ tabulations it adds to every element (they are in no evaluation), so it takes th
 photo-atomic file and an output folder, and the same call gives the same data
 from yamc:
 
+<!-- doctest: skip -->
 ```python
 yani.convert_photon("photoat-026_Fe_000.endf", "out/photon",
                     relaxation_path="atom-026_Fe_000.endf")
