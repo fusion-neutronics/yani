@@ -5,15 +5,11 @@ inside the installed `yani-core` wheel. Classes appear under their public names
 (`yani.Material`, `yani.PulseSchedule`, ...) rather than the private `yani._core`
 extension module they live in.
 
-The members are named one by one rather than pulled in with a single
-`::: yani`, so that the page can group them by what they are for. Two parts of
-the module are deliberately left out: the `get_*`/`set_*` accessors behind the
-nuclear-data settings, which are documented as the settings themselves under
-[Nuclear data settings](usage.md#nuclear-data-settings), and the `data`,
-`materials`, `shapes` and `sources` submodules, whose contents appear in
-[Usage](usage.md) under the names you write them with, `yani.sources.Histogram`
-and `yani.shapes.FoilLump` rather than submodule pages of their own. The docs
-build fails if anything else on the module goes undocumented.
+The members are grouped by what they are for. The `get_*`/`set_*` accessors
+behind nuclear-data settings are documented as the settings themselves under
+[Nuclear data settings](usage.md#nuclear-data-settings). Public submodules are
+listed below under the names used in examples, such as
+`yani.sources.Histogram` and `yani.shapes.FoilLump`.
 
 ## Materials
 
@@ -29,6 +25,13 @@ build fails if anything else on the module goes undocumented.
 ::: yani.cooldown_steps
 ::: yani.PulseSchedule
 ::: yani.NeutronSource
+
+## Continuous processing
+
+Feeds, extraction and transfers are configured on one `Processing` and passed
+to the batch solver; see [Continuous processing](usage.md#continuous-processing).
+
+::: yani.Processing
 
 ## Results
 
@@ -104,3 +107,31 @@ The photonuclear readback validates its cross-section tables against the
 preserved MF=3 source rather than invoking either transport loader.
 
 ::: yani.read_photonuclear_from_arrow
+
+## Data helpers
+
+Cross-section inspection, dose and attenuation coefficients, available element
+and reaction names, and the nuclide cache are accessed through `yani.data`.
+
+::: yani.data
+
+## Material collections
+
+The bundled PNNL collection is available as `yani.materials.pnnl`; see
+[Materials](usage.md#materials) for selecting a composition.
+
+::: yani.materials
+
+## Source distributions
+
+The energy distributions used by irradiation spectra live in `yani.sources`.
+See [Spectra](usage.md#spectra) for setting a pulse's shape and flux magnitude.
+
+::: yani.sources
+
+## Self-shielding shapes
+
+The lump shapes passed to `Material.transmute()` control its resonance
+self-shielding correction; see [Self-shielding](usage.md#self-shielding).
+
+::: yani.shapes

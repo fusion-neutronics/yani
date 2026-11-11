@@ -312,6 +312,37 @@ for continuum in final.decay_photon_continua(per="cm3"):
     continuum.emission_rate    # photons/s/cm3, the integral
 ```
 
+### Inventory and gas-production diagnostics
+
+Composition getters include the initial state at index zero; `times` is the
+matching cumulative-time array. Unknown material IDs or states return `None`:
+
+```python
+print(results.material_ids, results.num_steps, results.times)
+co60 = results.get_nuclide_evolution(material_id=material.id, nuclide="Co60")
+state = results.get_material(material_id=material.id, step=1)
+if state is not None:
+  print(state.get_nuclide_names())
+
+gas = results.get_gas_production(material_id=material.id)
+if gas is not None:
+  print(list(zip(results.times, gas["H"], gas["He"])))
+screening = results.get_product_screening_info(material_id=material.id)
+if screening is not None:
+  print(screening["loaded"], screening["below_threshold"], screening["unavailable"])
+print(results.data_gaps)
+```
+
+Gas production is in appm, relative to the material's initial atom count.
+By default the initial gas is subtracted; `produced=False` returns the gas
+present, including what was there initially. A consumed gas can therefore have
+negative net production. A chain missing one of the five gas nuclides raises
+rather than reporting its unknown contribution as zero.
+
+Product screening omits the neutron reactions of sufficiently small products,
+not their production or decay. `data_gaps` reports missing-data assumptions
+separately, so a small or zero activity is not a substitute for checking it.
+
 ### Displacement damage
 
 `displacement_damage=True` also computes the damage the irradiation does to the
@@ -453,6 +484,46 @@ evaluation the same way in every material.
 `get_source_rates()` gives the rate each step drove a material at, zero for a
 cooldown. On a spectrum solve that is the material's own flux magnitude in
 n/cm²/s; on a yamc transport run it is the source strength in n/s.
+
+### Continuous processing
+
+`Processing` describes continuous feeds, extraction and transfers between
+materials during a step. Pass it to the batch `transmute()` function, not to
+`Material.transmute()`, so every source and destination is part of one solve:
+
+```python
+processing = yani.Processing()
+processing.add_transfer(
+  material=inner,
+  component="H3",
+  rate=1e-4,
+  rate_units="1/s",
+  destination=outer,
+)
+processing.add_feed(
+  material=inner,
+  composition={"Li6": 0.6, "Li7": 0.4},
+  rate=1e-3,
+  rate_units="g/s",
+  steps=[0],
+)
+processed = yani.transmute(
+  materials=[inner, outer], schedules=schedule, processing=processing,
+)
+print(processing.material_ids)
+```
+
+The transfer removes a fraction of the named component per second; omitting
+`destination` removes it from the system. An element name selects every isotope,
+and omitting `component` transfers the whole composition. Feed compositions are
+atom fractions, normalized internally. Absolute feed units such as `g/s`,
+`kg/d`, `mol/h` and `atoms/s` need the receiving material's volume.
+
+`steps` selects zero-based schedule steps. Omitted, a term applies to every
+step, including cooldowns. Rates can also be tables of `(times, rates)`, and
+`proportional_to="Li6"` makes a feed follow a nuclide's current inventory with
+rate units such as `1/s`; the full forms are in the
+[API reference](api.md#continuous-processing).
 
 ## Self-shielding
 
@@ -730,6 +801,40 @@ that drove no flux, for a nuclide or channel the data does not carry, for
 `(n,n')`, whose rate comes from the branching overlay rather than from a group
 average, and for a coupled yamc run, which scores its rates at the collision
 energy and keeps no group structure to resolve them onto.
+
+## Inspecting nuclear data
+
+The bundled names, natural abundances and nuclide-name parser need no nuclear
+data download:
+
+```python
+print(yani.data.element_names()["Fe"])
+print(yani.data.reaction_names()[102])
+print(yani.data.atomic_number("Fe"), yani.data.atomic_symbol(26))
+print(yani.data.split_nuclide("Ta180_m1"))
+print(yani.data.element_nuclides()["Li"])
+print(yani.data.natural_abundance()["Li6"])
+print(yani.data.natural_abundance_records()["Li6"])
+print(yani.cache_dir())
+```
+
+Natural-abundance records retain the reference's stated uncertainty or interval;
+an absent value is `None`, not zero. These reference uncertainties are not
+automatically propagated by a transmutation calculation.
+
+Converted data can be inspected without running a solve. Pass the individual
+nuclide or element directory written by the converter, not the library root:
+
+```python
+nuclide_info = yani.read_nuclide_from_arrow("converted/Fe56.arrow")
+element_info = yani.read_element_from_arrow("converted/Fe.arrow")
+print(nuclide_info, element_info)
+```
+
+For a long-running inspection process, `yani.data.clear_nuclide_cache()` clears
+the in-memory nuclide cache, not the downloaded files. Release data held by a
+material with `material.release_nuclear_data()` when the material is no longer
+needed for the current sweep.
 
 ## Nuclear data settings
 
@@ -1575,6 +1680,33 @@ rate with its standard deviation, as `(nuclide, reaction, target, rate,
 std_dev)` in 1/s per atom. The rates were scored by the same histories and are
 correlated; the inventory sigmas carry those correlations, and these standard
 deviations alone do not.
+
+### Reading ensemble diagnostics
+
+The density sigma, its sampling error and the replica noise are different
+quantities. After a run with `data_uncertainty`, inspect them explicitly:
+
+```python
+sigma_evolution = results.get_nuclide_uncertainty_evolution(
+  material_id=material.id, nuclide="Co60",
+)
+sigma_error = results.get_nuclide_uncertainty_standard_error(
+  material_id=material.id, nuclide="Co60", step=1,
+)
+replica_noise = results.get_nuclide_uncertainty_noise(
+  material_id=material.id, nuclide="Co60", step=1,
+)
+activity_estimate = results.get_activity_uncertainty(material_id=material.id, step=1)
+if activity_estimate is not None:
+  print(activity_estimate.std_dev, activity_estimate.std_dev_range)
+  print(activity_estimate.replica_spread, activity_estimate.noise_dominated)
+```
+
+The evolution includes the initial state, matching `get_nuclide_evolution()`.
+Unknown IDs or unavailable uncertainty results return `None`; they do not
+establish zero uncertainty. The noise tuple holds the replica spread and the
+Monte Carlo noise removed from it. `std_dev_range` describes how well the
+estimated sigma is settled, not a confidence interval on the physical value.
 
 ## Limits worth knowing
 
