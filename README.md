@@ -22,7 +22,7 @@ pip install yani
 import yani
 
 # flexible use of different libraries
-yani.cross_section_data = "tendl-2025"
+yani.neutron_cross_section_data = "tendl-2025"
 yani.transmutation_reactions = "tendl-2025"
 yani.transmutation_branch_ratios = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"

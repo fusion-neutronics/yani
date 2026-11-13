@@ -9,6 +9,11 @@ pip install yani
 The wheel carries the compiled solver, so there is nothing to build and no
 transport stack to pull in.
 
+`yani.__version__` gives the installed version, and `yani.__commit__` the full
+git hash the compiled extension was built from (`None` if that was not
+recorded). `yani.__commit_dirty__` is `True` when the build had uncommitted
+changes to tracked files. Quote all three when reporting a problem.
+
 If you would rather not install yet,
 [yani-online](https://fusion-neutronics.github.io/yani-online/) runs the same
 solver in your browser and will write the setup you build there back out as a
@@ -18,14 +23,14 @@ Python script.
 
 Two kinds of data are needed, and they are configured separately.
 
-**Cross sections**, for the `sigma * phi` reaction rates, come from a
+**Neutron cross sections**, for the `sigma * phi` reaction rates, come from a
 continuous-energy library:
 
 <!-- doctest: skip -->
 ```python
 import yani
 
-yani.cross_section_data = "tendl-2025"
+yani.neutron_cross_section_data = "tendl-2025"
 ```
 
 **The transmutation network**, for the decay constants, reaction products,
@@ -54,9 +59,9 @@ needs. Which does which, and how much is in each, is in
 
 Pointing a subsection at a library that does not publish it fails immediately,
 with a message listing what that library does have, rather than failing partway
-through a download. Forgetting `cross_section_data` fails too: it has no
-default, so an irradiation stops with a message naming the setting rather than
-running with no rates.
+through a download. Forgetting `neutron_cross_section_data` fails too: it has
+no default, so an irradiation stops with a message naming the setting rather
+than running with no rates.
 
 A keyword is all this page needs. Paths, per-nuclide dicts and where the
 download lands are in
@@ -70,7 +75,7 @@ An irradiation schedule, a spectrum, and one call:
 ```python
 import yani
 
-yani.cross_section_data = "tendl-2025"
+yani.neutron_cross_section_data = "tendl-2025"
 yani.transmutation_reactions = "tendl-2025"
 yani.transmutation_branch_ratios = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"      # TENDL has no decay data

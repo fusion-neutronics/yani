@@ -11,7 +11,7 @@ library. Releases, the cache layout and offline use are in
 ```python
 import yani
 
-yani.cross_section_data = "tendl-2025"
+yani.neutron_cross_section_data = "tendl-2025"
 yani.transmutation_reactions = "tendl-2025"
 yani.transmutation_decay_data = "endf-b8.1"
 yani.transmutation_fission_yields = "endf-b8.1"
@@ -30,8 +30,8 @@ Every setting also takes a path to a converted directory instead of a keyword,
 including a folder that holds a whole library laid out as a release, which
 serves every setting at once (see
 [A whole library in one folder](usage.md#a-whole-library-in-one-folder)), and
-`cross_section_data` takes a dict keyed by nuclide. Which setting does what,
-and what each one does when left alone, is in
+`neutron_cross_section_data` takes a dict keyed by nuclide. Which setting does
+what, and what each one does when left alone, is in
 [Nuclear data settings](usage.md#nuclear-data-settings). Only
 `transmutation_branch_ratios` has a default; the others are refused when a
 calculation reads them unset.

@@ -1,9 +1,9 @@
 # Usage
 
 The examples on this page assume the nuclear data settings are made, as in
-[Getting started](getting_started.md): `cross_section_data` and the three
-`transmutation_*` subsections have no default, and a calculation that reads an
-unset one is refused (see [Nuclear data settings](#nuclear-data-settings)).
+[Getting started](getting_started.md): `neutron_cross_section_data` and the
+three `transmutation_*` subsections have no default, and a calculation that
+reads an unset one is refused (see [Nuclear data settings](#nuclear-data-settings)).
 
 ## Schedules
 
@@ -842,7 +842,7 @@ Five module-level settings, read and written like attributes:
 
 | setting | supplies | decides | left unset |
 | --- | --- | --- | --- |
-| `cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
+| `neutron_cross_section_data` | continuous-energy cross sections per nuclide | how fast each channel runs | an irradiation is refused, naming the setting |
 | `transmutation_reactions` | which reaction on which nuclide gives which product, and its Q | which products exist to be made | none: a calculation that reads it is refused, naming the setting |
 | `transmutation_decay_data` | half-lives, decay modes, mean decay energies, photon lines | how the inventory decays and what it emits | none: a calculation that reads it is refused, naming the setting |
 | `transmutation_fission_yields` | fission product yields | what a fission makes | none: a calculation that reads it is refused, naming the setting |
@@ -855,6 +855,12 @@ process state, not per-call arguments. See
 [Nuclear data libraries](libraries.md) for which library publishes which
 subsection, and how much is in each.
 
+There is also a `photon_cross_section_data` setting, the same one yamc has, which
+selects photon interaction data for photon transport. No yani calculation reads
+it: the photon attenuation behind `contact_dose()` is the built-in NIST XCOM
+tabulation, so it can stay unset. It is independent of
+`neutron_cross_section_data`, and neither falls back to the other.
+
 Note which way the last column goes. Only `transmutation_branch_ratios` has a
 default. The other four name the data a result is made from, so none is chosen
 for you and nothing is downloaded from a library you did not pick: leave one
@@ -864,23 +870,23 @@ reads:
 
 | calculation | reads |
 | --- | --- |
-| a schedule with an irradiating step (`Material.transmute()`, `yani.transmute()`) | `cross_section_data` and all three `transmutation_*` subsections above |
+| a schedule with an irradiating step (`Material.transmute()`, `yani.transmute()`) | `neutron_cross_section_data` and all three `transmutation_*` subsections above |
 | a schedule that only cools, and `activity()`, `decay_heat()`, `contact_dose()`, `clearance_index()` and the other decay quantities | `transmutation_decay_data` |
 
 A decay-only schedule folds no cross sections and runs without
-`cross_section_data`.
+`neutron_cross_section_data`.
 
 ### The two that both say reactions
 
-`cross_section_data` and `transmutation_reactions` are halves of one calculation
-rather than alternatives, and the rate collapse is where they meet. For each
-nuclide, the network lists the channels it has; each channel's name is mapped to
-an MT number; and the cross sections are what that MT is priced with. So the
-network decides **which channels are considered at all** and the cross sections
-decide **how fast each one runs**. Neither substitutes for the other: swap the
-library behind `transmutation_reactions` and products appear or disappear, swap
-the one behind `cross_section_data` and the same products arrive at different
-rates.
+`neutron_cross_section_data` and `transmutation_reactions` are halves of one
+calculation rather than alternatives, and the rate collapse is where they meet.
+For each nuclide, the network lists the channels it has; each channel's name is
+mapped to an MT number; and the cross sections are what that MT is priced with.
+So the network decides **which channels are considered at all** and the cross
+sections decide **how fast each one runs**. Neither substitutes for the other:
+swap the library behind `transmutation_reactions` and products appear or
+disappear, swap the one behind `neutron_cross_section_data` and the same
+products arrive at different rates.
 
 Two consequences follow from that loop, one quiet and one not:
 
@@ -888,8 +894,8 @@ Two consequences follow from that loop, one quiet and one not:
   skipped. `(n,n')` is the standing example: it has no transport MT, so its rate
   comes from the branching overlay's partials rather than from a group average,
   which is why it is absent from a `get_reaction_rate_spectrum()` answer.
-* A missing `cross_section_data` is refused, per the column above, and so is a
-  network pointed at the wrong material: before the solve, naming what the
+* A missing `neutron_cross_section_data` is refused, per the column above, and
+  so is a network pointed at the wrong material: before the solve, naming what the
   material holds against what the network drives.
 
 `transmutation_reactions` and `transmutation_fission_yields` additionally accept
@@ -964,13 +970,13 @@ a keyword:
 yani.transmutation_reactions = "/data/my-network.arrow"
 ```
 
-`cross_section_data` additionally accepts a **dict** keyed by nuclide, to mix
-sources nuclide by nuclide. The four `transmutation_*` settings take a single
+`neutron_cross_section_data` additionally accepts a **dict** keyed by nuclide,
+to mix sources nuclide by nuclide. The four `transmutation_*` settings take a single
 value each, since a network is assembled per subsection rather than per nuclide:
 
 <!-- doctest: skip -->
 ```python
-yani.cross_section_data = {
+yani.neutron_cross_section_data = {
     "Fe56": "tendl-2025",
     "Li6": "endf-b8.1",
     "Be9": "/data/Be9.arrow",
@@ -986,7 +992,7 @@ each transmutation subsection from `transmutation/<subsection>.arrow/`:
 
 <!-- doctest: skip -->
 ```python
-yani.cross_section_data = "/data/endf-b8.1"
+yani.neutron_cross_section_data = "/data/endf-b8.1"
 yani.transmutation_decay_data = "/data/endf-b8.1"
 yani.transmutation_reactions = "/data/endf-b8.1"
 yani.transmutation_fission_yields = "/data/endf-b8.1"
@@ -1072,7 +1078,7 @@ manifest. The folder then serves every setting, as a downloaded release does
 
 <!-- doctest: skip -->
 ```python
-yani.cross_section_data = "/data/endf-b8.1"
+yani.neutron_cross_section_data = "/data/endf-b8.1"
 yani.transmutation_decay_data = "/data/endf-b8.1"
 yani.transmutation_reactions = "/data/endf-b8.1"
 yani.transmutation_fission_yields = "/data/endf-b8.1"

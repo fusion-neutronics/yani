@@ -68,10 +68,12 @@ jobs:
           # Deliberately undocumented, each for a reason. Anything not listed
           # here is expected on the page.
           UNDOCUMENTED = {
-              # The accessor pair behind each of the five nuclear-data
+              # The accessor pair behind each of the six nuclear-data
               # settings. The settings are the documented interface
-              # (`yani.cross_section_data = "tendl-2025"`); nobody calls these.
-              "get_cross_section_data", "set_cross_section_data",
+              # (`yani.neutron_cross_section_data = "tendl-2025"`); nobody
+              # calls these.
+              "get_neutron_cross_section_data", "set_neutron_cross_section_data",
+              "get_photon_cross_section_data", "set_photon_cross_section_data",
               "get_transmutation_reactions", "set_transmutation_reactions",
               "get_transmutation_decay_data", "set_transmutation_decay_data",
               "get_transmutation_fission_yields", "set_transmutation_fission_yields",

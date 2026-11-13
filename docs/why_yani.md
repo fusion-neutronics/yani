@@ -247,8 +247,8 @@ convenience for a handful of common cases, never a requirement. See
 **Local ENDF files, local Arrow files and premade Arrow files, in any
 combination.** Convert your own ENDF evaluations, point settings at your own
 converted directories, or use a downloaded keyword, and mix all three within
-one calculation: `cross_section_data` alone can be set per-nuclide, so one
-network can pull cross sections from a local file for the isotope you care
+one calculation: `neutron_cross_section_data` alone can be set per-nuclide, so
+one network can pull cross sections from a local file for the isotope you care
 about and from a downloaded library for everything else. See
 [Making your own data](usage.md#making-your-own-data) and
 [Nuclear data settings](usage.md#nuclear-data-settings).
